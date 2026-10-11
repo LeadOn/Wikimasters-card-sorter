@@ -4,3 +4,5 @@ node_modules
 *.log
 token.txt
 extract_token.js
+dry-run.json
+.playwright-mcp/

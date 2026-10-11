@@ -18,7 +18,7 @@ for (const uc of allCards) {
   
   if (idToCategory[uc.id]) continue; // Déjà fait manuellement
 
-  const regexTheme = categorize(uc.cards);
+  const regexTheme = categorize(uc.cards, uc.id)[0];
   if (regexTheme === "Autre") {
     missing.push(uc);
   }

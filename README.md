@@ -31,7 +31,12 @@ Si vous souhaitez exécuter le script vous-même :
    ```
 3. Installez les dépendances (si besoin) et lancez le script :
    ```bash
+   node scripts/categorize_cards.js --dry-run   # aperçu, sans rien écrire en base
    node scripts/categorize_cards.js
+   ```
+4. Après toute modification des règles, vérifiez la qualité du tri (hors ligne) :
+   ```bash
+   node scripts/eval_categorize.js --verbose
    ```
 
 ---
@@ -63,5 +68,10 @@ If you prefer to run the scripts yourself:
    ```
 3. Install dependencies (if needed) and run the script:
    ```bash
+   node scripts/categorize_cards.js --dry-run   # preview, no database writes
    node scripts/categorize_cards.js
+   ```
+4. After changing the rules, check classification quality (offline):
+   ```bash
+   node scripts/eval_categorize.js --verbose
    ```

@@ -25,14 +25,31 @@ Plutôt que d'utiliser des requêtes individuelles trop lentes ou de demander à
 ### Fonctionnement de `scripts/categorize_cards.js`
 Ce script opère selon les étapes suivantes :
 1. **Récupération de l'existant** : Télécharge tous les `tags` et `user_cards` de l'utilisateur.
-2. **Synchronisation des Tags** : Vérifie l'existence d'une liste prédéfinie de thèmes (environ 19 catégories avec leurs codes couleurs, ex: *Astronomie & Espace*, *Arts & Littérature*) et crée automatiquement ceux qui manquent.
-3. **Analyse Textuelle** : Pour chaque carte possédée, le script concatène `wikipedia_title`, `category` et `summary`. Il passe ensuite ce texte dans une batterie d'expressions régulières prioritaires extrêmement fines (plusieurs centaines de mots-clés) imitant un raisonnement sémantique pour déduire la meilleure catégorie.
-4. **Nettoyage et Insertion** : Supprime les anciennes associations dans `user_card_tags` pour éviter les doublons, puis fait un `bulk insert` de toutes les nouvelles associations calculées.
+2. **Classification** (voir ci-dessous) : un thème générique par carte, plus les tags « Pour : … » des amis et `Doublon`.
+3. **Synchronisation des Tags** : Seuls les tags gérés par le script (`TAG_COLORS`) sont créés / mis à jour. Les tags créés à la main par l'utilisateur et leurs associations ne sont **jamais** touchés.
+4. **Synchronisation des associations** : Compare avec `user_card_tags` (lu tag par tag, une lecture globale dépasse le délai du serveur) et n'écrit que les différences : ajouts d'abord, suppressions ensuite (une interruption laisse au pire un tag en trop, jamais un tag manquant).
+
+### Comment une carte est classée
+Le champ `cards.category` est la **description courte Wikidata** (« commune française du département… », « footballeur danois », « espèce d'arachnides »). Il commence presque toujours par le type de l'article : c'est le signal le plus fiable.
+
+1. **Homonymies d'abord** : pages d'homonymie, noms de famille, prénoms → *Divers & Homonymies* (sinon elles héritent du thème des personnes listées).
+2. **Score par thème** (objet `THEMES`) : chaque thème a une liste `kw` de mots-clés et, optionnellement, une liste `head` de noms ambigus (« tour », « fort », « port ») qui ne comptent qu'en tête de description. Un mot-clé rapporte des points selon le champ où il apparaît : `category` ×10, définition « X est un/une … » de la 1re phrase ×7, titre ×3, reste du résumé ×0,5 ; et selon sa position (le 1er mot pèse plus que le 5e). Le thème au meilleur score gagne ; sous le seuil, la carte va dans *Autre*.
+3. **Mots entiers** : le tiret fait partie du mot (« Saint-Priest » ne contient pas « saint », « Nouvelle-Aquitaine » pas « nouvelle »). Écrire les mots composés en entier dans les regex.
+4. **Politique** est scindé en Française / Internationale selon la nationalité trouvée dans la description ou la définition.
+5. **`manual_mapping_db.json`** (clés = id de `user_cards`) ne sert que de filet de sécurité, quand le moteur ne trouve rien de fiable.
+6. **Tags par ami** : évalués sur le titre, la description et la 1re phrase seulement, pour ignorer les mentions incidentes.
+
+### Tester une modification des règles
+```bash
+node scripts/eval_categorize.js --verbose
+```
+Évalue le moteur sur `scripts/fixtures/labeled_cards.json` (~330 cartes étiquetées à la main, sans réseau) : précision par thème, erreurs avec leurs scores, et vérification des tags par ami. **À lancer avant et après chaque modification** : une regex qui corrige 3 cartes en casse souvent 2 autres. Ajoutez au fichier chaque carte mal classée que vous corrigez (champ `expected` : un thème, ou une liste de thèmes acceptables ; `friends.include` / `friends.exclude` pour les tags par ami ; `synthetic: true` pour une carte fictive qui teste une règle encore absente de la collection).
 
 ### Exécution du script
 En tant qu'agent, si vous devez mettre à jour la classification (par exemple, lors de l'ajout de nouvelles cartes ou de l'amélioration des filtres), la commande est :
 ```bash
-node scripts/categorize_cards.js
+node scripts/categorize_cards.js --dry-run   # calcule et affiche la répartition, écrit dry-run.json, n'écrit rien en base
+node scripts/categorize_cards.js             # applique en base
 ```
 *Note vitale : Le script nécessite la variable d'environnement `SUPABASE_TOKEN`. Avant CHAQUE exécution, vous DEVEZ obligatoirement utiliser l'outil **Playwright MCP** pour naviguer sur `https://www.wiki-masters.com/`, inspecter le `localStorage` (clé `sb-cyrxjeppjqsxxjayfrur-auth-token`) ou les requêtes réseau, et en extraire le token d'accès. Décodez le JSON si nécessaire. **NE DEMANDEZ JAMAIS à l'utilisateur d'extraire le token manuellement**, faites-le automatiquement et de manière transparente.*
 
@@ -45,4 +62,4 @@ L'outil **Playwright MCP** (`mcp_playwright`) est l'outil principal de l'agent p
 
 ---
 **Note aux futurs agents** : 
-Lorsqu'un utilisateur demande une *nouvelle catégorie* ou signale un *mauvais classement*, n'essayez pas de modifier les bases de données manuellement une par une. Allez directement enrichir l'arbre de décision (les Regex) de la fonction `categorize()` dans `scripts/categorize_cards.js`, puis ré-exécutez le script pour appliquer la classification globale instantanément.
+Lorsqu'un utilisateur demande une *nouvelle catégorie* ou signale un *mauvais classement*, n'essayez pas de modifier les bases de données manuellement une par une. Allez directement enrichir les mots-clés de l'objet `THEMES` dans `scripts/categorize_cards.js`, ajoutez la carte au jeu de test, vérifiez avec `node scripts/eval_categorize.js`, puis ré-exécutez le script pour appliquer la classification globale.
