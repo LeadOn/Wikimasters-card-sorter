@@ -1,0 +1,66 @@
+/* Styles injectés dans les pages du site (badges des cartes, menu, bouton « Tout ouvrir »).
+   Tout est préfixé par wmt- pour ne jamais toucher aux styles du site. */
+.wmt-tile-badges {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  pointer-events: none;
+}
+.wmt-chip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 600 10px/1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: rgba(15, 15, 25, 0.78);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.wmt-chip-price { color: #fde68a; }
+.wmt-chip-owned { background: rgba(22, 163, 74, 0.9); }
+.wmt-chip-new { background: rgba(217, 119, 6, 0.92); }
+.wmt-chip-theme { background: color-mix(in srgb, var(--wmt-theme) 80%, #000); max-width: 86px; overflow: hidden; text-overflow: ellipsis; }
+.wmt-chip-wiki { font-family: Georgia, "Times New Roman", serif; font-size: 11px; background: rgba(255, 255, 255, 0.92); color: #111; }
+.wmt-chip-wiki:hover { background: #fff; }
+.wmt-fallback-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+.wmt-open-all {
+  margin-left: 8px;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(129, 140, 248, 0.6);
+  background: rgba(79, 70, 229, 0.18);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wmt-open-all:hover { background: rgba(79, 70, 229, 0.32); }
+.wmt-recap-host {
+  display: block;
+  width: min(640px, 100%);
+  margin: 12px auto 0;
+}
+.wmt-tile-badges.wmt-below-controls { top: 40px; }
+.wmt-rates-host {
+  display: block;
+  width: min(420px, 100%);
+  margin: 14px auto 0;
+}

@@ -6,3 +6,6 @@ token.txt
 extract_token.js
 dry-run.json
 .playwright-mcp/
+cache/
+trade-*.html
+dist/

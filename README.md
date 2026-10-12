@@ -1,4 +1,6 @@
-# Wikimasters - Card Categorization Scripts
+# WikiMasters Toolbox
+
+Extension de navigateur et scripts Node pour WikiMasters · Browser extension and Node scripts for WikiMasters
 
 [Français](#français) | [English](#english)
 
@@ -9,11 +11,35 @@
 Bienvenue dans les scripts de catégorisation de **Wikimasters** !  
 Ce projet contient un ensemble de scripts automatisés (Node.js) permettant de trier, catégoriser et "tagger" intelligemment votre collection de cartes Wikimasters sur la base de données Supabase.
 
-### 🎯 Fonctionnalités
+### 🧰 L'extension WikiMasters Toolbox
+
+Tous les outils de ce dépôt, directement dans wiki-masters.com : pas de Node, pas de token à copier, pas d'agent IA. Cahier des charges complet : [docs/cahier-des-charges.md](docs/cahier-des-charges.md).
+
+**Fonctionnalités**
+- **Tri automatique** : « Trier mes nouvelles cartes » (aperçu, puis application) et retri complet, avec le même moteur que les scripts ; étiquette `Doublon` ; vos étiquettes personnelles ne sont jamais touchées.
+- **Profils d'intérêts** : votre profil et ceux de vos amis (éditeur simple ou règles avancées) génèrent les étiquettes « Pour : … ». Partage par code `WMT-P1.…`, profils de la bande importables en un clic, test sur votre collection.
+- **Échanges** : les cartes d'un ami qui vous intéressent et les vôtres qui l'intéressent (collection en cache 12 h, lecture reprenable), proposition équilibrée en prix moyen, valeur des échanges en cours.
+- **Prix** : prix moyen de vente par rareté sur les cartes du site, chargement en masse par rareté, valeur de la collection, classement des plus chères.
+- **Marché** : vos enchères (surenchère en un clic avec confirmation, alerte de fin), vente de vos doublons.
+- **Paquets** : récapitulatif dans la page après la dernière carte (nouveautés, doublons, prix), tri automatique des cartes tirées (option), taux de drop par rareté, « Tout ouvrir » sur clic. Pas d'ouverture automatique.
+- **Familles** : groupes de cartes à compléter, manuels ou remplis par une recherche, partage par code, cartes manquantes en vente, conversion en étiquette.
+- **Cartes** : pastille du thème, prix, possédée / nouvelle, lien Wikipédia, image de remplacement (option).
+- Chaque fonctionnalité se désactive dans les Réglages. Aucune écriture sans clic, aucun serveur tiers.
+
+**Installation (mode développeur)**
+1. `npm install` puis `npm run build` (ou `npm run package` pour les `.zip`).
+2. Chrome / Edge / Brave / Opera : `chrome://extensions` → *Mode développeur* → *Charger l'extension non empaquetée* → dossier `dist/chrome`.
+   Firefox (128+) : `about:debugging#/runtime/this-firefox` → *Charger un module temporaire* → `dist/firefox/manifest.json`.
+3. Rechargez wiki-masters.com : l'entrée **Toolbox** apparaît dans le menu, et l'icône de l'extension ouvre les actions rapides.
+
+**Développement** : `npm run watch` (build continu), `npm test` (tests du moteur, sans réseau), `npm run eval` (qualité du classement). Les routes du site utilisées sont décrites dans [docs/site-api.md](docs/site-api.md).
+
+### 🎯 Fonctionnalités des scripts Node
 - **Catégorisation Intelligente** : Analyse sémantique des titres, catégories et résumés des cartes pour les classer avec précision (ex: Faune, Science, Histoire...).
 - **Tags Personnalisés** : Règles spécifiques pour attribuer des tags à certains profils ou préférences.
 - **Détection des Doublons** : Identification automatique des cartes en plusieurs exemplaires et attribution du tag `Doublon` (retiré quand il ne reste qu'un exemplaire).
 - **Tri incrémental** (`--new-only`) : ne trie que les nouvelles cartes et met à jour les doublons, sans toucher aux cartes déjà triées ni à vos corrections manuelles.
+- **Idées d'échanges** (`scripts/trade_finder.js <ami>`) : parcourt la collection d'un ami et liste les cartes qui correspondent à vos thèmes (votre tag « Pour : … », ou `--theme Sciences,Histoire`) que vous n'avez pas, ainsi que vos cartes qui l'intéresseraient. Rapport HTML dans `trade-<ami>.html`.
 - **Intégration d'IA (Agents)** : Les fichiers d'instructions (comme `AGENTS.md`) permettent à un assistant IA d'automatiser entièrement le processus, y compris la récupération de votre token de connexion.
 
 ### 🚀 Utilisation (Avec l'Agent IA)
@@ -76,11 +102,22 @@ Si la fenêtre Playwright n'est pas connectée à Wiki-Masters, l'IA vous demand
 Welcome to the **Wikimasters** categorization scripts!  
 This repository contains a set of automated Node.js scripts designed to smartly sort, categorize, and tag your Wikimasters card collection directly within the Supabase database.
 
-### 🎯 Features
+### 🧰 The WikiMasters Toolbox extension
+
+All the tools of this repository, right inside wiki-masters.com: no Node, no token to copy, no AI agent. Full specification (French): [docs/cahier-des-charges.md](docs/cahier-des-charges.md).
+
+**Features**: automatic sorting (new cards only, or a full re-sort, with a preview first) and `Doublon` tag · interest profiles for you and your friends ("Pour : …" tags, shareable codes) · trade finder with a balanced offer and the value of pending trades · average sale prices on cards, bulk loading, collection value, most valuable cards · your auctions (one-click outbid with confirmation, ending alert) and selling your duplicates · pack recap, pull statistics, "open all" on click (never automatic) · families (manual or search-based card sets, shareable codes) · card badges (theme, price, owned/new, Wikipedia link). Every feature can be turned off; nothing is written without a click; no third-party server.
+
+**Install (developer mode)**: `npm install && npm run build`, then load `dist/chrome` as an unpacked extension (`chrome://extensions`, developer mode), or `dist/firefox/manifest.json` as a temporary add-on in Firefox 128+. Reload wiki-masters.com: a **Toolbox** entry appears in the menu.
+
+**Development**: `npm run watch`, `npm test`, `npm run eval`. Site routes used: [docs/site-api.md](docs/site-api.md).
+
+### 🎯 Node script features
 - **Smart Categorization**: Semantic analysis of card titles, categories, and summaries to accurately classify them (e.g., Fauna, Science, History...).
 - **Custom Tags**: Specific rules to assign custom tags tailored to different profiles and preferences.
 - **Duplicate Detection**: Automatically identifies cards you own in multiple copies and flags them with a `Doublon` tag (removed once only one copy is left).
 - **Incremental sort** (`--new-only`): sorts only new cards and refreshes duplicates, without touching already sorted cards or your manual fixes.
+- **Trade ideas** (`scripts/trade_finder.js <friend>`): scans a friend's collection for cards matching your themes (your "Pour : …" tag, or `--theme Sciences,Histoire`) that you don't own, plus your cards they would like. HTML report in `trade-<friend>.html`.
 - **AI Agent Integration**: Instruction files (like `AGENTS.md`) allow an AI assistant to fully automate the process, including retrieving your session token.
 
 ### 🚀 Usage (With AI Agent)

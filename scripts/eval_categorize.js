@@ -2,7 +2,9 @@
 // Aucun accès réseau : à lancer après chaque modification des règles.
 //   node scripts/eval_categorize.js            → score + erreurs
 //   node scripts/eval_categorize.js --verbose  → + scores détaillés des erreurs
-const {categorize, explain} = require("./categorize_cards");
+const core = require("../core");
+const {explain} = core;
+const categorize = (card) => core.categorize(card, {profiles: core.BUILTIN_PROFILES});
 const cards = require("./fixtures/labeled_cards.json");
 
 const verbose = process.argv.includes("--verbose");

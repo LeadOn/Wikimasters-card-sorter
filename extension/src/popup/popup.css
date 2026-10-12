@@ -1,0 +1,22 @@
+:root {
+  --bg: #0d0e14;
+  --surface: #151722;
+  --surface-2: #1c1f2d;
+  --line: #2b2f42;
+  --fg: #eceef6;
+  --muted: #9aa1b6;
+  --accent: #6366f1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; width: 300px; background: var(--bg); color: var(--fg); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.head { display: flex; align-items: center; gap: 10px; }
+.logo { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, #4f46e5, #9333ea); display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #fff; }
+.title { font-weight: 700; }
+.sub { color: var(--muted); font-size: 12px; }
+button { width: 100%; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: inherit; font: inherit; font-weight: 600; cursor: pointer; text-align: left; padding: 0 12px; display: flex; align-items: center; gap: 9px; }
+button:hover { background: #252939; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid button { height: 34px; font-size: 13px; }
+.note { color: var(--muted); font-size: 12px; }

@@ -20,24 +20,31 @@ L'API de Supabase (`/rest/v1/`) est utilisée pour l'accès aux données. Les ta
 
 ## 3. Le Script de Classification Automatique
 
-Plutôt que d'utiliser des requêtes individuelles trop lentes ou de demander à un LLM de générer un mapping complexe à chaque fois, la logique de classification sémantique a été extraite et encodée dans un algorithme performant en Node.js : `scripts/categorize_cards.js`.
+Plutôt que d'utiliser des requêtes individuelles trop lentes ou de demander à un LLM de générer un mapping complexe à chaque fois, la logique de classification sémantique a été extraite et encodée dans un algorithme performant, le **moteur partagé `core/`** (sans dépendance, utilisé par les scripts Node, les tests et l'extension WikiMasters Toolbox) :
+- `core/themes.js` : thèmes génériques (`THEMES`, `THEME_COLORS`) ;
+- `core/engine.js` + `core/categorize.js` : score par thème, homonymies, politique FR / internationale ;
+- `core/builtin-profiles.js` : profils d'intérêts de la bande (tags « Pour : … »), format décrit dans `core/profiles.js` ;
+- `core/tag-sync.js` : plan de synchronisation des tags (fonctions pures) ;
+- `core/trade.js`, `core/prices.js`, `core/families.js`, `core/share-code.js` : échanges, prix, familles, codes de partage.
+
+`scripts/categorize_cards.js` est la CLI de tri au-dessus de ce moteur.
 
 ### Fonctionnement de `scripts/categorize_cards.js`
 Ce script opère selon les étapes suivantes :
 1. **Récupération de l'existant** : Télécharge tous les `tags` et `user_cards` de l'utilisateur.
 2. **Classification** (voir ci-dessous) : un thème générique par carte, plus les tags « Pour : … » des amis et `Doublon` (carte possédée en plusieurs exemplaires).
-3. **Synchronisation des Tags** : Seuls les tags gérés par le script (`TAG_COLORS`) sont créés / mis à jour. Les tags créés à la main par l'utilisateur et leurs associations ne sont **jamais** touchés.
+3. **Synchronisation des Tags** : Seuls les tags gérés (`TAG_COLORS` = `core.managedTags()` : thèmes, profils actifs, `Doublon`) sont créés / mis à jour. Les tags créés à la main par l'utilisateur et leurs associations ne sont **jamais** touchés.
 4. **Synchronisation des associations** (toute la collection, ou seulement les cartes non triées avec `--new-only`, voir plus bas) : Compare avec `user_card_tags` (lu tag par tag, une lecture globale dépasse le délai du serveur) et n'écrit que les différences : ajouts d'abord, suppressions ensuite (une interruption laisse au pire un tag en trop, jamais un tag manquant).
 
 ### Comment une carte est classée
 Le champ `cards.category` est la **description courte Wikidata** (« commune française du département… », « footballeur danois », « espèce d'arachnides »). Il commence presque toujours par le type de l'article : c'est le signal le plus fiable.
 
 1. **Homonymies d'abord** : pages d'homonymie, noms de famille, prénoms → *Divers & Homonymies* (sinon elles héritent du thème des personnes listées).
-2. **Score par thème** (objet `THEMES`) : chaque thème a une liste `kw` de mots-clés et, optionnellement, une liste `head` de noms ambigus (« tour », « fort », « port ») qui ne comptent qu'en tête de description. Un mot-clé rapporte des points selon le champ où il apparaît : `category` ×10, définition « X est un/une … » de la 1re phrase ×7, titre ×3, reste du résumé ×0,5 ; et selon sa position (le 1er mot pèse plus que le 5e). Le thème au meilleur score gagne ; sous le seuil, la carte va dans *Autre*.
+2. **Score par thème** (objet `THEMES` de `core/themes.js`) : chaque thème a une liste `kw` de mots-clés et, optionnellement, une liste `head` de noms ambigus (« tour », « fort », « port ») qui ne comptent qu'en tête de description. Un mot-clé rapporte des points selon le champ où il apparaît : `category` ×10, définition « X est un/une … » de la 1re phrase ×7, titre ×3, reste du résumé ×0,5 ; et selon sa position (le 1er mot pèse plus que le 5e). Le thème au meilleur score gagne ; sous le seuil, la carte va dans *Autre*.
 3. **Mots entiers** : le tiret fait partie du mot (« Saint-Priest » ne contient pas « saint », « Nouvelle-Aquitaine » pas « nouvelle »). Écrire les mots composés en entier dans les regex.
 4. **Politique** est scindé en Française / Internationale selon la nationalité trouvée dans la description ou la définition.
 5. **`manual_mapping_db.json`** (clés = id de `user_cards`) ne sert que de filet de sécurité, quand le moteur ne trouve rien de fiable.
-6. **Tags par ami** : évalués sur le titre, la description et la 1re phrase seulement, pour ignorer les mentions incidentes.
+6. **Tags par ami** : profils d'intérêts (`core/builtin-profiles.js` pour les scripts ; dans l'extension, chaque joueur gère ses profils et les partage par code). Règles évaluées sur le titre, la description et la 1re phrase seulement, pour ignorer les mentions incidentes. Une règle combine `theme`, `kw`, `field`, `with`, `unless`, `image`, `match` (voir `core/profiles.js`).
 
 ### Tester une modification des règles
 ```bash
@@ -69,6 +76,21 @@ node scripts/eval_categorize.js --verbose
 - Une exécution prend environ 2 minutes (lecture des associations tag par tag, la base est lente) : lancez-la avec un délai d'attente suffisant.
 - Workflow recommandé : `--dry-run` d'abord, relire la sortie, puis la même commande sans `--dry-run`.
 
+### Trouver des cartes à échanger avec un ami : `scripts/trade_finder.js`
+| Commande | Effet |
+|---|---|
+| `node scripts/trade_finder.js` | Liste les amis (pseudos du site) |
+| `node scripts/trade_finder.js <ami>` | Cartes de l'ami qui correspondent à mon tag `Pour : <mon pseudo>` (ou à ma liste de souhaits), et mes cartes à lui proposer |
+| `node scripts/trade_finder.js <ami> --theme "Sciences,Atome"` | Cherche ces thèmes génériques au lieu de mon tag (noms partiels acceptés) |
+| `… --rarity L,UR,SR` | Ne lit que ces raretés côté serveur (bien plus rapide). Raretés : `L`, `UR`, `SR`, `R`, `PC`, `C` |
+| `… --refresh` / `--limit N` | Ignore le cache / nombre de lignes par section dans la console |
+
+- **À demander** : cartes de l'ami que je ne possède pas, classées par le même moteur (`categorize()`), triées : liste de souhaits, puis cartes que l'ami a en plusieurs exemplaires, puis rareté. Les cartes engagées dans un échange en cours sont signalées.
+- **À proposer** : mes cartes que l'ami n'a pas et qui correspondent à son tag `Pour : <ami>` (sans tag pour lui : mes doublons qu'il n'a pas), mes doublons d'abord.
+- Le détail complet (images, filtres par thème, recherche) est écrit dans `trade-<ami>.html` (gitignoré).
+- **Accès** : la RLS de Supabase masque les `user_cards` des autres joueurs. Le script passe par les routes du site (`/api/friends`, `/api/profile/<pseudo>/collection?page=N&sort=rarity&rarity=…`), qui n'acceptent pas le header `Bearer` : il reconstruit le cookie de session `@supabase/ssr` à partir du token de `token.txt`. Ces routes renvoient 50 cartes par page, sans le résumé (lu ensuite dans la table `cards`), et répondent souvent en 500 / 525 : le script réessaie.
+- **Lenteur** : jusqu'à 30 s par page (≈ 20 min pour une collection de 16 000 cartes, 8 pages en parallèle). La collection est mise en cache page par page dans `cache/<ami>.json` (gitignoré, valable 12 h) : une exécution interrompue reprend là où elle s'est arrêtée. Lancez-la en arrière-plan, avec un token frais (il expire au bout d'1 h).
+
 ### Récupération du token (obligatoire avant chaque exécution)
 Le script lit le token dans la variable `SUPABASE_TOKEN` (ou le fichier `.env`), sinon dans `token.txt` à la racine (gitignoré). Le token expire **1 heure** après sa création : récupérez-en un nouveau avant chaque exécution.
 
@@ -95,9 +117,41 @@ Le script lit le token dans la variable `SUPABASE_TOKEN` (ou le fichier `.env`),
    ```
 
 ### Anciens scripts
-`apply_manual_mapping.js`, `llm_categorize.js`, `find_missing.js`, `find_remaining.js`, `find_true_missing.js` et les `scratch*.js` datent de la première version. Ils ne sont plus maintenus (pagination limitée à 1 000 cartes, alors que la collection en compte plus de 7 000) : n'utilisez que `categorize_cards.js` et `eval_categorize.js`.
+`apply_manual_mapping.js`, `llm_categorize.js`, `find_missing.js`, `find_remaining.js`, `find_true_missing.js` et les `scratch*.js` datent de la première version. Ils ne sont plus maintenus (pagination limitée à 1 000 cartes, alors que la collection en compte plus de 7 000) : n'utilisez que `categorize_cards.js`, `eval_categorize.js` et `trade_finder.js`.
 
-## 4. Intégration Playwright MCP
+## 4. Extension WikiMasters Toolbox (`extension/`)
+
+L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node ni token. Cahier des charges : `docs/cahier-des-charges.md` ; routes du site : `docs/site-api.md`.
+
+### Architecture
+- `extension/src/hook/main-world.js` : script du monde principal de la page. Observe (sans les modifier) les réponses que le site reçoit déjà (`/api/my-collection`, `/api/cards`, `/api/marketplace…`, `/api/trades`, `/api/packs/open`, …) et relève la clé publique Supabase ; transmet tout par `window.postMessage`.
+- `extension/src/content/` : application (monde isolé, Preact dans un Shadow DOM).
+  - `lib/` : session lue dans les cookies, requêtes avec réessais (`http.js` : lectures réessayées, **écritures jamais rejouées**, 429 respectés, `HumanCheckError` quand le site demande une vérification anti-robot), stockage `chrome.storage.local`, verrou entre onglets, bus d'événements, registre des cartes vues (par titre : le DOM du site n'expose pas les ids).
+  - `api/` : Supabase REST et routes `/api` du site.
+  - `state/` : réglages, profils, ma collection, cache des prix.
+  - `features/` : tri, échanges, marché, paquets, familles, intégration dans les pages (`site-dom.js` regroupe **tous** les sélecteurs du site).
+  - `ui/` : panneau et onglets.
+- `extension/src/popup/` : popup d'actions rapides.
+
+### Commandes
+| Commande | Effet |
+|---|---|
+| `npm run build` | `dist/chrome` et `dist/firefox` |
+| `npm run watch` | build continu |
+| `npm run package` | `.zip` Chrome et Firefox dans `dist/` |
+| `npm test` | tests du moteur (`tests/`, sans réseau) |
+| `node extension/make-icons.mjs` | régénère les icônes |
+
+### Tester sans installer l'extension
+Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai site : `npm run build && node extension/dev/make-inject.mjs`, puis, page wiki-masters.com ouverte et connectée, `page.addScriptTag({path: "<dépôt>/dist/dev-inject.js"})` via `browser_run_code_unsafe` (imitation de `chrome.storage` en mémoire, perdue au rechargement). Naviguez ensuite côté client (clic dans le menu) pour que le hook observe les réponses.
+
+### Règles
+- **Aucune écriture sans clic explicite du joueur**, avec confirmation pour les ventes, enchères, retri complet et « Tout ouvrir ». Ne lancez jamais vous-même une écriture (tri appliqué, vente, enchère, paquet) pendant un test sans l'accord de l'utilisateur.
+- **Pas d'ouverture automatique de paquets** ni de comportement qui imite un humain ou contourne une vérification du site.
+- Ne copiez aucun code d'une autre extension : les routes du site se relèvent dans son trafic ou son code client (`docs/site-api.md`).
+- Un changement du moteur se fait dans `core/` et profite aux scripts comme à l'extension : `npm test` + `node scripts/eval_categorize.js`.
+
+## 5. Intégration Playwright MCP
 
 L'outil **Playwright MCP** (`mcp_playwright`) est l'outil principal de l'agent pour :
 - **Récupérer le token de session automatiquement** avant chaque manipulation de la base de données (voir ci-dessus).
@@ -106,5 +160,5 @@ L'outil **Playwright MCP** (`mcp_playwright`) est l'outil principal de l'agent p
 
 ---
 **Note aux futurs agents** : 
-Lorsqu'un utilisateur demande une *nouvelle catégorie* ou signale un *mauvais classement*, n'essayez pas de modifier les bases de données manuellement une par une. Allez directement enrichir les mots-clés de l'objet `THEMES` dans `scripts/categorize_cards.js`, ajoutez la carte au jeu de test, vérifiez avec `node scripts/eval_categorize.js`, puis ré-exécutez le script **en mode complet** (sans `--new-only`, qui ne reclasse pas les cartes déjà triées) pour appliquer la classification globale.
+Lorsqu'un utilisateur demande une *nouvelle catégorie* ou signale un *mauvais classement*, n'essayez pas de modifier les bases de données manuellement une par une. Allez directement enrichir les mots-clés de l'objet `THEMES` dans `core/themes.js` (ou les profils dans `core/builtin-profiles.js`), ajoutez la carte au jeu de test, vérifiez avec `node scripts/eval_categorize.js` et `npm test`, puis ré-exécutez le script **en mode complet** (sans `--new-only`, qui ne reclasse pas les cartes déjà triées) pour appliquer la classification globale.
 Lorsqu'un utilisateur a simplement ouvert de nouveaux paquets ou veut « trier les nouvelles cartes / les doublons », utilisez `--new-only`.

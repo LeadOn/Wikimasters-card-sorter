@@ -1,6 +1,21 @@
 {
+  "name": "wikimasters-toolbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WikiMasters Toolbox : extension de navigateur et scripts de tri pour WikiMasters",
+  "scripts": {
+    "build": "node extension/build.mjs",
+    "watch": "node extension/build.mjs --watch",
+    "package": "node extension/build.mjs --zip",
+    "test": "node --test tests/",
+    "eval": "node scripts/eval_categorize.js"
+  },
   "dependencies": {
     "@google/genai": "^2.27.0",
-    "dotenv": "^18.0.6"
+    "dotenv": "^18.0.6",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
   }
 }
