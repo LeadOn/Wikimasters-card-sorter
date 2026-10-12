@@ -575,7 +575,62 @@ function printStats(assignments) {
   }
 }
 
-async function processCards({dryRun = false} = {}) {
+// Tags de thème générique (un seul par carte triée) : tout sauf les tags par ami et Doublon
+const isThemeTag = (name) => name !== "Doublon" && !name.startsWith("Pour : ");
+
+// Associations actuelles d'un tag. Lecture tag par tag : une lecture globale dépasse le délai du serveur.
+async function readTagged(tagId) {
+  const rows = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${tagId}`);
+  return new Set(rows.map((r) => r.user_card_id));
+}
+
+// Calcule les associations à ajouter / supprimer (par nom de tag : un tag peut ne pas encore exister).
+// Mode complet : toutes les cartes sont resynchronisées sur le résultat du moteur.
+// Mode newOnly : seules les cartes sans tag de thème (jamais triées) sont classées ; les cartes
+// déjà triées gardent leurs tags (corrections manuelles comprises), sauf Doublon, recalculé partout.
+async function planChanges(assignments, existingTags, {newOnly}) {
+  const wanted = Object.fromEntries(Object.keys(TAG_COLORS).map((name) => [name, new Set()]));
+  for (const {userCard, tags} of assignments) for (const t of tags) wanted[t].add(userCard.id);
+
+  // Plusieurs tags peuvent porter le même nom : le 1er est conservé, les autres sont des doublons à supprimer
+  const idsByName = {};
+  for (const tag of existingTags) if (tag.name in TAG_COLORS) (idsByName[tag.name] ||= []).push(tag.id);
+
+  console.log("Reading current automatic tag assignments...");
+  const current = new Map();
+  for (const ids of Object.values(idsByName)) for (const id of ids) current.set(id, await readTagged(id));
+
+  let fresh = null;
+  let inScope = () => true;
+  let mayDelete = () => true;
+  if (newOnly) {
+    const sorted = new Set();
+    for (const [name, ids] of Object.entries(idsByName))
+      if (isThemeTag(name)) for (const id of ids) for (const ucId of current.get(id)) sorted.add(ucId);
+    fresh = new Set(assignments.map((a) => a.userCard.id).filter((id) => !sorted.has(id)));
+    inScope = (name, ucId) => name === "Doublon" || fresh.has(ucId);
+    mayDelete = (name) => name === "Doublon";
+  }
+
+  const toInsert = [];
+  const toDelete = [];
+  const extraTagIds = [];
+  for (const [name, want] of Object.entries(wanted)) {
+    const [primary, ...extras] = idsByName[name] || [];
+    const have = current.get(primary) || new Set();
+    for (const id of want) if (!have.has(id) && inScope(name, id)) toInsert.push({name, userCardId: id});
+    const stale = [...have].filter((id) => !want.has(id) && inScope(name, id) && mayDelete(name));
+    if (stale.length) toDelete.push({name, tagId: primary, ids: stale});
+    if (newOnly) continue;
+    for (const id of extras) {
+      if (current.get(id).size) toDelete.push({name, tagId: id, ids: [...current.get(id)]});
+      extraTagIds.push(id);
+    }
+  }
+  return {fresh, toInsert, toDelete, extraTagIds};
+}
+
+async function processCards({dryRun = false, newOnly = false} = {}) {
   console.log("Fetching tags and cards...");
   const existingTags = await api("tags?select=*");
   const userCards = await fetchAll("user_cards?select=*,cards(*)");
@@ -583,11 +638,26 @@ async function processCards({dryRun = false} = {}) {
   if (!userId) throw new Error("Impossible de déterminer l'utilisateur (aucun tag ni carte).");
 
   const assignments = computeAssignments(userCards);
-  console.log(`${userCards.length} cartes classées :`);
-  printStats(assignments);
+  const {fresh, toInsert, toDelete, extraTagIds} = await planChanges(assignments, existingTags, {newOnly});
+  const scoped = fresh ? assignments.filter((a) => fresh.has(a.userCard.id)) : assignments;
+  console.log(
+    fresh
+      ? `${fresh.size} carte(s) non triée(s) sur ${userCards.length} :`
+      : `${userCards.length} cartes classées :`,
+  );
+  printStats(scoped);
+
+  const title = new Map(userCards.map((uc) => [uc.id, uc.cards?.wikipedia_title]));
+  if (fresh) for (const {userCard, tags} of scoped) console.log(`  + ${userCard.cards.wikipedia_title} → ${tags.join(", ")}`);
+  const doublonAdds = toInsert.filter((i) => i.name === "Doublon" && !fresh?.has(i.userCardId));
+  const doublonDels = toDelete.filter((d) => d.name === "Doublon").flatMap((d) => d.ids);
+  for (const i of doublonAdds) console.log(`  + Doublon : ${title.get(i.userCardId)}`);
+  for (const id of doublonDels) console.log(`  - Doublon : ${title.get(id)}`);
+  const deleteCount = toDelete.reduce((n, d) => n + d.ids.length, 0);
+  console.log(`${toInsert.length} association(s) à ajouter, ${deleteCount} à supprimer.`);
 
   if (dryRun) {
-    const report = assignments.map(({userCard: uc, tags}) => ({
+    const report = scoped.map(({userCard: uc, tags}) => ({
       user_card_id: uc.id,
       title: uc.cards.wikipedia_title,
       category: uc.cards.category,
@@ -601,53 +671,34 @@ async function processCards({dryRun = false} = {}) {
 
   // Seuls les tags gérés par ce script (TAG_COLORS) sont mis à jour : les tags créés
   // à la main par l'utilisateur et leurs associations ne sont jamais touchés.
-  const tagMap = {};
-  const duplicateTagIds = [];
-  for (const tag of existingTags) {
-    if (!(tag.name in TAG_COLORS)) continue;
-    if (tagMap[tag.name]) duplicateTagIds.push(tag.id);
-    else tagMap[tag.name] = tag.id;
-  }
   const unmanaged = existingTags.filter((t) => !(t.name in TAG_COLORS)).map((t) => t.name);
   if (unmanaged.length) console.log(`Tags personnels conservés : ${unmanaged.join(", ")}`);
 
+  const tagMap = {};
+  for (const tag of existingTags) if (tag.name in TAG_COLORS && !tagMap[tag.name]) tagMap[tag.name] = tag;
   for (const [name, color] of Object.entries(TAG_COLORS)) {
-    if (tagMap[name]) {
-      const tag = existingTags.find((t) => t.id === tagMap[name]);
-      if (tag.color !== color)
-        await api(`tags?id=eq.${tag.id}`, {method: "PATCH", body: JSON.stringify({color})});
+    const tag = tagMap[name];
+    if (tag) {
+      if (tag.color !== color) await api(`tags?id=eq.${tag.id}`, {method: "PATCH", body: JSON.stringify({color})});
       continue;
     }
+    // Pas de tag vide en mode --new-only (un ancien tag supprimé à la main n'est pas recréé pour rien)
+    if (newOnly && !toInsert.some((i) => i.name === name)) continue;
     const [created] = await api("tags?select=*", {
       method: "POST",
       headers: {Prefer: "return=representation"},
       body: JSON.stringify({user_id: userId, name, color}),
     });
-    tagMap[name] = created.id;
+    tagMap[name] = created;
   }
 
   // On n'écrit que les différences avec l'existant (la base est lente et une suppression
   // massive peut dépasser le délai du serveur). Ajouts d'abord, suppressions ensuite :
   // si le script s'interrompt, une carte a au pire un tag en trop, jamais un tag en moins.
-  // Les associations sont lues tag par tag : une lecture globale dépasse le délai du serveur.
-  console.log("Reading current automatic tag assignments...");
-  const desired = new Map([...Object.values(tagMap), ...duplicateTagIds].map((id) => [id, new Set()]));
-  for (const {userCard, tags} of assignments)
-    for (const t of tags) desired.get(tagMap[t]).add(userCard.id);
-  const toInsert = [];
-  const toDelete = [];
-  for (const [tagId, wanted] of desired) {
-    const rows = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${tagId}`);
-    const current = new Set(rows.map((r) => r.user_card_id));
-    for (const id of wanted) if (!current.has(id)) toInsert.push({user_card_id: id, tag_id: tagId});
-    const stale = [...current].filter((id) => !wanted.has(id));
-    if (stale.length) toDelete.push({tagId, ids: stale});
-  }
-  console.log(`${toInsert.length} association(s) à ajouter, ${toDelete.reduce((n, d) => n + d.ids.length, 0)} à supprimer.`);
-
+  const rows = toInsert.map((i) => ({user_card_id: i.userCardId, tag_id: tagMap[i.name].id}));
   let failed = 0;
-  for (let i = 0; i < toInsert.length; i += 100) {
-    const chunk = toInsert.slice(i, i + 100);
+  for (let i = 0; i < rows.length; i += 100) {
+    const chunk = rows.slice(i, i + 100);
     try {
       await api("user_card_tags", {
         method: "POST",
@@ -677,13 +728,16 @@ async function processCards({dryRun = false} = {}) {
       await api(`user_card_tags?tag_id=eq.${tagId}&user_card_id=in.(${chunk})`, {method: "DELETE"});
     }
   }
-  for (const id of duplicateTagIds) await api(`tags?id=eq.${id}`, {method: "DELETE"});
+  for (const id of extraTagIds) await api(`tags?id=eq.${id}`, {method: "DELETE"});
 
   console.log(failed ? `Terminé avec ${failed} ajout(s) en échec.` : "Synchronisation terminée.");
 }
 
 if (require.main === module)
-  processCards({dryRun: process.argv.includes("--dry-run")}).catch((e) => {
+  processCards({
+    dryRun: process.argv.includes("--dry-run"),
+    newOnly: process.argv.includes("--new-only"),
+  }).catch((e) => {
     console.error(e);
     process.exitCode = 1;
   });
