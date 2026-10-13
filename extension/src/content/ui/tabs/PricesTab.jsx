@@ -3,7 +3,7 @@ import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {loadMyCollection} from "../../state/collection";
 import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../../state/prices";
-import {CardRow, Paged, Progress, Notice, fmt, plural} from "../components";
+import {CardRow, Money, Paged, Progress, Notice, fmt, plural} from "../components";
 import {toast, errorMessage} from "../feedback";
 import {RARITIES, RARITY_LABEL, categorize} from "../../../../../core";
 
@@ -83,10 +83,10 @@ export function PricesTab() {
       {copies && (
         <>
           <div class="grid-stats">
-            <div class="stat"><div class="k">Valeur estimée</div><div class="v">{fmt(total)} ₩</div></div>
+            <div class="stat"><div class="k">Valeur estimée</div><div class="v"><Money v={total} /></div></div>
             <div class="stat"><div class="k">Exemplaires avec un prix</div><div class="v">{fmt(pricedCopies)} / {fmt(allCopies)}</div></div>
             {byRarity.filter((b) => b.copies).slice(0, 4).map((b) => (
-              <div class="stat" key={b.r}><div class="k">{RARITY_LABEL[b.r]}</div><div class="v">{fmt(b.value)} ₩</div></div>
+              <div class="stat" key={b.r}><div class="k">{RARITY_LABEL[b.r]}</div><div class="v"><Money v={b.value} /></div></div>
             ))}
           </div>
 

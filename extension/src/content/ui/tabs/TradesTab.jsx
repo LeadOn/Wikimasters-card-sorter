@@ -240,7 +240,7 @@ export function TradesTab() {
                   setSelected(next);
                   setBalance(null);
                 }}
-                badges={[c.wished && {label: "♥ souhaitée", type: "danger"}, c.spare && {label: `${c.count} ex.`, type: "ok"}, c.is_shiny && {label: "✨ shiny", type: "warn"}, c.pending && {label: "échange en cours", type: "warn"}]}
+                badges={[c.wished && {label: "souhaitée", type: "danger", icon: "heart"}, c.spare && {label: `${c.count} ex.`, type: "ok"}, c.is_shiny && {label: "shiny", type: "warn", icon: "shine"}, c.pending && {label: "échange en cours", type: "warn"}]}
               />
             )}
           />

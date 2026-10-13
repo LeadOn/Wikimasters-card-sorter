@@ -1,9 +1,10 @@
-// Génère les icônes PNG de l'extension (deux cartes empilées sur un fond dégradé).
+// Génère les icônes PNG de l'extension : la marque (fiche à onglet, src/shared/brand.mjs) sur une tuile graphite.
 //   node extension/make-icons.mjs
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import {fileURLToPath} from "node:url";
+import {BRAND, MARK} from "./src/shared/brand.mjs";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "static", "icons");
 fs.mkdirSync(out, {recursive: true});
@@ -46,27 +47,33 @@ function roundRect(x, y, cx, cy, w, h, r, angle = 0) {
   return Math.hypot(Math.max(px, 0), Math.max(py, 0)) + Math.min(Math.max(px, py), 0) - r;
 }
 
-// pad : marge transparente (le Chrome Web Store recommande 16 px autour d'un dessin de 96 px en 128 px)
-function render(size, pad = 0) {
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).concat(255);
+const GRAPHITE = hex(BRAND.graphite);
+const BONE = hex(BRAND.bone);
+const LIME = hex(BRAND.lime);
+// Marque centrée sur la grille de 24 (sa boîte va de x = 5 à 19,5)
+const SHIFT_X = (MARK.card[0] + MARK.tab[0] + MARK.tab[2]) / 2 - 12;
+const inRect = (x, y, [rx, ry, w, h, r]) => roundRect(x, y, rx + w / 2, ry + h / 2, w, h, r) <= 0;
+
+// Tuile graphite arrondie, la marque au centre. margin : marge transparente (le Chrome Web Store
+// recommande 16 px autour d'un dessin de 96 px en 128 px) ; pad : marge de la marque dans la tuile,
+// plus faible aux petites tailles pour qu'elle reste lisible.
+function render(size, {margin = 0, pad}) {
   const ss = 4;
-  const inner = size - 2 * pad;
+  const inner = size - 2 * margin;
   const buf = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
       let acc = [0, 0, 0, 0];
       for (let sy = 0; sy < ss; sy++)
         for (let sx = 0; sx < ss; sx++) {
-          const u = (x + (sx + 0.5) / ss - pad) / inner, v = (y + (sy + 0.5) / ss - pad) / inner;
+          const u = (x + (sx + 0.5) / ss - margin) / inner, v = (y + (sy + 0.5) / ss - margin) / inner;
           let col = [0, 0, 0, 0];
-          if (roundRect(u, v, 0.5, 0.5, 1, 1, 0.22) <= 0) {
-            const t = (u + v) / 2;
-            col = [79 + (147 - 79) * t, 70 + (51 - 70) * t, 229 + (234 - 229) * t, 255];
-            if (roundRect(u, v, 0.43, 0.53, 0.42, 0.56, 0.06, -0.26) <= 0) col = [199, 210, 254, 255];
-            if (roundRect(u, v, 0.57, 0.49, 0.42, 0.56, 0.06, 0.12) <= 0) {
-              col = [255, 255, 255, 255];
-              if (roundRect(u, v, 0.57, 0.42, 0.3, 0.24, 0.03, 0.12) <= 0) col = [251, 191, 36, 255];
-              if (roundRect(u, v, 0.585, 0.64, 0.26, 0.04, 0.02, 0.12) <= 0) col = [129, 140, 248, 255];
-            }
+          if (roundRect(u, v, 0.5, 0.5, 1, 1, 0.23) <= 0) {
+            col = GRAPHITE;
+            const mx = ((u - pad) / (1 - 2 * pad)) * 24 + SHIFT_X, my = ((v - pad) / (1 - 2 * pad)) * 24;
+            if (inRect(mx, my, MARK.tab)) col = LIME;
+            if (inRect(mx, my, MARK.card)) col = BONE;
           }
           acc = acc.map((a, i) => a + col[i]);
         }
@@ -76,6 +83,8 @@ function render(size, pad = 0) {
   return png(size, buf);
 }
 
-for (const size of [16, 32, 48]) fs.writeFileSync(path.join(out, `${size}.png`), render(size));
-fs.writeFileSync(path.join(out, "128.png"), render(128, 16));
+fs.writeFileSync(path.join(out, "16.png"), render(16, {pad: 0.08}));
+fs.writeFileSync(path.join(out, "32.png"), render(32, {pad: 0.12}));
+fs.writeFileSync(path.join(out, "48.png"), render(48, {pad: 0.14}));
+fs.writeFileSync(path.join(out, "128.png"), render(128, {margin: 16, pad: 0.16}));
 console.log("Icônes générées dans", out);

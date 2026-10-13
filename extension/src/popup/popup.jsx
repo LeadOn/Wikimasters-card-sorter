@@ -1,6 +1,8 @@
 // Popup de l'extension : actions rapides sur l'onglet WikiMasters actif.
 import {render} from "preact";
 import {useEffect, useState} from "preact/hooks";
+import {Icon, Mark} from "../shared/Brand";
+import fontsCss from "../shared/fonts.css";
 import css from "./popup.css";
 
 const ext = globalThis.browser?.runtime?.id ? globalThis.browser : globalThis.chrome;
@@ -37,10 +39,10 @@ function Popup() {
   return (
     <div class="wrap">
       <div class="head">
-        <div class="logo">WM</div>
+        <Mark size={24} />
         <div>
           <div class="title">WikiMasters Toolbox</div>
-          <div class="sub">{onSite ? (status?.connected ? `Connecté : ${status.username || "joueur"}` : status ? "Non connecté à WikiMasters" : "…") : "Ouvrez WikiMasters pour commencer"}</div>
+          <div class="sub">{onSite ? (status?.connected ? `connecté · ${status.username || "joueur"}` : status ? "non connecté à WikiMasters" : "…") : "ouvrez WikiMasters pour commencer"}</div>
         </div>
       </div>
       {!onSite && (
@@ -50,15 +52,30 @@ function Popup() {
       )}
       {onSite && status?.connected && (
         <>
-          <button class="primary" onClick={() => send({type: "sort-new"})}>🗂️ Trier mes nouvelles cartes</button>
-          <button onClick={() => send({type: "open-panel"})}>🧰 Ouvrir la Toolbox</button>
+          <button class="primary" onClick={() => send({type: "sort-new"})}>
+            <Icon name="sort" size={16} /> Trier mes nouvelles cartes
+          </button>
+          <button onClick={() => send({type: "open-panel"})}>
+            <Mark size={16} /> Ouvrir la Toolbox
+          </button>
           <div class="grid">
-            <button onClick={() => send({type: "open-panel", tab: "trades"})}>🔁 Échanges</button>
-            <button onClick={() => send({type: "open-panel", tab: "market"})}>🔨 Enchères</button>
-            <button onClick={() => send({type: "open-panel", tab: "prices"})}>💰 Prix</button>
-            <button onClick={() => send({type: "open-panel", tab: "families"})}>🧩 Familles</button>
+            <button onClick={() => send({type: "open-panel", tab: "trades"})}>
+              <Icon name="trades" size={16} /> Échanges
+            </button>
+            <button onClick={() => send({type: "open-panel", tab: "market"})}>
+              <Icon name="market" size={16} /> Enchères
+            </button>
+            <button onClick={() => send({type: "open-panel", tab: "prices"})}>
+              <Icon name="prices" size={16} /> Prix
+            </button>
+            <button onClick={() => send({type: "open-panel", tab: "families"})}>
+              <Icon name="families" size={16} /> Familles
+            </button>
           </div>
-          <button onClick={() => send({type: "open-all"})}>🎴 Tout ouvrir{status.packs != null ? ` (${status.packs})` : ""}</button>
+          <button onClick={() => send({type: "open-all"})}>
+            <Icon name="packs" size={16} /> Tout ouvrir
+            {status.packs != null && <span class="n">{status.packs}</span>}
+          </button>
         </>
       )}
       {error && <div class="note">{error}</div>}
@@ -67,6 +84,7 @@ function Popup() {
 }
 
 const style = document.createElement("style");
-style.textContent = css;
+// Page de l'extension : les polices sont servies à côté de popup.html
+style.textContent = fontsCss.replaceAll("__FONTS__", "fonts/") + css;
 document.head.append(style);
 render(<Popup />, document.getElementById("app"));

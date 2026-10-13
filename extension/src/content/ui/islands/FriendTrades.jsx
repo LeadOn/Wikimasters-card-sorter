@@ -7,7 +7,7 @@ import {readSession} from "../../lib/session";
 import {tradeState, findTradesWith} from "../../features/trades";
 import {profiles, profileFor, newId} from "../../state/profiles";
 import {priceOf, priceVersion} from "../../state/prices";
-import {CardRow, Progress, Notice, fmt, timeAgo} from "../components";
+import {CardRow, Mark, Progress, Notice, fmt, timeAgo} from "../components";
 import {RARITIES, BUILTIN_PROFILES} from "../../../../../core";
 
 const SHOWN = 6;
@@ -60,7 +60,7 @@ export function FriendTrades({username}) {
   return (
     <section class="island" aria-label="Échanges WikiMasters Toolbox">
       <div class="island-head">
-        <div class="logo">WM</div>
+        <Mark size={22} />
         <div>
           <div class="island-title">Échanges avec {username}</div>
           <div class="island-sub">
@@ -125,7 +125,7 @@ export function FriendTrades({username}) {
               title="À lui demander"
               items={r.toAsk}
               empty="Aucune de ses cartes ne correspond à ce que vous cherchez."
-              badges={(c) => [c.wished && {label: "♥ souhaitée", type: "danger"}, c.spare && {label: `${c.count} ex.`, type: "ok"}, c.pending && {label: "échange en cours", type: "warn"}]}
+              badges={(c) => [c.wished && {label: "souhaitée", type: "danger", icon: "heart"}, c.spare && {label: `${c.count} ex.`, type: "ok"}, c.pending && {label: "échange en cours", type: "warn"}]}
             />
             <Column
               title="À lui proposer"

@@ -21,7 +21,7 @@ import {
   familyFromTag,
   myTags,
 } from "../../features/families";
-import {CardRow, Paged, Progress, Notice, Copyable, fmt, plural, duration} from "../components";
+import {CardRow, Icon, Paged, Progress, Notice, Copyable, fmt, plural, duration} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {THEME_COLORS, RARITIES, familyProgress} from "../../../../../core";
 
@@ -211,8 +211,10 @@ function FamilyDetail({family, onBack}) {
   return (
     <div class="stack">
       <div class="row">
-        <button class="btn ghost" onClick={onBack}>← Familles</button>
-        <h2 style={{flex: 1, fontSize: "20px"}}>{family.name}</h2>
+        <button class="btn ghost" onClick={onBack}>
+          <Icon name="back" size={16} /> Familles
+        </button>
+        <h2 class="section-title" style={{flex: 1, fontSize: "20px"}}>{family.name}</h2>
         <span class="chip accent">{family.kind === "smart" ? "Intelligente" : "Manuelle"}</span>
       </div>
       <div class="box stack">
@@ -259,11 +261,17 @@ function FamilyDetail({family, onBack}) {
             key={c.id}
             card={{...c, wikipedia_title: c.title}}
             price={priceOf(c.id, c.rarity)}
-            badges={[ids.has(c.id) ? {label: "✓ possédée", type: "ok"} : {label: "manquante", type: "warn"}, family.cover === c.id && {label: "★ couverture", type: "accent"}]}
+            badges={[ids.has(c.id) ? {label: "possédée", type: "ok", icon: "check"} : {label: "manquante", type: "warn"}, family.cover === c.id && {label: "couverture", type: "accent", icon: "star"}]}
             action={
-              <span class="row" style={{gap: "4px"}}>
-                <button class="btn sm ghost" title="Image de la famille" onClick={() => setCover(family.id, c.id)}>★</button>
-                {family.kind === "manual" && <button class="btn sm ghost" title="Retirer" onClick={() => removeCard(family.id, c.id)}>×</button>}
+              <span class="row" style={{gap: "2px"}}>
+                <button class="btn sm ghost" title="Image de la famille" aria-label="Image de la famille" onClick={() => setCover(family.id, c.id)}>
+                  <Icon name="star" size={14} />
+                </button>
+                {family.kind === "manual" && (
+                  <button class="btn sm ghost" title="Retirer" aria-label="Retirer" onClick={() => removeCard(family.id, c.id)}>
+                    <Icon name="close" size={14} />
+                  </button>
+                )}
               </span>
             }
           />
@@ -358,7 +366,6 @@ function FromTagDialog({onClose, onCreated}) {
               key={t.id}
               class="chip"
               disabled={busy}
-              style={{borderColor: t.color}}
               onClick={async () => {
                 setBusy(true);
                 try {
@@ -369,6 +376,7 @@ function FromTagDialog({onClose, onCreated}) {
                 }
               }}
             >
+              <span class="swatch" style={{"--c": t.color}} />
               {t.name}
             </button>
           ))}

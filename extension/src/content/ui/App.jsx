@@ -10,7 +10,7 @@ import {openAllPacks, openAllState, packsStatus} from "../features/packs";
 import {activeTrades} from "../features/trades";
 import {planSort, sortState} from "../features/sorter";
 import {toasts, dismissToast, dialog, closeDialog, toast, confirmAction, errorMessage} from "./feedback";
-import {fmt, plural} from "./components";
+import {Icon, Mark, fmt, plural} from "./components";
 import {SortTab} from "./tabs/SortTab";
 import {ProfilesTab} from "./tabs/ProfilesTab";
 import {TradesTab} from "./tabs/TradesTab";
@@ -20,15 +20,16 @@ import {PacksTab} from "./tabs/PacksTab";
 import {FamiliesTab} from "./tabs/FamiliesTab";
 import {SettingsTab} from "./tabs/SettingsTab";
 
+// L'icône de chaque onglet porte le même nom dans shared/brand.mjs
 const TABS = [
-  {id: "sort", label: "Tri", ico: "🗂️", Comp: SortTab},
-  {id: "profiles", label: "Profils", ico: "👥", Comp: ProfilesTab},
-  {id: "trades", label: "Échanges", ico: "🔁", Comp: TradesTab},
-  {id: "prices", label: "Prix", ico: "💰", Comp: PricesTab},
-  {id: "market", label: "Marché", ico: "🔨", Comp: MarketTab},
-  {id: "packs", label: "Paquets", ico: "🎴", Comp: PacksTab},
-  {id: "families", label: "Familles", ico: "🧩", Comp: FamiliesTab},
-  {id: "settings", label: "Réglages", ico: "⚙️", Comp: SettingsTab},
+  {id: "sort", label: "Tri", Comp: SortTab},
+  {id: "profiles", label: "Profils", Comp: ProfilesTab},
+  {id: "trades", label: "Échanges", Comp: TradesTab},
+  {id: "prices", label: "Prix", Comp: PricesTab},
+  {id: "market", label: "Marché", Comp: MarketTab},
+  {id: "packs", label: "Paquets", Comp: PacksTab},
+  {id: "families", label: "Familles", Comp: FamiliesTab},
+  {id: "settings", label: "Réglages", Comp: SettingsTab},
 ];
 
 export const panel = createStore({open: false, tab: "sort"});
@@ -47,21 +48,24 @@ function Panel() {
     <div class="overlay" onClick={(e) => e.target === e.currentTarget && panel.set({open: false})}>
       <div class="panel" role="dialog" aria-label="WikiMasters Toolbox">
         <div class="panel-head">
-          <div class="logo">WM</div>
+          <Mark size={24} />
           <div>
             <div class="panel-title">WikiMasters Toolbox</div>
-            <div class="panel-sub">{session ? `Connecté : ${session.username || "joueur"}` : "Non connecté"}</div>
+            <div class="panel-sub">{session ? `connecté · ${session.username || "joueur"}` : "non connecté"}</div>
           </div>
           <span class="spacer" />
-          <button class="icon-btn" aria-label="Fermer" onClick={() => panel.set({open: false})}>×</button>
+          <button class="icon-btn" aria-label="Fermer" onClick={() => panel.set({open: false})}>
+            <Icon name="close" size={16} />
+          </button>
         </div>
         <nav class="nav">
           {TABS.map((t) => (
-            <button key={t.id} class={t.id === tab ? "on" : ""} onClick={() => panel.set({tab: t.id})}>
-              <span class="ico">{t.ico}</span>
+            <button key={t.id} class={`${t.id === tab ? "on" : ""}${t.id === "settings" ? " push" : ""}`} aria-current={t.id === tab ? "page" : undefined} onClick={() => panel.set({tab: t.id})}>
+              <Icon name={t.id} size={18} />
               <span class="label">{t.label}</span>
             </button>
           ))}
+          <span class="nav-version">v{__VERSION__}</span>
         </nav>
         <main class="content">{session ? <Current /> : <div class="empty">Connectez-vous à WikiMasters pour utiliser la Toolbox.</div>}</main>
       </div>
@@ -94,6 +98,7 @@ function Toasts() {
     <div class="toasts">
       {list.map((t) => (
         <div key={t.id} class={`toast ${t.type}`}>
+          <Icon name={t.type === "ok" ? "check" : t.type === "error" ? "alert" : "info"} size={16} />
           <span style={{flex: 1}}>{t.message}</span>
           {t.action && (
             <button
@@ -106,7 +111,9 @@ function Toasts() {
               {t.action.label}
             </button>
           )}
-          <button class="btn sm ghost" aria-label="Fermer" onClick={() => dismissToast(t.id)}>×</button>
+          <button class="btn sm ghost" aria-label="Fermer" onClick={() => dismissToast(t.id)}>
+            <Icon name="close" size={14} />
+          </button>
         </div>
       ))}
     </div>
@@ -136,10 +143,12 @@ function TradeValuesWidget({path}) {
   return (
     <div class="widget">
       <div class="widget-head">
-        <div class="logo" style={{width: "22px", height: "22px", fontSize: "10px", borderRadius: "6px"}}>WM</div>
+        <Mark size={18} />
         <span style={{flex: 1}}>Valeur des échanges</span>
         <button class="btn sm ghost" onClick={() => openPanel("trades")}>Détail</button>
-        <button class="btn sm ghost" aria-label="Masquer" onClick={() => setHidden(true)}>×</button>
+        <button class="btn sm ghost" aria-label="Masquer" onClick={() => setHidden(true)}>
+          <Icon name="close" size={14} />
+        </button>
       </div>
       {pending.map((t) => {
         const other = t.initiator_id === me ? t.recipient : t.initiator;

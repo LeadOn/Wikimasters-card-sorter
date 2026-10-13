@@ -172,7 +172,7 @@ export function MarketTab() {
                 card={s.card}
                 rarity={s.rarity}
                 price={s.value}
-                badges={[{label: plural(s.spare, "en trop", "en trop"), type: "ok"}, s.starred && {label: "★ favori", type: "warn"}]}
+                badges={[{label: plural(s.spare, "en trop", "en trop"), type: "ok"}, s.starred && {label: "favori", type: "warn", icon: "star"}]}
                 action={<button class="btn sm" disabled={quotaFull} onClick={() => setSelling(s)}>Vendre</button>}
               />
             ))}

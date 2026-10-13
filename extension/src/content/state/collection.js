@@ -63,9 +63,6 @@ export function invalidateCollection() {
   cache = null;
 }
 
-// Lignes Supabase au format attendu par le moteur (core/tag-sync.js) : {id, card_id, count, cards}
-export const toEngineRows = (copies) => copies.map((c) => ({id: c.id, card_id: c.card_id, count: c.count, cards: c.card}));
-
 // Nouvelles cartes vues dans un paquet : la collection en mémoire n'est plus à jour
 // (les ids possédés sont complétés par features/packs.js, qui a besoin de l'état d'avant).
 on("pack-opened", ({method}) => method === "POST" && invalidateCollection());

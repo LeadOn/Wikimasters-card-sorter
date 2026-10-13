@@ -4,7 +4,7 @@
 import {useStore} from "../../lib/store";
 import {emit} from "../../lib/bus";
 import {sortState, planSort, applySort} from "../../features/sorter";
-import {Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
+import {Icon, Mark, Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
 import {toast} from "../feedback";
 import {isThemeTag, DOUBLON} from "../../../../../core";
 
@@ -74,7 +74,7 @@ export function CollectionBar() {
   return (
     <section class="island" aria-label="WikiMasters Toolbox">
       <div class="island-head">
-        <div class="logo">WM</div>
+        <Mark size={22} />
         <div>
           <div class="island-title">Toolbox</div>
           <div class="island-sub">{s.lastRun ? `Dernier tri ${timeAgo(s.lastRun.at)}` : "Aucun tri pour l'instant"}</div>
@@ -85,7 +85,9 @@ export function CollectionBar() {
           </button>
           <button class="btn sm" onClick={() => openTab("market")}>Vendre mes doublons</button>
           <button class="btn sm" onClick={() => openTab("prices")}>Prix et valeur</button>
-          <button class="btn sm ghost" onClick={() => openTab("sort")} title="Ouvrir la Toolbox">⋯</button>
+          <button class="btn sm ghost" onClick={() => openTab("sort")} title="Ouvrir la Toolbox" aria-label="Ouvrir la Toolbox">
+            <Icon name="more" size={14} />
+          </button>
         </div>
       </div>
       {s.running && <Progress done={s.progress?.done || 0} total={s.progress?.total} label={s.step || "En cours…"} />}

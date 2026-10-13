@@ -144,18 +144,7 @@ partage son état avec l'onglet correspondant du panneau.
 
 ## 5. Architecture
 
-```
-core/          moteur partagé, sans dépendance (CommonJS)
-               texte, thèmes, classement, profils d'intérêts, plan de synchronisation des tags,
-               recherche d'échanges, codes de partage
-scripts/       CLI Node (categorize_cards, trade_finder, eval_categorize) au-dessus de core/
-extension/
-  src/hook/      script du « monde principal » : observe les requêtes du site
-  src/content/   application (Preact, Shadow DOM) : API, stockage, fonctionnalités, interface
-  src/popup/     popup d'extension
-  build.mjs      esbuild → dist/chrome, dist/firefox (+ .zip)
-tests/         tests node --test
-```
+Un moteur partagé sans dépendance (`core/`), utilisé par l'extension (`extension/`), les scripts Node (`scripts/`) et les tests (`tests/`). Arborescence commentée et circulation des données : [architecture.md](architecture.md).
 
 ## 6. Jalons
 

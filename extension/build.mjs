@@ -35,6 +35,8 @@ function manifest(target) {
       {matches: SITE_MATCHES, js: ["hook.js"], run_at: "document_start", world: "MAIN"},
       {matches: SITE_MATCHES, js: ["content.js"], run_at: "document_start"},
     ],
+    // Polices de l'interface : chargées par une règle @font-face ajoutée à la page du site
+    web_accessible_resources: [{resources: ["fonts/*.woff2"], matches: SITE_MATCHES}],
   };
   // Scripts de contenu dans le « monde principal » (Chrome 111+) ; build ciblé sur Chrome 120
   if (target === "chrome") m.minimum_chrome_version = "120";
@@ -44,6 +46,22 @@ function manifest(target) {
     };
   }
   return m;
+}
+
+// Polices de l'interface (IBM Plex, licence OFL jointe), copiées depuis node_modules
+const FONTS = {
+  "plex-sans.woff2": "@fontsource-variable/ibm-plex-sans/files/ibm-plex-sans-latin-wght-normal.woff2",
+  "plex-mono-400.woff2": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2",
+  "plex-mono-500.woff2": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2",
+  "plex-mono-600.woff2": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff2",
+  "OFL-plex-sans.txt": "@fontsource-variable/ibm-plex-sans/LICENSE",
+  "OFL-plex-mono.txt": "@fontsource/ibm-plex-mono/LICENSE",
+};
+
+function copyFonts(out) {
+  const dir = path.join(out, "fonts");
+  fs.mkdirSync(dir, {recursive: true});
+  for (const [name, from] of Object.entries(FONTS)) fs.copyFileSync(path.join(root, "node_modules", from), path.join(dir, name));
 }
 
 const entries = {
@@ -57,6 +75,7 @@ async function buildTarget(target) {
   fs.rmSync(out, {recursive: true, force: true});
   fs.mkdirSync(out, {recursive: true});
   fs.cpSync(path.join(here, "static"), out, {recursive: true});
+  copyFonts(out);
   fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify(manifest(target), null, 2));
   const options = {
     absWorkingDir: root,

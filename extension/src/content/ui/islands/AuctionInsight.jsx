@@ -5,7 +5,7 @@ import {useStore} from "../../lib/store";
 import {owned} from "../../state/collection";
 import {priceOf, priceVersion} from "../../state/prices";
 import {auctionById, auctionVersion, loadAuction, nextBid, isLeading} from "../../features/market";
-import {fmt} from "../components";
+import {Icon, Mark, Money, fmt} from "../components";
 import {PriceLine, Interest} from "./shared";
 
 // Écart d'une mise au prix moyen, en %
@@ -47,7 +47,7 @@ export function AuctionInsight({auctionId}) {
   return (
     <section class="island compact" aria-label="Analyse WikiMasters Toolbox">
       <div class="island-head">
-        <div class="logo">WM</div>
+        <Mark size={20} />
         <span class="island-title">Analyse Toolbox</span>
         {isLeading(a) && <span class="chip ok">Vous êtes en tête</span>}
       </div>
@@ -55,7 +55,9 @@ export function AuctionInsight({auctionId}) {
       {avg != null && current != null && (
         <div class="kv">
           <span class="k">{a.current_bid != null ? "Enchère actuelle" : "Mise de départ"}</span>
-          <strong>{fmt(current)} ₩</strong>
+          <strong>
+            <Money v={current} />
+          </strong>
           <Gap gap={gapOf(current, avg)} />
           {next !== current && <span class="muted small">prochaine mise : {fmt(next)} ₩ ({gapOf(next, avg) > 0 ? "+" : ""}{gapOf(next, avg)} %)</span>}
         </div>
@@ -63,7 +65,13 @@ export function AuctionInsight({auctionId}) {
       {ownedCard != null && (
         <div class="kv">
           <span class="k">Collection</span>
-          {ownedCard ? <span class="chip">✓ Vous l'avez déjà</span> : <span class="chip ok">Nouvelle pour vous</span>}
+          {ownedCard ? (
+            <span class="chip">
+              <Icon name="check" size={12} /> Vous l'avez déjà
+            </span>
+          ) : (
+            <span class="chip ok">Nouvelle pour vous</span>
+          )}
         </div>
       )}
       <Interest card={{title: a.card.wikipedia_title, category: a.card.category, summary: a.card.summary, image_url: a.card.hide_image ? null : a.card.image_url}} />

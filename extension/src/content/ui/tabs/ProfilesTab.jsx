@@ -253,8 +253,9 @@ function TestDialog({profile, onClose}) {
 
 function ProfileCard({p, isMine, onEdit, onDelete, onToggle, onExport, onTest}) {
   return (
-    <div class="box stack" style={{borderLeft: `4px solid ${p.color || "#64748b"}`, gap: "8px"}}>
+    <div class="box stack" style={{gap: "8px"}}>
       <div class="row">
+        <span class="swatch" style={{"--c": p.color || "#64748b"}} />
         <strong style={{flex: 1}}>{tagForProfile(p)}</strong>
         {!isMine && (
           <label class="check small muted">
@@ -299,8 +300,8 @@ export function ProfilesTab() {
         </div>
       </div>
 
-      <div class="box stack">
-        <h3>Mon profil{me ? ` (${me})` : ""}</h3>
+      <div class="stack" style={{gap: "10px"}}>
+        <h3 class="section-title">Mon profil{me ? ` (${me})` : ""}</h3>
         {mine ? (
           <ProfileCard
             p={{...mine, name: me || mine.name}}
@@ -311,7 +312,7 @@ export function ProfilesTab() {
             onDelete={async () => (await confirmAction({title: "Supprimer mon profil ?", confirm: "Supprimer", danger: true})) && profiles.set({mine: null})}
           />
         ) : (
-          <div class="row">
+          <div class="box row">
             <p class="help" style={{flex: 1}}>Décrivez ce que vous collectionnez : vos amis pourront importer votre profil pour savoir quoi vous proposer.</p>
             {builtinMine && <button class="btn" onClick={() => profiles.set({mine: {...builtinMine, id: newId()}})}>Reprendre le profil de la bande</button>}
             <button class="btn primary" onClick={() => setModal({type: "edit", profile: null, isMine: true})}>Créer mon profil</button>
@@ -320,7 +321,7 @@ export function ProfilesTab() {
       </div>
 
       <div class="row">
-        <h3 style={{flex: 1, fontSize: "16px"}}>Profils de mes amis</h3>
+        <h3 class="section-title" style={{flex: 1}}>Profils de mes amis</h3>
         {missingBuiltins.length > 0 && <button class="btn" onClick={importBuiltins}>Profils de la bande ({missingBuiltins.length})</button>}
         <button class="btn" onClick={() => setModal({type: "import"})}>Importer un code</button>
         <button class="btn primary" onClick={() => setModal({type: "edit", profile: null, isMine: false})}>Ajouter</button>

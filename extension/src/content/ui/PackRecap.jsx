@@ -6,7 +6,7 @@ import {recapState, dismissRecap} from "../features/packs";
 import {planSort} from "../features/sorter";
 import {priceOf, priceStatus, priceVersion} from "../state/prices";
 import {isOn} from "../state/settings";
-import {Rarity, ThemeChip, fmt, plural} from "./components";
+import {Icon, Mark, Money, Rarity, ThemeChip, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {emit} from "../lib/bus";
 import {categorize, isThemeTag, DOUBLON} from "../../../../core";
@@ -14,7 +14,7 @@ import {mountIsland} from "./islands/mount";
 
 function Price({card, loading}) {
   const status = priceStatus(card.id, card.rarity);
-  if (status === "ok") return <span class="recap-price">{fmt(priceOf(card.id, card.rarity))} ₩</span>;
+  if (status === "ok") return <Money v={priceOf(card.id, card.rarity)} class="recap-price" />;
   if (loading || status === "unknown") return <span class="spinner" aria-label="Chargement du prix" />;
   if (status === "error") return <span class="recap-price none" title="Le serveur n'a pas répondu ; nouvel essai dans quelques minutes">?</span>;
   return <span class="recap-price none" title="Cette carte n'a jamais été vendue dans cette rareté">aucune vente</span>;
@@ -57,7 +57,7 @@ export function PackRecapView({onClose, compact = false}) {
   return (
     <section class="recap" aria-label="Récapitulatif du paquet">
       <header class="recap-head">
-        <div class="logo recap-logo">WM</div>
+        <Mark size={22} />
         <div style={{flex: 1, minWidth: 0}}>
           <div class="recap-title">{recap.packs > 1 ? `${recap.packs} paquets ouverts` : "Récapitulatif du paquet"}</div>
           <div class="recap-sub">
@@ -67,11 +67,11 @@ export function PackRecapView({onClose, compact = false}) {
         </div>
         <div class="recap-total">
           <span class="k">Valeur</span>
-          {loading && unpriced ? <span class="spinner" aria-label="Chargement des prix" /> : unpriced === prices.length ? <span class="v none">—</span> : <span class="v">{fmt(total)} ₩</span>}
+          {loading && unpriced ? <span class="spinner" aria-label="Chargement des prix" /> : unpriced === prices.length ? <span class="v none">—</span> : <Money v={total} class="v" />}
         </div>
         {onClose && (
           <button class="icon-btn" aria-label="Masquer le récapitulatif" onClick={onClose}>
-            ×
+            <Icon name="close" size={16} />
           </button>
         )}
       </header>
@@ -85,7 +85,11 @@ export function PackRecapView({onClose, compact = false}) {
                 <Rarity r={c.rarity} />
                 {c.isNew === true && <span class="chip ok">Nouvelle</span>}
                 {c.isNew === false && <span class="chip danger">Doublon</span>}
-                {c.is_shiny && <span class="chip warn">✨ Shiny</span>}
+                {c.is_shiny && (
+                  <span class="chip warn">
+                    <Icon name="shine" size={12} /> Shiny
+                  </span>
+                )}
                 <SortTags card={c} sort={recap.sort} index={i} />
               </div>
             </div>
@@ -103,7 +107,11 @@ export function PackRecapView({onClose, compact = false}) {
                 ? `${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`
                 : "Prix moyens des 200 dernières ventes, par rareté."}
         </span>
-        {recap.sort?.status === "done" && <span class="chip ok">✓ Cartes triées</span>}
+        {recap.sort?.status === "done" && (
+          <span class="chip ok">
+            <Icon name="check" size={12} /> Cartes triées
+          </span>
+        )}
         {recap.sort?.status === "error" && <span class="chip danger" title={recap.sort.error}>Tri automatique impossible</span>}
         {(!recap.sort || recap.sort.status === "error") && isOn("sortAfterPack") && known && fresh > 0 && (
           <button

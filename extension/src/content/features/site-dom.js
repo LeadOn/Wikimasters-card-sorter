@@ -3,6 +3,7 @@
 // (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur.
 // Tous les sélecteurs du site sont ici : si le site change, c'est le seul fichier à adapter.
 import {emit} from "../lib/bus";
+import {ext} from "../lib/ext";
 import {lookupTitle, registryVersion, normTitle} from "../lib/registry";
 import {settings, isOn} from "../state/settings";
 import {owned} from "../state/collection";
@@ -20,6 +21,8 @@ import {AuctionInsight} from "../ui/islands/AuctionInsight";
 import {FriendTrades} from "../ui/islands/FriendTrades";
 import {readSession} from "../lib/session";
 import {categorize, THEME_COLORS} from "../../../../core";
+import {iconSvg, markSvg, markOutlineSvg} from "../../shared/brand.mjs";
+import fontsCss from "../../shared/fonts.css";
 import siteCss from "../ui/site.css";
 
 const SEL = {
@@ -62,10 +65,14 @@ export function watchRoute() {
   }, 400);
 }
 
-// --- Entrée « Toolbox » dans le menu latéral
-const ICON =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/><path d="M10 13v2h4v-2"/></svg>';
+// SVG (texte) → élément
+function svgElement(markup) {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = markup;
+  return tpl.content.firstElementChild;
+}
 
+// --- Entrée « Toolbox » dans le menu latéral
 function ensureNavEntry() {
   const navs = [...document.querySelectorAll(SEL.nav)].filter((n) => n.querySelector(SEL.navLink));
   if (!navs.length) return false;
@@ -81,8 +88,13 @@ function ensureNavEntry() {
   link.classList.add("wmt-nav-link");
   link.removeAttribute("aria-current");
   link.setAttribute("href", "#toolbox");
+  // Icône : la marque au trait, à la taille des icônes du menu (classes du modèle conservées)
   const svg = link.querySelector("svg");
-  if (svg) svg.outerHTML = ICON;
+  if (svg) {
+    const icon = svgElement(markOutlineSvg());
+    if (svg.getAttribute("class")) icon.setAttribute("class", svg.getAttribute("class"));
+    svg.replaceWith(icon);
+  }
   // Libellé : premier nœud texte non vide remplacé, les autres vidés (pastilles, compteurs)
   const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
   const texts = [];
@@ -129,10 +141,11 @@ function forgetDetached() {
   }
 }
 
-function chip(className, text, title) {
+function chip(className, text, title, icon) {
   const el = document.createElement("span");
   el.className = `wmt-chip ${className}`;
-  el.textContent = text;
+  if (icon) el.append(svgElement(iconSvg(icon, 11)));
+  if (text) el.append(text);
   if (title) el.title = title;
   return el;
 }
@@ -197,7 +210,7 @@ function decorateTile(tile, version) {
   // La collection globale affiche déjà « Possédée » : badge inutile là-bas
   if (isOn("ownedBadges") && !onMyCollection && !path.startsWith("/global-collection")) {
     const isOwned = info.owned ?? (info.id ? owned.get().ids.has(info.id) : undefined);
-    if (isOwned === true) box.append(chip("wmt-chip-owned", "✓", "Vous possédez cette carte"));
+    if (isOwned === true) box.append(chip("wmt-chip-owned", "", "Vous possédez cette carte", "check"));
     else if (isOwned === false && (path.startsWith("/marketplace") || path.startsWith("/profile"))) box.append(chip("wmt-chip-new", "Nouvelle", "Vous n'avez pas cette carte"));
   }
   if (isOn("themeBadges") && !onMyCollection && (info.category || info.summary)) {
@@ -251,7 +264,7 @@ function ensureOpenAllButton() {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "wmt-open-all";
-  btn.textContent = "Tout ouvrir";
+  btn.append(svgElement(markSvg({size: 16})), "Tout ouvrir");
   btn.title = "WikiMasters Toolbox : ouvre tous les paquets disponibles, sans animation";
   btn.addEventListener("click", (e) => {
     e.preventDefault();
@@ -450,10 +463,20 @@ function run() {
   forgetDetached();
 }
 
+// Règles @font-face des polices de l'interface, servies par l'extension (rien sans l'API d'extension :
+// les polices de repli du système prennent le relais)
+function fontFaces() {
+  try {
+    return fontsCss.replaceAll("__FONTS__", ext.runtime.getURL("fonts/"));
+  } catch {
+    return "";
+  }
+}
+
 export function startSiteDom() {
   style = document.createElement("style");
   style.id = "wmt-site-style";
-  style.textContent = siteCss;
+  style.textContent = fontFaces() + siteCss;
   (document.head || document.documentElement).append(style);
   const bump = () => {
     version++;

@@ -4,7 +4,7 @@ import {useStore} from "../../lib/store";
 import {readSession} from "../../lib/session";
 import {priceOf, priceStatus, summaryOf, requestPrice, priceVersion} from "../../state/prices";
 import {profiles, activeProfiles} from "../../state/profiles";
-import {ThemeChip, fmt, plural} from "../components";
+import {Icon, Money, ThemeChip, plural} from "../components";
 import {categorize, FRIEND_PREFIX, RARITY_LABEL} from "../../../../../core";
 
 // Prix moyen pour la rareté, demandé dès l'affichage s'il n'est pas en cache (instantané sinon)
@@ -28,10 +28,15 @@ export function PriceLine({cardId, rarity}) {
       <span class="k">{label}</span>
       {status === "ok" ? (
         <>
-          <span class="price-big">{fmt(priceOf(cardId, rarity))} ₩</span>
+          <Money v={priceOf(cardId, rarity)} class="price-big" />
           <span class="muted small">
             {plural(s.count, "vente")}
-            {s.latest != null ? ` · dernière ${fmt(s.latest)} ₩` : ""}
+            {s.latest != null && (
+              <>
+                {" · dernière "}
+                <Money v={s.latest} />
+              </>
+            )}
           </span>
         </>
       ) : status === "unknown" ? (
@@ -65,8 +70,14 @@ export function Interest({card}) {
           <span class="k">Intéresse</span>
           <div class="chips">
             {fans.map((name) => (
-              <span key={name} class={`chip ${name === me ? "ok" : "accent"}`}>
-                {name === me ? "★ Vous" : name}
+              <span key={name} class={`chip ${name === me ? "me" : ""}`}>
+                {name === me ? (
+                  <>
+                    <Icon name="star" size={12} /> Vous
+                  </>
+                ) : (
+                  name
+                )}
               </span>
             ))}
           </div>

@@ -1,5 +1,5 @@
 // Imitation minimale de l'API d'extension, pour tester la Toolbox en l'injectant dans une page
-// (extension/dev/README : node extension/dev/make-inject.mjs). Ne fait pas partie de l'extension.
+// (node extension/dev/make-inject.mjs, voir docs/architecture.md). Ne fait pas partie de l'extension.
 (() => {
   if (globalThis.chrome?.runtime?.id) return;
   const data = {};

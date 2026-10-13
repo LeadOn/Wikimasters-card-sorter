@@ -23,7 +23,6 @@ const MAX_KEEP = 30 * 24 * 3600 * 1000;
 const PAGE = 1000;
 const cache = new Map(); // card_id → {s: summary, t: date, err?}
 export const priceVersion = createStore({v: 0, loaded: false});
-export const queueState = createStore({pending: 0, paused: false});
 
 // Enregistrement au plus toutes les 2 s, y compris pendant un long chargement (un délai remis à
 // zéro à chaque prix n'enregistrerait rien avant la fin). Seules les entrées modifiées sont écrites,
@@ -72,7 +71,6 @@ const isFresh = (entry) => entry && Date.now() - entry.t < (entry.err ? ERROR_RE
 
 export const summaryOf = (cardId) => cache.get(cardId)?.s || null;
 export const priceOf = (cardId, rarity) => averagePrice(summaryOf(cardId), rarity);
-export const pricedAt = (cardId) => cache.get(cardId)?.t || null;
 export const hasFreshPrice = (cardId) => isFresh(cache.get(cardId));
 // "ok" (prix connu), "none" (aucune vente pour cette rareté), "error" (lecture impossible), "unknown" (pas encore lu)
 export function priceStatus(cardId, rarity) {
@@ -99,7 +97,6 @@ on("sales-summary", ({data, match}) => data?.summary && store(match[1], data.sum
 const inflight = new Set();
 const runBatch = createLimiter(3);
 let directSource = true; // passe à false si la table `auctions` n'est plus lisible
-const updateQueue = () => queueState.set({pending: inflight.size + pending.size, paused: false});
 
 // Ventes conclues d'un lot de cartes, triées par carte puis date, page par page
 async function readSales(ids, signal) {
@@ -164,14 +161,12 @@ function runBatches(batches, {signal, onBatch} = {}) {
       runBatch(async () => {
         if (signal?.aborted) return;
         for (const id of ids) inflight.add(id);
-        updateQueue();
         try {
           await fetchBatch(ids, signal);
         } catch {
           // Annulé : les cartes restent sans prix
         } finally {
           for (const id of ids) inflight.delete(id);
-          updateQueue();
           onBatch?.(ids.length);
         }
       }),
@@ -189,7 +184,6 @@ let pendingTimer = null;
 export function requestPrice(cardId, {force = false, rarity = null} = {}) {
   if (!cardId || inflight.has(cardId) || pending.has(cardId) || (!force && isFresh(cache.get(cardId)))) return;
   pending.set(cardId, rarityOf(cardId, rarity));
-  updateQueue();
   clearTimeout(pendingTimer);
   pendingTimer = setTimeout(() => {
     const items = [...pending].map(([id, r]) => ({id, rarity: r}));

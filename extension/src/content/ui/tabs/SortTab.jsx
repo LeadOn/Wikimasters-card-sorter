@@ -171,7 +171,7 @@ export function SortTab() {
       {s.plan && !s.running && (
         <div class="stack">
           <div class="row">
-            <h3 style={{flex: 1, fontSize: "16px"}}>{s.plan.newOnly ? "Aperçu : nouvelles cartes" : "Aperçu : retri complet"}</h3>
+            <h3 class="section-title" style={{flex: 1}}>{s.plan.newOnly ? "Aperçu : nouvelles cartes" : "Aperçu : retri complet"}</h3>
             <button class="btn ghost" onClick={() => sortState.set({plan: null})}>Annuler</button>
             <button
               class={`btn ${s.plan.newOnly ? "primary" : "danger"}`}

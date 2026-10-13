@@ -2,6 +2,8 @@
 
 Ce fichier `AGENTS.md` a pour but de documenter le fonctionnement de la classification automatique des cartes et l'architecture mise en place pour les futurs agents ou développeurs travaillant sur **Wikimasters**.
 
+Documentation du dépôt : `docs/guide.md` (guide de l'utilisateur de l'extension), `docs/architecture.md` (arborescence commentée, circulation des données), `docs/scripts.md` (scripts Node), `docs/site-api.md` (routes du site), `docs/cahier-des-charges.md` (décisions et exigences).
+
 ## 1. Contexte du Projet
 Wikimasters est une application web (basée sur React et Supabase) qui permet aux utilisateurs de collectionner des cartes basées sur des articles Wikipédia. Chaque utilisateur possède une collection de cartes (`user_cards`). 
 Le système de tags (`tags` et `user_card_tags`) sert à classifier la collection de chaque utilisateur par thèmes (ex: *Histoire, Sciences, Pop-Culture*).
@@ -117,9 +119,6 @@ Le script lit le token dans la variable `SUPABASE_TOKEN` (ou le fichier `.env`),
    node -e 'const t=require("fs").readFileSync("token.txt","utf8").replace(/["\s]/g,"");console.log(new Date(JSON.parse(Buffer.from(t.split(".")[1],"base64url")).exp*1000))'
    ```
 
-### Anciens scripts
-`apply_manual_mapping.js`, `llm_categorize.js`, `find_missing.js`, `find_remaining.js`, `find_true_missing.js` et les `scratch*.js` datent de la première version. Ils ne sont plus maintenus (pagination limitée à 1 000 cartes, alors que la collection en compte plus de 7 000) : n'utilisez que `categorize_cards.js`, `eval_categorize.js` et `trade_finder.js`.
-
 ## 4. Extension WikiMasters Toolbox (`extension/`)
 
 L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node ni token. Cahier des charges : `docs/cahier-des-charges.md` ; routes du site : `docs/site-api.md`.
@@ -133,6 +132,7 @@ L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node
   - `features/` : tri, échanges, marché, paquets, familles, intégration dans les pages (`site-dom.js` regroupe **tous** les sélecteurs du site et place les blocs intégrés).
   - `ui/` : panneau et onglets ; `ui/islands/` : blocs intégrés aux pages du site (barre de la collection, fiche d'une carte, enchère, profil d'un ami), montés par `mountIsland` dans un Shadow DOM. Un bloc est placé par rapport à l'imbrication de la page (`sectionOf`), pas aux classes Tailwind du site.
 - `extension/src/popup/` : popup d'actions rapides.
+- `extension/src/shared/` : identité visuelle commune (marque, icônes, polices), voir « Charte graphique ».
 
 ### Commandes
 | Commande | Effet |
@@ -141,10 +141,18 @@ L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node
 | `npm run watch` | build continu |
 | `npm run package` | `.zip` Chrome et Firefox dans `dist/` |
 | `npm test` | tests du moteur, de l'écriture des étiquettes et de la couche réseau / stockage de l'extension (`tests/`, sans réseau : `fetch` et `chrome.storage` simulés, modules de l'extension chargés par `tests/helpers/extension.js`) |
-| `node extension/make-icons.mjs` | régénère les icônes |
+| `node extension/make-icons.mjs` | régénère les icônes PNG à partir de la marque (`shared/brand.mjs`) |
+
+### Charte graphique
+L'interface a sa propre identité, distincte de celle du site. Toute nouvelle interface la reprend :
+- **Couleurs** (variables de `ui/panel.css`) : graphite chaud (`--bg`, `--surface…`, `--line…`), texte « os » (`--fg`, `--muted`, `--faint`) et **un seul signal**, le vert anis `--accent`, réservé à l'action principale d'un écran (`btn primary`), à la sélection, à la progression, au focus, à l'onglet actif et à ce qui concerne le joueur lui-même (`chip me`). Les couleurs vives sont celles des **données** : raretés (`--r-*`, celles du site) et thèmes (pastille `chip theme`, libellé neutre).
+- **Pas** de dégradé, de flou, d'ombre colorée, de bordure gauche colorée sur une carte ni d'emoji : des filets de 1 px, des rayons courts (4 à 8 px, 12 px pour les fenêtres), la hiérarchie vient de la typographie.
+- **Typographie** : IBM Plex Sans (`--sans`) pour l'interface, IBM Plex Mono (`--mono`) pour les libellés de données en petites capitales (`.eyebrow`, `stat .k`, en-têtes de tableau) et les nombres en colonne (`.num`). Montants avec `<Money v={…} />` (chiffres alignés, ₩ en retrait). Les polices sont copiées de `node_modules` au build (`dist/*/fonts`, licence OFL jointe) et déclarées dans la page par `shared/fonts.css` (`web_accessible_resources`) ; sans elles, les polices du système prennent le relais.
+- **Marque** : une fiche avec un onglet de classement (`MARK` dans `shared/brand.mjs`, composant `<Mark />`) ; variante au trait (`markOutlineSvg`) pour l'entrée du menu du site.
+- **Icônes** : `<Icon name="…" />` (`ICONS` dans `shared/brand.mjs`, `iconSvg()` hors de Preact) ; grille de 20, trait de 1,5, extrémités carrées et angles vifs. Une nouvelle icône suit la même grille ; chaque onglet du panneau a l'icône de même nom.
 
 ### Tester sans installer l'extension
-Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai site : `npm run build && node extension/dev/make-inject.mjs`, puis, page wiki-masters.com ouverte et connectée, `page.addScriptTag({path: "<dépôt>/dist/dev-inject.js"})` via `browser_run_code_unsafe` (imitation de `chrome.storage` en mémoire, perdue au rechargement). Naviguez ensuite côté client (clic dans le menu) pour que le hook observe les réponses.
+Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai site : `npm run build && node extension/dev/make-inject.mjs`, puis, page wiki-masters.com ouverte et connectée, `page.addScriptTag({path: "<dépôt>/dist/dev-inject.js"})` via `browser_run_code_unsafe` (imitation de `chrome.storage` en mémoire, perdue au rechargement ; sans `runtime.getURL`, les polices du système remplacent IBM Plex). Naviguez ensuite côté client (clic dans le menu) pour que le hook observe les réponses.
 
 ### Règles
 - **Aucune écriture sans clic explicite du joueur**, avec confirmation pour les ventes, enchères, retri complet et « Tout ouvrir ». Ne lancez jamais vous-même une écriture (tri appliqué, vente, enchère, paquet) pendant un test sans l'accord de l'utilisateur.
@@ -153,6 +161,7 @@ Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai 
 - Un changement du moteur se fait dans `core/` et profite aux scripts comme à l'extension : `npm test` + `node scripts/eval_categorize.js`.
 - **Pagination** : toute lecture paginée (`fetchAll`) est triée sur une clé unique (`order=obtained_at.desc,id.asc`, `order=user_card_id.asc`…) et dédoublonnée (`key`). Sans ordre stable, PostgreSQL peut renvoyer une ligne sur deux pages (faux « Doublon ») et en omettre une autre (carte triée prise pour non triée). Les filtres `in.(…)` passent par `restIn` (lots de 100 ids).
 - **Écritures** : les étiquettes passent par `core/tag-writer.js` (avec `tagClient`), sous le verrou `sort` ; une écriture restée sans réponse est signalée « incertaine » (`HttpError.uncertain`) et n'est jamais rejouée automatiquement, sauf si elle est idempotente.
+- **Documentation** : une fonctionnalité ajoutée ou modifiée se documente dans `docs/guide.md` (et dans la liste du `README.md` si elle est visible du joueur) ; un fichier ajouté ou déplacé, dans `docs/architecture.md`. Pas de code mort : ce qui n'est plus appelé est supprimé, pas commenté.
 
 ## 5. Intégration Playwright MCP
 

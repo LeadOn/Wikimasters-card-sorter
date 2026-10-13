@@ -1,45 +1,53 @@
 <!doctype html>
-<!-- Gabarit des vignettes promotionnelles du Chrome Web Store (rendu par une capture d'écran) :
-     promo.html?large → 1400 × 560, sinon 440 × 280. -->
+<!-- Gabarit des vignettes promotionnelles du Chrome Web Store (rendu par une capture d'écran, page servie
+     depuis la racine du dépôt pour trouver les polices) : promo.html?large → 1400 × 560, sinon 440 × 280.
+     Même charte que l'extension : graphite, texte « os », le vert anis seulement sur l'onglet de la marque. -->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
 <style>
+  @font-face { font-family: "WMT Sans"; src: url("../node_modules/@fontsource-variable/ibm-plex-sans/files/ibm-plex-sans-latin-wght-normal.woff2") format("woff2"); font-weight: 100 700; }
+  @font-face { font-family: "WMT Mono"; src: url("../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+  @font-face { font-family: "WMT Mono"; src: url("../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
   :root { --r-L: #ffe144; --r-UR: #fa9931; --r-SR: #ed6fa3; --r-R: #c6a7f2; --r-PC: #b1cff2; --r-C: #b8f2d5; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0d0e14; }
-  .tile { position: relative; overflow: hidden; color: #fff; display: flex; align-items: center; background: radial-gradient(120% 140% at 0% 0%, #4f46e5 0%, #312e81 45%, #1e1b4b 100%); }
-  .tile::after { content: ""; position: absolute; inset: auto -20% -60% 40%; height: 120%; background: radial-gradient(closest-side, rgba(147, 51, 234, 0.55), transparent); }
-  .small { width: 440px; height: 280px; padding: 30px; gap: 22px; }
-  .large { width: 1400px; height: 560px; padding: 70px; gap: 60px; }
-  .icon { flex: none; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.45)); position: relative; z-index: 1; }
-  .small .icon { width: 112px; height: 112px; margin: -8px; }
-  .large .icon { width: 190px; height: 190px; margin: -12px; }
-  .text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; }
-  h1 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
-  .small h1 { font-size: 30px; }
-  .large h1 { font-size: 64px; }
-  p { color: #c7d2fe; font-weight: 600; }
-  .small p { font-size: 15px; }
-  .large p { font-size: 28px; }
-  .rarities { display: flex; gap: 6px; margin-top: 4px; }
-  .rarities span { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #0d1117; }
-  .large .rarities span { min-width: 44px; height: 32px; font-size: 17px; border-radius: 9px; }
-  .note { color: #a5b4fc; font-weight: 500; opacity: 0.85; }
-  .small .note { font-size: 11px; }
-  .large .note { font-size: 18px; }
-  .shot { position: relative; z-index: 1; margin-left: auto; width: 620px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
+  body { font-family: "WMT Sans", ui-sans-serif, system-ui, sans-serif; background: #121211; -webkit-font-smoothing: antialiased; }
+  .tile { position: relative; overflow: hidden; color: #eeece5; display: flex; align-items: center; background: #121211; }
+  /* Filets d'une fiche de classement, très discrets */
+  .tile::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to bottom, transparent 0 27px, rgba(238, 236, 229, 0.035) 27px 28px); }
+  .small { width: 440px; height: 280px; padding: 34px; gap: 26px; }
+  .large { width: 1400px; height: 560px; padding: 72px; gap: 64px; }
+  .mark { position: relative; flex: none; }
+  .small .mark { width: 96px; height: 96px; }
+  .large .mark { width: 168px; height: 168px; }
+  .text { position: relative; display: flex; flex-direction: column; }
+  h1 { font-weight: 600; letter-spacing: -0.03em; line-height: 1.02; }
+  .small h1 { font-size: 34px; }
+  .large h1 { font-size: 72px; }
+  p { color: #a29f95; font-weight: 500; }
+  .small p { font-size: 15px; margin-top: 10px; }
+  .large p { font-size: 28px; margin-top: 18px; }
+  .rarities { display: flex; gap: 5px; }
+  .small .rarities { margin-top: 16px; }
+  .large .rarities { margin-top: 28px; gap: 8px; }
+  .rarities span { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 5px; border-radius: 3px; font: 600 11px/1 "WMT Mono", monospace; color: #121211; }
+  .large .rarities span { min-width: 46px; height: 32px; font-size: 17px; border-radius: 5px; }
+  .note { color: #807d74; font: 500 11px "WMT Mono", monospace; letter-spacing: 0.02em; }
+  .small .note { margin-top: 14px; }
+  .large .note { margin-top: 24px; font-size: 17px; }
+  .shot { position: relative; margin-left: auto; width: 620px; border-radius: 12px; border: 1px solid #3a3a35; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); }
   .small .shot { display: none; }
 </style>
 </head>
 <body>
 <div class="tile small" id="tile">
-  <img class="icon" src="data:image/png;base64,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" alt="">
+  <!-- Marque : extension/src/shared/brand.mjs (MARK) -->
+  <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><rect x="14" y="6.5" width="5.5" height="5" rx="1" fill="#c5ef55"/><rect x="5" y="3" width="11" height="18" rx="1.5" fill="#eeece5"/></svg>
   <div class="text">
     <h1>WikiMasters<br>Toolbox</h1>
     <p>Tri, prix, échanges et paquets</p>
     <div class="rarities"><span style="background:var(--r-L)">L</span><span style="background:var(--r-UR)">UR</span><span style="background:var(--r-SR)">SR</span><span style="background:var(--r-R)">R</span><span style="background:var(--r-PC)">PC</span><span style="background:var(--r-C)">C</span></div>
-    <span class="note">Extension non officielle</span>
+    <span class="note">extension non officielle</span>
   </div>
   <img class="shot" src="images/capture-1.png" alt="">
 </div>

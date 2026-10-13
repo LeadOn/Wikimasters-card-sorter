@@ -1,7 +1,10 @@
 // Composants d'interface réutilisables.
-import {useState, useEffect, useRef} from "preact/hooks";
+import {useState, useEffect} from "preact/hooks";
 import {RARITY_LABEL, THEME_COLORS} from "../../../../core";
 import {settings} from "../state/settings";
+import {Icon, Mark} from "../../shared/Brand";
+
+export {Icon, Mark};
 
 export const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("fr-FR"));
 export const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n > 1 ? many : one}`;
@@ -23,15 +26,23 @@ export function duration(ms) {
   return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
 }
 
+// Montant en WikiBidous : chiffres alignés, symbole en retrait
+export const Money = ({v, class: cls = ""}) => (
+  <span class={`money${cls ? ` ${cls}` : ""}`}>
+    {fmt(v)}
+    <span class="cur">₩</span>
+  </span>
+);
+
 export function Progress({done, total, label}) {
   const pct = total ? Math.min(100, Math.round((100 * done) / total)) : null;
   return (
-    <div class="stack" style={{gap: "6px"}}>
+    <div class="stack" style={{gap: "7px"}}>
       {label && (
-        <div class="row small muted" style={{justifyContent: "space-between"}}>
+        <div class="progress-label">
           <span>{label}</span>
-          {pct != null && <span class="nowrap">{fmt(done)} / {fmt(total)}</span>}
-          {pct == null && done ? <span class="nowrap">{fmt(done)}</span> : null}
+          {pct != null && <span class="n">{fmt(done)} / {fmt(total)}</span>}
+          {pct == null && done ? <span class="n">{fmt(done)}</span> : null}
         </div>
       )}
       <div class={`progress${pct == null ? " indeterminate" : ""}`}>
@@ -53,8 +64,15 @@ export function ThemeChip({theme}) {
   );
 }
 
+const NOTICE_ICON = {ok: "check", warn: "alert", error: "alert", info: "info"};
+
 export function Notice({type = "info", children}) {
-  return <div class={`notice ${type}`}>{children}</div>;
+  return (
+    <div class={`notice ${type}`}>
+      <Icon name={NOTICE_ICON[type] || "info"} size={15} />
+      <div style={{flex: 1, minWidth: 0}}>{children}</div>
+    </div>
+  );
 }
 
 export function Toggle({checked, onChange, label}) {
@@ -65,6 +83,14 @@ export function Toggle({checked, onChange, label}) {
     </span>
   );
 }
+
+// Badge d'une carte : {label, type: "ok" | "warn" | "danger" | "accent", icon}
+export const Badge = ({label, type, icon}) => (
+  <span class={`chip ${type || ""}`}>
+    {icon && <Icon name={icon} size={12} />}
+    {label}
+  </span>
+);
 
 // Mini-carte : image, titre, description, rareté, thème, prix, badges
 export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, action}) {
@@ -87,12 +113,10 @@ export function CardRow({card, rarity, theme, price, badges = [], selected, onCl
         <div class="meta">
           <Rarity r={r} />
           {theme && <ThemeChip theme={theme} />}
-          {price != null && <span class="price">{fmt(price)} ₩</span>}
           {badges.filter(Boolean).map((b) => (
-            <span class={`chip ${b.type || ""}`} key={b.label}>
-              {b.label}
-            </span>
+            <Badge key={b.label} {...b} />
           ))}
+          {price != null && <Money v={price} class="price" />}
         </div>
       </div>
       {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}
@@ -119,25 +143,6 @@ export function Paged({items, pageSize = 60, render, empty = "Aucune carte."}) {
   );
 }
 
-// Action asynchrone avec état « en cours » et erreur
-export function useAsync() {
-  const [state, setState] = useState({busy: false, error: null});
-  const alive = useRef(true);
-  useEffect(() => () => (alive.current = false), []);
-  const run = async (fn) => {
-    setState({busy: true, error: null});
-    try {
-      const r = await fn();
-      if (alive.current) setState({busy: false, error: null});
-      return r;
-    } catch (e) {
-      if (alive.current) setState({busy: false, error: e?.name === "AbortError" ? null : e.message || String(e)});
-      return undefined;
-    }
-  };
-  return [state, run];
-}
-
 export function Copyable({text}) {
   const [copied, setCopied] = useState(false);
   return (
@@ -160,7 +165,7 @@ export function Copyable({text}) {
             setTimeout(() => setCopied(false), 2000);
           }}
         >
-          {copied ? "Copié ✓" : "Copier"}
+          {copied ? <><Icon name="check" size={14} /> Copié</> : "Copier"}
         </button>
         <span class="small muted">{fmt(text.length)} caractères</span>
       </div>

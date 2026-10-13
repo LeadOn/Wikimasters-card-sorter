@@ -6,6 +6,7 @@ import {families, addCard} from "../../features/families";
 import {emit} from "../../lib/bus";
 import {toast} from "../feedback";
 import {PriceLine, Interest} from "./shared";
+import {Icon, Mark} from "../components";
 
 // card : {id, title, rarity, category, summary, image_url, owned}
 export function CardInsight({card}) {
@@ -24,9 +25,13 @@ export function CardInsight({card}) {
   return (
     <section class="island compact stacked" aria-label="WikiMasters Toolbox">
       <div class="island-head">
-        <div class="logo">WM</div>
+        <Mark size={20} />
         <span class="island-title">Toolbox</span>
-        {isOwned === true && !card.onMyCollection && <span class="chip ok">✓ Dans votre collection</span>}
+        {isOwned === true && !card.onMyCollection && (
+          <span class="chip ok">
+            <Icon name="check" size={12} /> Dans votre collection
+          </span>
+        )}
         {isOwned === false && <span class="chip warn">Pas dans votre collection</span>}
       </div>
       <PriceLine cardId={card.id} rarity={card.rarity} />

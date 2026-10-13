@@ -9,7 +9,7 @@ import {on} from "../lib/bus";
 import {loadMyCollection} from "../state/collection";
 import {activeProfiles, profileFor} from "../state/profiles";
 import {priceMap} from "../state/prices";
-import {findTrades, tagForProfile, THEME_COLORS} from "../../../../core";
+import {findTrades, tagForProfile} from "../../../../core";
 
 const MAX_AGE_H = 12;
 const CONCURRENCY = 6;
@@ -181,8 +181,6 @@ export async function findTradesWith(friend, {themes = null, rarities = [], refr
     tradeState.set({running: false});
   }
 }
-
-export const themeNames = () => Object.keys(THEME_COLORS);
 
 // --- Échanges en cours (valeur de chaque côté)
 export const activeTrades = createStore({list: null, at: 0});

@@ -6,7 +6,7 @@ import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {pullStats, collectionRarity} from "../features/packs";
 import {RARITIES, RARITY_LABEL} from "../../../../core";
-import {fmt} from "./components";
+import {Mark, fmt} from "./components";
 import {mountIsland} from "./islands/mount";
 
 // En dessous de ce nombre de cartes tirées, la collection donne une meilleure estimation
@@ -37,6 +37,7 @@ export function DropRatesView() {
   return (
     <section class="rates" aria-label="Taux de drop par rareté">
       <header class="rates-head">
+        <Mark size={18} />
         <span class="rates-title">Taux de drop</span>
         <div class="seg" role="tablist">
           <button role="tab" aria-selected={source === "pulls"} class={source === "pulls" ? "on" : ""} onClick={() => setChoice("pulls")}>
