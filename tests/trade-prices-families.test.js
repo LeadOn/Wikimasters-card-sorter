@@ -45,6 +45,18 @@ test("prix : moyenne par rareté, valeur et doublons vendables", () => {
   assert.equal(core.averagePrice(summary, "L"), null);
   const prices = new Map([["a", summary]]);
   assert.deepEqual(core.collectionValue([{card_id: "a", rarity: "UR", count: 2}, {card_id: "b", rarity: "C"}], prices), {value: 638, priced: 2, total: 3});
+  // Jamais vendues : dans la rareté de l'exemplaire, ou dans aucune ; une carte non lue reste à part
+  const sold = new Map([["a", summary], ["z", {}]]);
+  const owned = [{card_id: "a", rarity: "UR"}, {card_id: "a", rarity: "L"}, {card_id: "z", rarity: "C"}, {card_id: "b", rarity: "C"}];
+  const inRarity = core.unsoldCopies(owned, sold);
+  assert.deepEqual(inRarity.unsold.map((c) => `${c.card_id}|${c.rarity}`), ["a|L", "z|C"]);
+  assert.deepEqual(inRarity.unknown.map((c) => c.card_id), ["b"]);
+  assert.deepEqual(core.unsoldCopies(owned, sold, {anyRarity: true}).unsold.map((c) => c.card_id), ["z"], "a s'est vendue en UR et SR");
+  // Regroupement par carte et rareté ; exemplaire à vendre ou défausser : jamais un favori, shiny en dernier
+  const groups = core.groupCopies([{id: "u1", card_id: "a", rarity: "C", count: 2}, {id: "u2", card_id: "a", rarity: "R"}, {id: "u3", card_id: "a", rarity: "C"}]);
+  assert.deepEqual(groups.map((g) => [g.card_id, g.rarity, g.count, g.rows.map((r) => r.id)]), [["a", "C", 3, ["u1", "u3"]], ["a", "R", 1, ["u2"]]]);
+  assert.equal(core.freeCopy([{id: "u1", starred: true}, {id: "u2", is_shiny: true}, {id: "u3"}]).id, "u3");
+  assert.equal(core.freeCopy([{id: "u1", starred: true}]), null);
   const spares = core.spareCards([{id: "u1", card_id: "a", rarity: "SR"}, {id: "u2", card_id: "a", rarity: "UR", starred: true}, {id: "u3", card_id: "b"}]);
   assert.equal(spares.length, 1);
   assert.equal(spares[0].spare, 1);

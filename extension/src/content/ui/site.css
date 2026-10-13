@@ -150,6 +150,8 @@
 }
 [data-wmt-card] > .wmt-tile-badges { top: calc(var(--wmt-frame) + 5px); right: calc(var(--wmt-frame) + 5px); }
 [data-wmt-card] > .wmt-tile-badges.wmt-below-controls { top: calc(var(--wmt-frame) + 36px); }
+/* Grille de la collection masquée pendant le filtre « Sans image » / « GIF » de la barre Toolbox */
+[data-wmt-hidden] { display: none !important; }
 .wmt-open-all {
   display: inline-flex;
   align-items: center;
@@ -165,12 +167,14 @@
   transition: border-color 0.12s, background 0.12s;
 }
 .wmt-open-all svg { display: block; flex: none; }
-.wmt-open-all:hover { border-color: #c5ef55; background: #21211e; }
+.wmt-open-all:hover:not(:disabled) { border-color: #c5ef55; background: #21211e; }
+.wmt-open-all:disabled { cursor: progress; color: #a9a69b; }
 .wmt-open-all:focus-visible { outline: 2px solid #c5ef55; outline-offset: 2px; }
+/* Sous la carte révélée (bloc de la page) ou sous le compteur de paquets ; marge latérale sur mobile */
 .wmt-recap-host {
   display: block;
-  width: min(640px, 100%);
-  margin: 12px auto 0;
+  width: min(640px, calc(100% - 24px));
+  margin: 8px auto 24px;
 }
 .wmt-rates-host {
   display: block;

@@ -30,6 +30,7 @@ const ROUTES = [
   ["pack-opened", /^\/api\/packs\/(?:open|pro-daily|special)$/],
   ["notifications", /^\/api\/notifications$/],
   ["wikibidous", /^\/api\/wikibidous$/],
+  ["copy-discarded", /^\/api\/user-cards\/([^/]+)\/discard$/],
   ["packs-status", /^\/rest\/v1\/rpc\/sync_profile_packs$/],
 ];
 
@@ -41,7 +42,7 @@ export function startHookBridge() {
     if (msg.type !== "response" || typeof msg.path !== "string" || msg.status < 200 || msg.status >= 300) return;
     for (const [type, re] of ROUTES) {
       const m = re.exec(msg.path);
-      if (m) return emit(type, {data: msg.data, path: msg.path, method: msg.method, match: m});
+      if (m) return emit(type, {data: msg.data, path: msg.path, method: msg.method, match: m, request: msg.request});
     }
   });
 }

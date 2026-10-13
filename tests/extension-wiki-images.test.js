@@ -4,8 +4,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {loadExtensionModule, response} = require("./helpers/extension");
 
-function fakeChrome() {
-  const data = {};
+function fakeChrome(initial = {}) {
+  const data = structuredClone(initial);
   globalThis.chrome = {
     runtime: {id: "test"},
     storage: {
@@ -19,21 +19,28 @@ function fakeChrome() {
   };
 }
 
-// Faux Wikimedia : pages par wiki (titre → page), éléments Wikidata (id → claims, sitelinks) et
-// fichiers de la liste des images à ne pas afficher (bad : noms de fichiers)
-function fakeWikimedia({fr = {}, en = {}, wikidata = {}, bad = [], status = 200} = {}) {
+// Faux Wikimedia : pages par wiki (titre → page ; fr, en, et les autres langues dans wikis),
+// éléments Wikidata (id → claims, sitelinks, filtrés par sitefilter) et fichiers de la liste des
+// images à ne pas afficher (bad : noms de fichiers)
+function fakeWikimedia({fr = {}, en = {}, wikis = {}, wikidata = {}, bad = [], status = 200} = {}) {
   const calls = [];
+  const pages = {...wikis, fr, en};
   globalThis.fetch = async (url, init) => {
     const u = new URL(url);
     const p = Object.fromEntries(u.searchParams);
     calls.push({host: u.host, params: p, agent: init?.headers?.["Api-User-Agent"]});
     if (status !== 200) return response(status, "You are making too many requests");
     if (u.host === "en.wikipedia.org" && p.prop === "imageinfo") return response(200, {query: {pages: [{title: p.titles, badfile: bad.includes(p.titles.replace(/^File:/, ""))}]}});
-    if (u.host === "fr.wikipedia.org" || u.host === "en.wikipedia.org") {
-      const page = (u.host === "fr.wikipedia.org" ? fr : en)[p.titles];
+    const lang = /^([a-z-]+)\.wikipedia\.org$/.exec(u.host)?.[1];
+    if (lang) {
+      const page = pages[lang]?.[p.titles];
       return response(200, {query: {pages: [page ? {title: p.titles, ...page} : {title: p.titles, missing: true}]}});
     }
-    if (u.host === "www.wikidata.org") return response(200, {entities: Object.fromEntries(p.ids.split("|").map((id) => [id, wikidata[id] || {}]))});
+    if (u.host === "www.wikidata.org") {
+      const sites = p.sitefilter?.split("|");
+      const entity = (e) => (e?.sitelinks && sites ? {...e, sitelinks: Object.fromEntries(Object.entries(e.sitelinks).filter(([k]) => sites.includes(k)))} : e || {});
+      return response(200, {entities: Object.fromEntries(p.ids.split("|").map((id) => [id, entity(wikidata[id])]))});
+    }
     throw new Error(`hôte inattendu ${u.host}`);
   };
   return calls;
@@ -42,18 +49,26 @@ function fakeWikimedia({fr = {}, en = {}, wikidata = {}, bad = [], status = 200}
 const claim = (value, rank = "normal") => ({rank, mainsnak: {datavalue: {value}}});
 const thumb = (name) => ({source: `https://upload.wikimedia.org/wikipedia/commons/thumb/${name}`});
 const filePath = (name) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}?width=640`;
+// Page d'une autre Wikipédia, avec son image principale
+const illustrated = (name) => ({thumbnail: thumb(name), pageimage: name});
+const links = (titles) => Object.fromEntries(Object.entries(titles).map(([site, title]) => [site, {title}]));
 
-function load() {
-  fakeChrome();
+function load(storage) {
+  fakeChrome(storage);
   return loadExtensionModule("extension/src/content/features/wiki-images.js");
 }
 
 test("images : l'article français d'abord, sans autre requête", async () => {
   const m = load();
-  const calls = fakeWikimedia({fr: {"Coca-Cola": {thumbnail: thumb("coca.jpg"), pageprops: {wikibase_item: "Q2813"}}}});
+  let calls = fakeWikimedia({fr: {"Coca-Cola": {thumbnail: thumb("coca.jpg"), pageprops: {wikibase_item: "Q2813"}}}});
   assert.equal(await m.findWikiImage("Coca-Cola"), "https://upload.wikimedia.org/wikipedia/commons/thumb/coca.jpg");
   assert.equal(calls.length, 1);
   assert.match(calls[0].agent, /^WikiMastersToolbox\//);
+  // Miniature servie par thumb.wikimedia.org
+  const resized = "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/Tour.jpg/960px-Tour.jpg";
+  calls = fakeWikimedia({fr: {Paris: {thumbnail: {source: resized}, pageprops: {wikibase_item: "Q90"}}}});
+  assert.equal(await m.findWikiImage("Paris"), resized);
+  assert.equal(calls.length, 1);
 });
 
 test("images : puis l'image Wikidata, rang préféré avant normal, jamais obsolète", async () => {
@@ -97,12 +112,55 @@ test("images : ordre des sources quand Wikidata n'a pas d'image principale", asy
   assert.equal(await m.findWikiImage("Canton"), filePath("Carte.svg"));
 });
 
+test("images : puis l'article dans une autre langue, trouvé par les liens de l'élément Wikidata", async () => {
+  const m = load();
+  // Avant la carte de localisation ; carte vierge du pays et image « manquante » écartées ;
+  // une Wikipédia remplie par un robot (ceb) n'est jamais interrogée
+  let calls = fakeWikimedia({
+    fr: {Village: {pageprops: {wikibase_item: "Q1"}}},
+    wikis: {
+      ceb: {"Village (ceb)": illustrated("Village ceb.jpg")},
+      de: {"Village (de)": illustrated("Poland_adm_location_map.svg")},
+      es: {"Village (es)": illustrated("Ne_havas_libera_imajo.svg")},
+      ru: {"Village (ru)": illustrated("Église.jpg")},
+    },
+    wikidata: {Q1: {claims: {P242: [claim("Carte.svg")]}, sitelinks: links({cebwiki: "Village (ceb)", ruwiki: "Village (ru)", eswiki: "Village (es)", dewiki: "Village (de)"})}},
+  });
+  assert.match(await m.findWikiImage("Village"), /Église\.jpg$/);
+  assert.deepEqual(calls.map((c) => c.host), ["fr.wikipedia.org", "www.wikidata.org", "de.wikipedia.org", "es.wikipedia.org", "ru.wikipedia.org", "en.wikipedia.org"]);
+  assert.match(calls[1].params.sitefilter, /^enwiki\|dewiki\|/);
+  assert.ok(!calls[1].params.sitefilter.split("|").includes("cebwiki"));
+  assert.equal(calls.at(-1).params.titles, "File:Église.jpg", "vérifiée contre la liste des images à ne pas afficher");
+
+  // Les sources de Wikidata d'abord : le logo, sans interroger les autres Wikipédias
+  calls = fakeWikimedia({
+    fr: {Marque: {pageprops: {wikibase_item: "Q1"}}},
+    wikis: {de: {Marke: illustrated("Laden.jpg")}},
+    wikidata: {Q1: {claims: {P154: [claim("Logo.svg")]}, sitelinks: links({dewiki: "Marke"})}},
+  });
+  assert.equal(await m.findWikiImage("Marque"), filePath("Logo.svg"));
+  assert.ok(!calls.some((c) => c.host === "de.wikipedia.org"));
+
+  // Image de la liste des images à ne pas afficher écartée ; cinq autres Wikipédias au plus
+  const langs = ["de", "es", "it", "nl", "pt", "ru"];
+  calls = fakeWikimedia({
+    fr: {Sujet: {pageprops: {wikibase_item: "Q1"}}},
+    wikis: {de: {"Sujet (de)": illustrated("Interdite.jpg")}, ru: {"Sujet (ru)": illustrated("Photo.jpg")}},
+    wikidata: {Q1: {sitelinks: links(Object.fromEntries(langs.map((l) => [`${l}wiki`, `Sujet (${l})`])))}},
+    bad: ["Interdite.jpg"],
+  });
+  assert.equal(await m.findWikiImage("Sujet"), null);
+  const asked = calls.filter((c) => c.params.prop === "pageimages|pageprops").map((c) => c.host);
+  assert.deepEqual(asked, ["fr", ...langs.slice(0, 5)].map((l) => `${l}.wikipedia.org`));
+});
+
 test("images : sujet sensible → seulement les images principales des articles de Wikipédia", async () => {
   const m = load();
-  const wikidata = {Q1: {claims: {P18: [claim("Photo opératoire.jpg")], P373: [claim("Vaginoplastie")]}, sitelinks: {enwiki: {title: "Vaginoplasty"}}}};
-  let calls = fakeWikimedia({fr: {Vaginoplastie: {pageprops: {wikibase_item: "Q1"}}}, wikidata});
+  const wikidata = {Q1: {claims: {P18: [claim("Photo opératoire.jpg")], P373: [claim("Vaginoplastie")]}, sitelinks: links({enwiki: "Vaginoplasty", dewiki: "Vaginoplastik"})}};
+  let calls = fakeWikimedia({fr: {Vaginoplastie: {pageprops: {wikibase_item: "Q1"}}}, wikis: {de: {Vaginoplastik: illustrated("Foto.jpg")}}, wikidata});
   assert.equal(await m.findWikiImage("Vaginoplastie", "opération de chirurgie plastique"), null);
   assert.ok(!calls.some((c) => c.params.prop === "imageinfo"));
+  assert.ok(!calls.some((c) => c.host === "de.wikipedia.org"), "pas d'autre Wikipédia que le français et l'anglais");
   // L'image principale de l'article anglais reste acceptée
   fakeWikimedia({fr: {Vaginoplastie: {pageprops: {wikibase_item: "Q1"}}}, en: {Vaginoplasty: {thumbnail: thumb("schema.png")}}, wikidata});
   assert.match(await m.findWikiImage("Vaginoplastie", ""), /schema\.png$/);
@@ -152,4 +210,15 @@ test("images : trop de requêtes → pause, rien n'est mémorisé ; le cache év
   assert.match(fresh.knownWikiImage("Coca-Cola"), /coca\.jpg$/);
   assert.equal(calls.length, 1);
   assert.equal(fresh.knownWikiImage("Jamais cherchée"), undefined);
+});
+
+test("images : une recherche vaine faite avant l'ajout d'une source est refaite", async () => {
+  const t = Date.now();
+  // v : version des sources (SOURCES) lors de la recherche ; absente avant les autres Wikipédias
+  const m = load({wikiImages: {Ancienne: {u: null, t}, Récente: {u: null, t, v: 2}, Trouvée: {u: "https://upload.wikimedia.org/x.jpg", t: 0}}});
+  const calls = fakeWikimedia({fr: {Ancienne: {thumbnail: thumb("a.jpg")}, Récente: {thumbnail: thumb("r.jpg")}}});
+  assert.match(await m.wikiImage("Ancienne"), /a\.jpg$/);
+  assert.equal(await m.wikiImage("Récente"), null);
+  assert.equal(await m.wikiImage("Trouvée"), "https://upload.wikimedia.org/x.jpg");
+  assert.equal(calls.length, 1);
 });

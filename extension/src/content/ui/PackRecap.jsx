@@ -1,15 +1,17 @@
 // Récapitulatif du dernier paquet : bloc intégré à la page Paquets (et à l'onglet Paquets de la
 // Toolbox), jamais une fenêtre. Les prix arrivent pendant la révélation des cartes ; tant qu'ils
-// ne sont pas là, un indicateur de chargement les remplace. Chaque carte peut être mise aux
-// enchères ou défaussée sur place, toujours après confirmation.
+// ne sont pas là, un indicateur de chargement les remplace. Les cartes cochées sont défaussées
+// ensemble, chacune peut être mise aux enchères, toujours après confirmation. Dans la page, un
+// bouton enchaîne sur le paquet suivant.
 import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
-import {recapState, dismissRecap, discardPulled, markListed} from "../features/packs";
+import {recapState, dismissRecap, discardPulledMany, markListed, packsStatus} from "../features/packs";
 import {planSort} from "../features/sorter";
 import {priceOf, priceStatus, priceVersion} from "../state/prices";
 import {isOn} from "../state/settings";
 import {Icon, Mark, Money, Rarity, ThemeChip, fmt, plural, useWikiImage} from "./components";
-import {toast, errorMessage, confirmAction} from "./feedback";
+import {toast, errorMessage} from "./feedback";
+import {confirmDiscardMany} from "./discard";
 import {askSell} from "./SellDialog";
 import {emit} from "../lib/bus";
 import {categorize, isThemeTag, DOUBLON} from "../../../../core";
@@ -31,9 +33,11 @@ function Thumb({card}) {
   return src ? <img class="recap-thumb" src={src} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="recap-thumb" />;
 }
 
-// Mettre aux enchères ou défausser l'exemplaire tiré ; une fois fait, ce qu'il en est advenu
-function CardActions({card, index, at}) {
-  const [busy, setBusy] = useState(false);
+// Exemplaire encore entre les mains du joueur : il peut être défaussé ou mis aux enchères
+const available = (c) => Boolean(c.user_card_id) && !c.action;
+
+// Mise aux enchères, un exemplaire à la fois ; une fois fait, ce qu'il est advenu de la carte
+function CardActions({card, index, at, locked}) {
   const done = card.action;
   if (done?.kind === "discarded") return <span class="chip">Défaussée · +1 ₩</span>;
   if (done?.kind === "listed") return <span class="chip accent">En vente · {fmt(done.baseAmount)} ₩</span>;
@@ -55,53 +59,16 @@ function CardActions({card, index, at}) {
     markListed(at, index, sale);
   };
 
-  const discard = async () => {
-    const price = priceOf(card.id, card.rarity);
-    const ok = await confirmAction({
-      title: `Défausser « ${card.wikipedia_title} » ?`,
-      body: [
-        "La carte quitte votre collection contre 1 WikiBidou. C'est définitif.",
-        card.isNew === true ? "C'est votre seul exemplaire." : card.isNew === false ? "Il vous en reste au moins un autre exemplaire." : "",
-        card.is_shiny ? "Attention : c'est une carte shiny." : "",
-        price > 1 ? `Elle se vend en moyenne ${fmt(price)} ₩ dans cette rareté : la mettre aux enchères rapporterait sans doute plus.` : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
-      confirm: "Défausser (+1 ₩)",
-      danger: true,
-    });
-    if (!ok) return;
-    setBusy(true);
-    try {
-      await discardPulled(at, index);
-      toast(`${card.wikipedia_title} défaussée : +1 WikiBidou.`, {type: "ok"});
-    } catch (e) {
-      toast(errorMessage(e), {type: "error", duration: 10000});
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <div class="recap-actions">
       <button
         class="btn sm ghost"
-        disabled={busy || !card.user_card_id}
+        disabled={locked || !card.user_card_id}
         title={card.user_card_id ? "Mettre aux enchères" : "Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection"}
         onClick={sell}
       >
         <Icon name="market" size={14} />
         <span class="label">Vendre</span>
-      </button>
-      <button
-        class="btn sm ghost"
-        disabled={busy || !card.user_card_id}
-        title={card.user_card_id ? "Défausser contre 1 WikiBidou" : "Exemplaire introuvable : défaussez cette carte depuis votre collection"}
-        onClick={discard}
-      >
-        {busy ? <span class="spinner" aria-label="Défausse en cours" /> : <Icon name="discard" size={14} />}
-        <span class="label">Défausser</span>
-        <span class="gain">+1</span>
       </button>
     </div>
   );
@@ -129,9 +96,36 @@ function SortTags({card, sort, index}) {
   );
 }
 
-export function PackRecapView({onClose, compact = false}) {
+// Paquet suivant, sans passer par « Continuer » puis « Ouvrir » (seulement dans la page, quand il en reste)
+function NextPack({onNext, disabled}) {
+  const {remaining} = useStore(packsStatus);
+  const [busy, setBusy] = useState(false);
+  if (!remaining) return null;
+  const run = async () => {
+    setBusy(true);
+    try {
+      await onNext();
+    } catch (e) {
+      toast(errorMessage(e), {type: "error"});
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <button class="btn sm primary" disabled={busy || disabled} onClick={run}>
+      {busy ? <span class="spinner" aria-label="Ouverture en cours" /> : <Icon name="packs" size={14} />}
+      Ouvrir le prochain
+      <span class="num">({remaining})</span>
+    </button>
+  );
+}
+
+export function PackRecapView({onClose, onNext, compact = false}) {
   const recap = useStore(recapState);
   useStore(priceVersion);
+  // Cartes cochées pour la défausse (index dans le paquet), propres à ce récapitulatif
+  const [picks, setPicks] = useState({at: 0, set: new Set()});
+  const [discarding, setDiscarding] = useState(null); // {done, total} pendant la défausse
   if (!recap.cards.length) return null;
   const loading = recap.pricesLoading;
   const prices = recap.cards.map((c) => priceOf(c.id, c.rarity));
@@ -140,6 +134,29 @@ export function PackRecapView({onClose, compact = false}) {
   const failed = recap.cards.filter((c) => priceStatus(c.id, c.rarity) === "error").length;
   const fresh = recap.cards.filter((c) => c.isNew === true).length;
   const known = recap.cards.some((c) => c.isNew != null);
+
+  const choosable = recap.cards.flatMap((c, i) => (available(c) ? [i] : []));
+  const doubles = choosable.filter((i) => recap.cards[i].isNew === false && !recap.cards[i].is_shiny);
+  const checked = picks.at === recap.at ? picks.set : new Set();
+  const picked = choosable.filter((i) => checked.has(i));
+  const pick = (indexes) => setPicks({at: recap.at, set: new Set(indexes)});
+  const toggle = (i) => pick(checked.has(i) ? picked.filter((j) => j !== i) : [...picked, i]);
+
+  const discardPicked = async () => {
+    const at = recap.at;
+    const cards = picked.map((i) => recap.cards[i]);
+    if (!(await confirmDiscardMany(cards.map((c) => ({card: c, rarity: c.rarity, shiny: c.is_shiny, only: c.isNew}))))) return;
+    setDiscarding({done: 0, total: picked.length});
+    try {
+      const n = await discardPulledMany(at, picked, (done) => setDiscarding({done, total: picked.length}));
+      toast(n === 1 ? `${cards[0].wikipedia_title} défaussée : +1 WikiBidou.` : `${n} cartes défaussées : +${n} WikiBidous.`, {type: "ok"});
+    } catch (e) {
+      const before = e.discarded ? `${plural(e.discarded, "carte défaussée", "cartes défaussées")}, puis arrêt : ` : "";
+      toast(before + errorMessage(e), {type: "error", duration: 10000});
+    } finally {
+      setDiscarding(null);
+    }
+  };
 
   return (
     <section class="recap" aria-label="Récapitulatif du paquet">
@@ -162,32 +179,77 @@ export function PackRecapView({onClose, compact = false}) {
           </button>
         )}
       </header>
+      {choosable.length > 0 && (
+        <div class="recap-select">
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={picked.length === choosable.length}
+              ref={(el) => el && (el.indeterminate = picked.length > 0 && picked.length < choosable.length)}
+              disabled={Boolean(discarding)}
+              onChange={() => pick(picked.length === choosable.length ? [] : choosable)}
+            />
+            Tout
+          </label>
+          {doubles.length > 0 && (
+            <button class="btn sm ghost" disabled={Boolean(discarding)} title="Cocher les doublons (sauf les shiny)" onClick={() => pick(doubles)}>
+              Doublons
+            </button>
+          )}
+          <span class={`recap-select-count${picked.length ? "" : " hint"}`}>{picked.length ?plural(picked.length, "carte cochée", "cartes cochées") : "Cochez les cartes à défausser"}</span>
+          <button class="btn sm" disabled={!picked.length || Boolean(discarding)} title="Défausser les cartes cochées contre 1 WikiBidou chacune" onClick={discardPicked}>
+            {discarding ? <span class="spinner" aria-label="Défausse en cours" /> : <Icon name="discard" size={14} />}
+            {discarding ? `Défausse… ${discarding.done}/${discarding.total}` : "Défausser"}
+            {!discarding && picked.length > 0 && <span class="gain">+{picked.length}</span>}
+          </button>
+        </div>
+      )}
       <ul class={`recap-list${compact ? " compact" : ""}`}>
-        {recap.cards.map((c, i) => (
-          <li key={`${c.id}-${i}`} class={`recap-row${c.action?.kind === "discarded" ? " gone" : ""}`} style={{"--rc": `var(--r-${c.rarity || "C"})`}}>
-            <Thumb card={c} />
-            <div class="recap-card">
-              <div class="recap-name" title={c.wikipedia_title}>{c.wikipedia_title}</div>
-              <div class="recap-meta">
-                <Rarity r={c.rarity} />
-                {c.isNew === true && <span class="chip ok">Nouvelle</span>}
-                {c.isNew === false && <span class="chip danger">Doublon</span>}
-                {c.is_shiny && (
-                  <span class="chip warn">
-                    <Icon name="shine" size={12} /> Shiny
-                  </span>
-                )}
-                <SortTags card={c} sort={recap.sort} index={i} />
+        {recap.cards.map((c, i) => {
+          const choosableRow = available(c) && !discarding;
+          return (
+            <li
+              key={`${c.id}-${i}`}
+              class={`recap-row${c.action?.kind === "discarded" ? " gone" : ""}${checked.has(i) && available(c) ? " picked" : ""}${choosableRow ? " choosable" : ""}`}
+              style={{"--rc": `var(--r-${c.rarity || "C"})`}}
+              onClick={choosableRow ? (e) => !e.target.closest("button, input, a") && toggle(i) : undefined}
+            >
+              {available(c) ? (
+                <input
+                  type="checkbox"
+                  class="recap-pick"
+                  checked={checked.has(i)}
+                  disabled={Boolean(discarding)}
+                  aria-label={`Défausser ${c.wikipedia_title}`}
+                  onChange={() => toggle(i)}
+                />
+              ) : (
+                <span class="recap-pick" />
+              )}
+              <Thumb card={c} />
+              <div class="recap-card">
+                <div class="recap-name" title={c.wikipedia_title}>{c.wikipedia_title}</div>
+                <div class="recap-meta">
+                  <Rarity r={c.rarity} />
+                  {c.isNew === true && <span class="chip ok">Nouvelle</span>}
+                  {c.isNew === false && <span class="chip danger">Doublon</span>}
+                  {c.is_shiny && (
+                    <span class="chip warn">
+                      <Icon name="shine" size={12} /> Shiny
+                    </span>
+                  )}
+                  <SortTags card={c} sort={recap.sort} index={i} />
+                </div>
               </div>
-            </div>
-            <div class="recap-value">
-              <Price card={c} loading={loading} />
-            </div>
-            <div class="recap-do">
-              <CardActions card={c} index={i} at={recap.at} />
-            </div>
-          </li>
-        ))}
+              <div class="recap-value">
+                <Price card={c} loading={loading} />
+              </div>
+              <div class="recap-do">
+                <CardActions card={c} index={i} at={recap.at} locked={Boolean(discarding) && checked.has(i)} />
+              </div>
+            </li>
+          );
+        })}
       </ul>
       <footer class="recap-foot">
         <span class="small muted">
@@ -199,29 +261,33 @@ export function PackRecapView({onClose, compact = false}) {
                 ? `${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`
                 : "Prix moyens des 200 dernières ventes, par rareté."}
         </span>
-        {recap.sort?.status === "done" && (
-          <span class="chip ok">
-            <Icon name="check" size={12} /> Cartes triées
-          </span>
-        )}
-        {recap.sort?.status === "error" && <span class="chip danger" title={recap.sort.error}>Tri automatique impossible</span>}
-        {(!recap.sort || recap.sort.status === "error") && isOn("sortAfterPack") && known && fresh > 0 && (
-          <button
-            class="btn sm primary"
-            onClick={() => {
-              emit("open-panel", {tab: "sort"});
-              planSort({newOnly: true}).catch((e) => toast(errorMessage(e), {type: "error"}));
-            }}
-          >
-            Trier les nouvelles cartes
-          </button>
-        )}
+        <div class="recap-foot-do">
+          {recap.sort?.status === "done" && (
+            <span class="chip ok">
+              <Icon name="check" size={12} /> Cartes triées
+            </span>
+          )}
+          {recap.sort?.status === "error" && <span class="chip danger" title={recap.sort.error}>Tri automatique impossible</span>}
+          {(!recap.sort || recap.sort.status === "error") && isOn("sortAfterPack") && known && fresh > 0 && (
+            <button
+              class="btn sm"
+              onClick={() => {
+                emit("open-panel", {tab: "sort"});
+                planSort({newOnly: true}).catch((e) => toast(errorMessage(e), {type: "error"}));
+              }}
+            >
+              Trier les nouvelles cartes
+            </button>
+          )}
+          {onNext && recap.source === "reveal" && recap.phase === "ready" && <NextPack onNext={onNext} disabled={Boolean(discarding)} />}
+        </div>
       </footer>
     </section>
   );
 }
 
-// Bloc autonome inséré dans la page du site, isolé dans son propre Shadow DOM
-export function mountPackRecap(host) {
-  mountIsland(host, PackRecapView)({onClose: dismissRecap});
+// Bloc autonome inséré dans la page du site, isolé dans son propre Shadow DOM.
+// onNext : ouvre le paquet suivant avec les boutons du site (features/site-dom.js).
+export function mountPackRecap(host, {onNext} = {}) {
+  mountIsland(host, PackRecapView)({onClose: dismissRecap, onNext});
 }

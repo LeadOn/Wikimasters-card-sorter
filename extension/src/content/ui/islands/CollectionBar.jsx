@@ -1,10 +1,14 @@
 // Barre de la Toolbox sur la page Collection : trier les nouvelles cartes sur place (aperçu puis
-// application, sur clic), et raccourcis vers les doublons à vendre et les prix.
-// Partage l'état du tri avec l'onglet « Tri » du panneau (un aperçu lancé ici s'y retrouve).
+// application, sur clic), afficher toute la collection ou seulement les doublons, les cartes sans
+// image, en GIF ou jamais vendues (à cocher, mettre aux enchères ou défausser), raccourcis vers les
+// doublons et les prix. Partage l'état du tri avec l'onglet « Tri » du panneau.
 import {useStore} from "../../lib/store";
 import {emit} from "../../lib/bus";
 import {sortState, planSort, applySort} from "../../features/sorter";
+import {collectionView, setCollectionView} from "../../features/collection-view";
+import {isOn} from "../../state/settings";
 import {Icon, Mark, Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
+import {ViewSeg, CollectionCards} from "../CollectionCards";
 import {toast} from "../feedback";
 import {isThemeTag, DOUBLON} from "../../../../../core";
 
@@ -68,7 +72,28 @@ function Plan({plan}) {
   );
 }
 
-export function CollectionBar() {
+// Vues de toute la collection (le site n'en montre que 50 cartes par page) : la liste remplace la
+// grille du site, masquée par site-dom.js. onOpen : ouvre une carte dans la fenêtre du site.
+function CollectionViews({onOpen}) {
+  const {view} = useStore(collectionView);
+  return (
+    <>
+      <div class="row small">
+        <span class="muted">Afficher</span>
+        <ViewSeg value={view} onChange={setCollectionView} />
+        {view && (
+          <span class="muted">
+            Toute votre collection · la grille du site est masquée
+            {view === "none" && isOn("missingImages") ? " · une initiale : aucune image, même sur Wikimedia" : ""}
+          </span>
+        )}
+      </div>
+      {view && <CollectionCards view={view} onOpen={onOpen} mini />}
+    </>
+  );
+}
+
+export function CollectionBar({onOpen}) {
   const s = useStore(sortState);
   const plan = s.plan?.newOnly ? s.plan : null;
   return (
@@ -83,7 +108,7 @@ export function CollectionBar() {
           <button class="btn sm primary" disabled={s.running} onClick={() => planSort({newOnly: true}).catch(() => {})}>
             Trier les nouvelles cartes
           </button>
-          <button class="btn sm" onClick={() => openTab("market")}>Vendre mes doublons</button>
+          <button class="btn sm" onClick={() => openTab("market")}>Mes doublons</button>
           <button class="btn sm" onClick={() => openTab("prices")}>Prix et valeur</button>
           <button class="btn sm ghost" onClick={() => openTab("sort")} title="Ouvrir la Toolbox" aria-label="Ouvrir la Toolbox">
             <Icon name="more" size={14} />
@@ -109,6 +134,7 @@ export function CollectionBar() {
           <button class="btn sm ghost" onClick={() => sortState.set({result: null})}>Fermer</button>
         </div>
       )}
+      <CollectionViews onOpen={onOpen} />
     </section>
   );
 }

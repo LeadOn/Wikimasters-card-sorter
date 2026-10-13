@@ -69,17 +69,19 @@ extension/
       state/                   données gardées en mémoire et en cache
         settings.js            réglages : interrupteurs, délais, couleurs
         profiles.js            mon profil et ceux de mes amis
-        collection.js          ma collection, ids des cartes possédées
+        collection.js          ma collection, ids des cartes possédées, défausse d'un exemplaire
         prices.js              cache des prix, chargement groupé
       features/                fonctionnalités, sans interface
         sorter.js              tri : aperçu (planSort) puis application (applySort)
         autosort.js            tri des cartes tirées à l'ouverture d'un paquet (option)
         trades.js              recherche d'échanges, échanges en cours
-        market.js              enchères, surenchère, alerte de fin, vente des doublons
+        market.js              enchères, surenchère, alerte de fin, vente et défausse des doublons
         packs.js               récapitulatif, statistiques de tirage, « Tout ouvrir »
         families.js            familles : catalogue, cartes manquantes en vente, étiquettes
         card-lookup.js         carte affichée par le site mais jamais vue dans ses réponses
         wiki-images.js         images Wikimedia pour les cartes sans image (option) : Wikipédia, Wikidata
+        card-images.js         cartes sans image ou en GIF sur toute la collection, filtre de la page Collection
+        unsold.js              cartes jamais vendues : liste, mise en vente et défausse, une à une ou par lot
         notify.js              sons de notification et d'alerte
         site-dom.js            intégration aux pages : tous les sélecteurs du site sont ici
       ui/                      interface (Preact, dans un Shadow DOM)
@@ -89,8 +91,11 @@ extension/
         panel.css              styles du panneau et des blocs intégrés
         site.css               styles injectés dans les pages du site : badges, nouvel affichage des cartes
         PackRecap.jsx          récapitulatif de paquet, avec vente et défausse de chaque carte
-        SellDialog.jsx         fenêtre de mise aux enchères (Marché, récapitulatif de paquet)
+        SellDialog.jsx         fenêtre de mise aux enchères, d'une carte ou de plusieurs (Marché, récapitulatif de paquet, jamais vendues)
+        discard.js             confirmation d'une défausse, d'une carte ou de plusieurs (doublons du Marché, récapitulatif de paquet, jamais vendues)
         DropRates.jsx          taux de drop par rareté
+        ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images, barre de la collection)
+        UnsoldCards.jsx        cartes jamais vendues, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
         tabs/                  un fichier par onglet du panneau
         islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil)
 
@@ -175,11 +180,13 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `profiles.test.js` | Règles, éditeur simple, validation des profils |
 | `tag-sync.test.js` | Plan de synchronisation, modes complet et incrémental |
 | `tag-writer.test.js` | Écriture des étiquettes : reprise après interruption, pas de doublon, erreurs |
-| `trade-prices-families.test.js` | Échanges, prix, familles, codes de partage, couleurs des raretés |
+| `trade-prices-families.test.js` | Échanges, prix, cartes jamais vendues, familles, codes de partage, couleurs des raretés |
 | `extension-http.test.js` | Couche réseau : réessais, écritures jamais rejouées, session renouvelée, pagination |
 | `extension-storage.test.js` | Stockage : valeurs enregistrées jamais écrasées, plusieurs onglets |
-| `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, homonymies, limite de requêtes, cache |
+| `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |
+| `extension-card-images.test.js` | Filtre par image : GIF reconnu dans le chemin de l'URL (vignettes Wikimedia), image masquée comptée sans image, exemplaires cumulés par carte et rareté |
 | `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |
+| `extension-unsold.test.js` | Cartes jamais vendues : exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
 
 Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
 

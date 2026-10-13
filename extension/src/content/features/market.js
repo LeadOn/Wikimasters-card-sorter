@@ -1,10 +1,10 @@
-// Marché : mes enchères (suivi, surenchère, alerte de fin) et vente de mes doublons.
+// Marché : mes enchères (suivi, surenchère, alerte de fin) et vente ou défausse de mes doublons.
 import {site} from "../api/site";
 import {createStore} from "../lib/store";
 import {readSession} from "../lib/session";
 import {on, emit} from "../lib/bus";
 import {settings, isOn} from "../state/settings";
-import {loadMyCollection, invalidateCollection} from "../state/collection";
+import {loadMyCollection, invalidateCollection, discardCopy} from "../state/collection";
 import {priceOf, loadPrices} from "../state/prices";
 import {spareCards} from "../../../../core";
 
@@ -130,7 +130,7 @@ export function startBidAlerts() {
   return () => clearTimeout(pollTimer);
 }
 
-// --- Vendre mes doublons
+// --- Vendre ou défausser mes doublons
 export const sellState = createStore({spares: null, loading: false, error: null, quota: null});
 
 export async function loadSpares() {
@@ -151,7 +151,34 @@ export async function loadSpares() {
 
 export const spareValue = (s) => priceOf(s.card_id, s.rarity);
 
-// Mise en vente d'un exemplaire (le site choisit l'exemplaire). Après confirmation du joueur.
+// Un exemplaire a quitté la liste des doublons (mis en vente ou défaussé) : la carte est recalculée
+// sans lui, pour que l'action suivante vise un autre exemplaire ; elle disparaît s'il n'en reste qu'un.
+function dropSpareCopy(cardId, userCardId) {
+  sellState.set((s) => ({
+    ...s,
+    spares: (s.spares || []).flatMap((x) => {
+      if (x.card_id !== cardId) return [x];
+      const rows = x.rows.flatMap((r) => (r.id !== userCardId ? [r] : r.count > 1 ? [{...r, count: r.count - 1}] : []));
+      const [next] = spareCards(rows);
+      return next ? [{...x, ...next}] : [];
+    }),
+  }));
+}
+
+// Défausse d'un exemplaire en trop contre 1 WikiBidou, après confirmation du joueur. Sans réponse
+// du site, la défausse a peut-être eu lieu : la liste est relue avant toute nouvelle tentative.
+export async function discardSpare({userCardId, cardId}) {
+  if (!userCardId) throw new Error("Exemplaire introuvable : défaussez cette carte depuis votre collection.");
+  try {
+    await discardCopy(userCardId);
+  } catch (e) {
+    if (e.uncertain) loadSpares();
+    throw e;
+  }
+  dropSpareCopy(cardId, userCardId);
+}
+
+// Mise en vente d'un exemplaire. Après confirmation du joueur.
 // Sans réponse du site, la vente a peut-être eu lieu : la liste est relue avant toute nouvelle
 // tentative, pour ne pas mettre en vente un deuxième exemplaire par erreur.
 // userCardId : l'exemplaire mis en vente (user_cards.id) ; cardId : la carte, pour la liste des doublons
@@ -169,11 +196,7 @@ export async function sellCard({userCardId, cardId, baseAmount, durationMinutes}
     throw e;
   }
   invalidateCollection();
-  const quota = await site.marketplaceQuota().catch(() => null);
-  sellState.set((s) => ({
-    ...s,
-    quota,
-    spares: (s.spares || []).map((x) => (x.card_id === cardId ? {...x, spare: x.spare - 1, listed: (x.listed || 0) + 1} : x)).filter((x) => x.spare > 0),
-  }));
+  dropSpareCopy(cardId, userCardId);
+  sellState.set({quota: await site.marketplaceQuota().catch(() => null)});
   return res;
 }

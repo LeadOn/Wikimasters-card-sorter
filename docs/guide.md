@@ -40,13 +40,14 @@ Partout où le site affiche des cartes (collection, catalogue, marché, profils,
 - une image très large (logo, bandeau, panorama) est montrée **en entier** en haut de la carte, sur une copie floutée d'elle-même ;
 - une carte sans image affiche l'**initiale de son titre** dans la couleur de sa rareté.
 
-Avec l'option **Images manquantes**, les cartes sans image en reçoivent une, cherchée sur Wikimedia : l'image de l'article sur Wikipédia en français, puis celle de l'élément Wikidata, celle de l'article en anglais (affiches de films, pochettes d'albums), la photo d'un membre pour un duo ou un groupe, un logo, un blason ou un drapeau, et enfin sa carte de localisation pour un lieu. Les mêmes images complètent les vignettes du panneau Toolbox.
+Avec l'option **Images manquantes**, les cartes sans image en reçoivent une, cherchée sur Wikimedia : l'image de l'article sur Wikipédia en français, puis celle de l'élément Wikidata, celle de l'article en anglais (affiches de films, pochettes d'albums), la photo d'un membre pour un duo ou un groupe, un logo, un blason ou un drapeau, puis l'image de l'article dans une autre langue (allemand, espagnol, italien, russe…, trouvé grâce à Wikidata : cinq langues au plus), et enfin sa carte de localisation pour un lieu. Les mêmes images complètent les vignettes du panneau Toolbox.
 
 La recherche reste prudente :
 
 - une image **masquée par le site** (signalée) n'est jamais remplacée ;
-- pour un **sujet sensible** (sexualité, chirurgie, maladie, violence, mort…), seules les images principales des articles de Wikipédia, choisies par ses éditeurs, sont utilisées ;
+- pour un **sujet sensible** (sexualité, chirurgie, maladie, violence, mort…), seules les images principales des articles de Wikipédia en français et en anglais, choisies par ses éditeurs, sont utilisées ;
 - toute autre image est vérifiée contre la liste des images que Wikipédia refuse d'afficher hors contexte ;
+- dans les autres langues, la carte vierge d'un pays et les images « image manquante » sont écartées ;
 - une page d'homonymie ne reçoit pas d'image.
 
 Le site garde la main sur ses cartes : un clic ouvre toujours la carte, le bouton favori reste à sa place. Pour retrouver l'affichage d'origine, coupez *Nouvel affichage des cartes* dans les [réglages](#réglages).
@@ -72,7 +73,9 @@ Les pastilles du marché ne s'affichent que si la carte a été vendue au moins 
 Une barre **Toolbox** apparaît sous la recherche et les filtres :
 
 - **Trier les nouvelles cartes** : affiche sur place un aperçu (nombre de cartes à classer, étiquettes qui seront ajoutées, doublons apparus ou disparus), puis *Appliquer* pose les étiquettes. Seules les cartes qui n'ont encore aucun thème sont classées.
-- **Vendre mes doublons** et **Prix et valeur** ouvrent les onglets correspondants de la Toolbox.
+- **Afficher : Toutes les cartes / Sans image / GIF** : n'affiche que vos cartes sans image (ou dont le site a masqué l'image), ou celles dont l'image est un GIF. La recherche porte sur **toute** votre collection, pas seulement sur la page de 50 cartes affichée par le site : la liste s'affiche dans la barre et la grille du site est masquée tant que le filtre est actif. *Toutes les cartes* la fait revenir. Le même filtre, avec la recherche par titre et par rareté, est dans l'onglet [Images](#images).
+- **Afficher : Jamais vendues** : vos cartes qui n'ont jamais été vendues sur le marché, sur toute la collection, à mettre aux enchères ou à défausser sur place, une à une ou en lot. Fonctionnement détaillé dans l'onglet [Prix](#prix), qui propose la même liste.
+- **Mes doublons** (à vendre ou défausser) et **Prix et valeur** ouvrent les onglets correspondants de la Toolbox.
 
 Le site garde ses étiquettes en cache : après un tri, cliquez sur *Actualiser* pour les voir apparaître.
 
@@ -101,12 +104,13 @@ Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, c
 
 ### Page Paquets
 
-- **Tout ouvrir**, à côté du bouton *Ouvrir* du site : ouvre d'un coup tous vos paquets disponibles, sans animation, après confirmation. L'ouverture s'arrête à la première erreur ou si le site demande une vérification anti-robot, à faire vous-même sur la page.
-- **Récapitulatif du paquet**, sous les cartes une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix moyen de chaque carte et valeur totale du paquet. Chaque carte peut y être traitée sur place :
-  - **Vendre** ouvre la fenêtre de mise aux enchères (mise de départ préremplie avec le prix moyen, durée de 10 minutes à 12 heures, nombre de ventes en cours) ;
-  - **Défausser +1** retire l'exemplaire de votre collection contre 1 WikiBidou, après une confirmation qui précise s'il s'agit de votre seul exemplaire, d'une carte shiny, ou d'une carte qui vaut davantage aux enchères. Le solde affiché par le site se met à jour.
+- **Tout ouvrir**, à côté du bouton *Ouvrir* du site : ouvre tous vos paquets disponibles, sans animation, après confirmation. Le site impose environ 2 secondes entre deux paquets : l'ouverture prend donc quelques secondes par paquet, et le bouton affiche sa progression. L'ouverture s'arrête à la première erreur ou si le site demande une vérification anti-robot : ouvrez alors le paquet suivant avec le bouton *Ouvrir* du site, faites la vérification qu'il affiche, puis relancez *Tout ouvrir*.
+- **Récapitulatif du paquet**, sous la carte une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix moyen de chaque carte et valeur totale du paquet. Les cartes peuvent y être traitées sur place :
+  - **Défausser** : cochez les cartes à défausser (case de la ligne ou clic sur la ligne ; *Tout* coche toutes les cartes, *Doublons* les doublons sauf les shiny), puis un seul clic sur *Défausser*. Chaque exemplaire rapporte 1 WikiBidou, après une confirmation qui précise combien sont vos seuls exemplaires, lesquelles sont shiny et ce qu'elles vaudraient aux enchères. Les cartes sont défaussées l'une après l'autre ; au premier refus du site, la défausse s'arrête et indique combien de cartes ont été défaussées. Le solde affiché par le site se met à jour.
+  - **Vendre** ouvre, carte par carte, la fenêtre de mise aux enchères (mise de départ préremplie avec le prix moyen, durée de 10 minutes à 12 heures, nombre de ventes en cours).
 
   Une fois l'action faite, la ligne l'indique (« En vente », « Défaussée »). Si le tri automatique des cartes tirées est en cours, la défausse attend qu'il ait fini.
+- **Ouvrir le prochain**, en bas du récapitulatif quand il vous reste des paquets : passe l'écran de fin (*Continuer*) et ouvre le paquet suivant avec le bouton *Ouvrir* du site, animation comprise. Si le site demande une vérification anti-robot, sa fenêtre de vérification s'affiche comme d'habitude.
 - **Taux de drop** par rareté sur l'écran d'ouverture : d'après vos tirages comptés par l'extension, ou d'après toute votre collection tant que moins de 50 cartes ont été tirées.
 
 ### Page Échanges
@@ -175,6 +179,10 @@ En bas de l'onglet, **Échanges en cours** détaille chaque échange en attente 
 - **Valeur estimée** de votre collection, nombre d'exemplaires dont le prix est connu, valeur par rareté.
 - **Charger les prix** : les ventes conclues sont lues par lots de cartes, toute une collection se charge en quelques minutes. Choisissez les raretés, et seulement les cartes sans prix récent pour aller plus vite.
 - **Mes cartes les plus chères** : classement filtrable par thème.
+- **Jamais vendues** (bascule à côté du classement, et filtre *Afficher* de la page Collection) : vos cartes qui n'ont jamais été vendues sur le marché, les plus rares d'abord, filtrables par thème. *Dans aucune rareté* ne garde que les cartes sans aucune vente conclue ; *Dans sa rareté*, celles qui ne se sont jamais vendues dans la rareté de votre exemplaire (la pastille « vendue en … » indique les autres raretés vendues). Seules les cartes dont les prix ont été chargés sont comptées : si certaines n'en ont pas encore, un bouton les charge.
+  - **Une carte** : *Vendre* ouvre la fenêtre de mise aux enchères (sans prix de référence, la mise de départ est à choisir) ; la corbeille la défausse contre 1 WikiBidou, après confirmation.
+  - **Plusieurs cartes** : cliquez sur les cartes pour les cocher (*Tout* coche la liste affichée), puis *Mettre aux enchères* (même mise de départ et même durée pour toutes, dans la limite des ventes simultanées autorisées par le site) ou *Défausser*, après une confirmation qui signale vos derniers exemplaires et les cartes shiny. Les cartes sont traitées une à une, *Arrêter* interrompt la série, et la première erreur l'arrête aussi : rien n'est jamais renvoyé automatiquement.
+  - Un exemplaire par carte à chaque fois : jamais un favori (le site les verrouille), une carte shiny en dernier. La carte disparaît de la liste quand il ne vous en reste plus.
 
 Le prix d'une carte est la moyenne de ses 200 dernières ventes **dans sa rareté**. Les prix sont gardés 48 heures (réglable) et réutilisés partout : pastilles, récapitulatifs, échanges.
 
@@ -182,7 +190,11 @@ Le prix d'une carte est la moyenne de ses 200 dernières ventes **dans sa raret�
 
 - **Mes enchères** : votre solde de WikiBidous, chaque enchère avec la mise actuelle, le temps restant et si vous êtes en tête ou dépassé. Quand vous êtes dépassé, un bouton propose la mise suivante : cliquez, vérifiez le montant dans la confirmation, c'est placé. Si la mise est devenue trop basse entre-temps, la Toolbox vous propose le minimum demandé par le site.
 - **Mes ventes en cours**.
-- **Vendre mes doublons** : vos cartes en plusieurs exemplaires, les plus chères d'abord. *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix moyen) et la durée (10 minutes à 12 heures). Vous gardez toujours au moins un exemplaire, et le nombre de ventes simultanées autorisé par le site est affiché. L'exemplaire mis en vente est le moins rare, jamais un favori (le site les verrouille) ; si tous vos exemplaires sont en favori, la vente est impossible.
+- **Mes doublons** : vos cartes en plusieurs exemplaires, les plus chères d'abord. Pour chacune :
+  - *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix moyen) et la durée (10 minutes à 12 heures). Le nombre de ventes simultanées autorisé par le site est affiché.
+  - La corbeille **défausse** un exemplaire contre 1 WikiBidou, après une confirmation qui indique combien d'exemplaires il vous restera, si c'est une carte shiny et si elle vaut davantage aux enchères. Le solde affiché par le site se met à jour.
+
+  Vous gardez toujours au moins un exemplaire : une carte quitte la liste quand il ne vous en reste qu'un. L'exemplaire vendu ou défaussé est le moins rare, jamais un favori (le site les verrouille), une carte shiny en dernier ; si tous vos exemplaires sont en favori, ni la vente ni la défausse ne sont possibles. L'étiquette `Doublon` de l'exemplaire restant est retirée au prochain tri.
 
 ### Paquets
 
@@ -199,6 +211,15 @@ Une famille est un groupe de cartes à compléter : « Star Wars », « Grands p
 - **Depuis une étiquette** : une famille créée à partir des cartes qui portent une de vos étiquettes.
 
 Pour chaque famille : progression (possédées / total), filtre *Toutes / Possédées / Manquantes*, choix de l'image de couverture (étoile), **Manquantes en vente** (les 40 premières cartes manquantes cherchées sur le marché), **En faire une étiquette** (vos exemplaires reçoivent une étiquette personnelle au nom de la famille, que le tri ne touchera jamais), partage par code `WMT-F1.…`. Le code contient la liste des cartes, pas vos possessions.
+
+### Images
+
+Les cartes de toute votre collection classées selon leur image :
+
+- **Sans image** : le site n'a pas d'image pour la carte, ou l'a masquée (image signalée, marquée « masquée par le site »). Avec l'option *Images manquantes*, la vignette montre l'image trouvée sur Wikimedia ; une image masquée par le site n'est jamais remplacée. Une vignette qui ne montre que l'initiale du titre, dans la couleur de la rareté, signale un article qu'aucune image n'illustre, ni sur Wikipédia ni sur Wikidata (l'initiale pulse tant que la recherche est en cours).
+- **GIF** : l'image est au format GIF, le plus souvent animée (quelques logos anciens sont des GIF fixes).
+
+Chaque carte apparaît une fois par rareté, avec le nombre d'exemplaires. La liste se filtre par rareté et par titre ou description. La collection lue est gardée quelques minutes, comme pour les autres onglets.
 
 ### Réglages
 
@@ -296,10 +317,10 @@ La base de WikiMasters répond lentement, surtout pour les collections des autre
 Le serveur n'a pas répondu à temps. La Toolbox ne renvoie jamais une écriture d'elle-même, pour ne pas la faire deux fois : relancez l'aperçu, il montrera ce qui reste à faire.
 
 **« Tout ouvrir » s'est arrêté.**
-Le site a demandé une vérification anti-robot ou a renvoyé une erreur. Faites la vérification sur la page Paquets, puis recommencez.
+Le site a demandé une vérification anti-robot ou a renvoyé une erreur (limite d'ouvertures du jour, par exemple). Pour la vérification : ouvrez un paquet avec le bouton *Ouvrir* du site, validez la vérification qu'il affiche, puis relancez *Tout ouvrir*, qui ouvre alors les paquets restants. La Toolbox ne fait jamais cette vérification à votre place.
 
 **Une carte n'a pas d'image, même avec l'option « Images manquantes ».**
-Wikimedia n'a aucune image pour cet article (fréquent pour une personne peu connue ou une œuvre récente), c'est une page d'homonymie, le site a masqué son image, ou le sujet est sensible et Wikipédia ne lui donne pas d'image principale. Une recherche sans résultat est refaite au bout d'une semaine.
+Wikimedia n'a aucune image pour cet article (fréquent pour une personne peu connue ou une œuvre récente), c'est une page d'homonymie, le site a masqué son image, ou le sujet est sensible et Wikipédia ne lui donne pas d'image principale. Une recherche sans résultat est refaite au bout d'une semaine, ou dès qu'une mise à jour de la Toolbox ajoute une source d'images.
 
 **Je préfère l'affichage des cartes du site.**
 Coupez *Nouvel affichage des cartes* dans les réglages : les cartes reprennent immédiatement leur aspect d'origine.

@@ -3,15 +3,17 @@
 // (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur.
 // Tous les sélecteurs du site sont ici : si le site change, c'est le seul fichier à adapter.
 import {emit} from "../lib/bus";
+import {sleep} from "../lib/http";
 import {ext} from "../lib/ext";
 import {lookupTitle, registryVersion, normTitle} from "../lib/registry";
 import {settings, isOn} from "../state/settings";
 import {owned} from "../state/collection";
 import {priceOf, summaryOf, requestPrice, priceVersion} from "../state/prices";
 import {wikiImage} from "./wiki-images";
-import {recapState, markRevealed, dismissRecap, pullStats, collectionRarity, refreshCollectionRarity} from "./packs";
+import {recapState, openAllState, markRevealed, dismissRecap, pullStats, collectionRarity, refreshCollectionRarity} from "./packs";
 import {auctionById, auctionVersion, nextBid, msLeft} from "./market";
 import {resolveCard} from "./card-lookup";
+import {collectionView, setCollectionView} from "./collection-view";
 import {mountPackRecap} from "../ui/PackRecap";
 import {mountDropRates} from "../ui/DropRates";
 import {mountIsland} from "../ui/islands/mount";
@@ -38,6 +40,8 @@ const SEL = {
   statDefense: "svg.lucide-shield",
   placeholderImg: 'img[alt="WikiMasters"]',
   pullsOpenButton: "main button",
+  // Bouton de l'écran d'accueil des paquets : « Ouvrir », puis « Ouverture... » pendant la requête
+  openButtonText: /^(Ouvrir$|Ouverture)/,
   // Bouton du bas de la révélation des cartes : « Encore 3 cartes », puis « Continuer »
   revealButtonText: /^(Continuer|Encore \d+ cartes?)$/,
   pageTitle: "main h1",
@@ -356,23 +360,30 @@ function decorateTile(tile, version) {
 function ensureOpenAllButton() {
   const existing = document.querySelector(".wmt-open-all");
   // Seulement sur l'écran d'accueil des paquets, collé au bouton « Ouvrir » (absent pendant la révélation)
-  const open = currentPath().startsWith("/pulls") && isOn("openAll") ? findButton((t) => t === "Ouvrir" || t.startsWith("Ouverture")) : null;
+  const open = currentPath().startsWith("/pulls") && isOn("openAll") ? findButton((t) => SEL.openButtonText.test(t)) : null;
   if (!open || findButton((t) => SEL.revealButtonText.test(t))) {
     existing?.remove();
     return;
   }
-  if (existing && existing.previousElementSibling === open) return;
-  existing?.remove();
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "wmt-open-all";
-  btn.append(svgElement(markSvg({size: 16})), "Tout ouvrir");
-  btn.title = "WikiMasters Toolbox : ouvre tous les paquets disponibles, sans animation";
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    emit("confirm-open-all", {});
-  });
-  open.insertAdjacentElement("afterend", btn);
+  let btn = existing?.previousElementSibling === open ? existing : null;
+  if (!btn) {
+    existing?.remove();
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "wmt-open-all";
+    btn.append(svgElement(markSvg({size: 16})), document.createElement("span"));
+    btn.title = "WikiMasters Toolbox : ouvre tous les paquets disponibles, sans animation";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      emit("confirm-open-all", {});
+    });
+    open.insertAdjacentElement("afterend", btn);
+  }
+  // Progression : le site impose un délai entre deux paquets, l'ouverture prend quelques secondes par paquet
+  const {running, opened} = openAllState.get();
+  const label = running ? `Ouverture… (${opened})` : "Tout ouvrir";
+  if (btn.lastChild.textContent !== label) btn.lastChild.textContent = label;
+  btn.disabled = running;
 }
 
 // --- Page Paquets : récapitulatif du paquet et graphique des taux de drop
@@ -389,18 +400,29 @@ function place(host, anchor) {
   return host;
 }
 
-// Pendant la révélation, « Continuer » est dans un bloc qui prend la largeur de la carte (≈ 290 px) :
-// le récapitulatif se place après ce bloc, dans la colonne de la page, où il a toute sa largeur.
-const RECAP_MIN_WIDTH = 560;
-function revealBlock(button) {
-  let block = button;
-  while (block.parentElement && block.parentElement.tagName !== "MAIN" && block.parentElement.getBoundingClientRect().width < RECAP_MIN_WIDTH) block = block.parentElement;
-  return block;
+// Pendant la révélation, le site centre la carte dans une rangée (flex) : placé à côté de la carte,
+// le récapitulatif passerait à sa droite. Il se place donc après le bloc de la page qui contient
+// la révélation (enfant de <main>) : sous la carte, centré, avec toute la largeur de la page.
+const revealBlock = (button) => sectionOf(button, button.closest("main"));
+
+// « Ouvrir le prochain » (bouton du récapitulatif, sur clic du joueur) : « Continuer » puis « Ouvrir »
+// du site, qui garde son animation et, s'il la demande, sa vérification anti-robot.
+export async function openNextPack() {
+  const reveal = findButton((t) => t === "Continuer");
+  if (!reveal) throw new Error("Bouton « Continuer » introuvable : terminez la révélation des cartes sur la page.");
+  reveal.click();
+  // L'écran d'accueil revient aussitôt ; son bouton « Ouvrir » reste désactivé le temps de relire les paquets
+  for (let waited = 0; waited < 8000; waited += 100) {
+    await sleep(100);
+    const open = findButton((t) => t === "Ouvrir");
+    if (open && !open.disabled) return open.click();
+  }
+  throw new Error("Le bouton « Ouvrir » du site n'est pas disponible : ouvrez le paquet depuis la page.");
 }
 
 // Élément de l'écran d'accueil sous lequel on s'insère : le compteur de paquets qui suit « Ouvrir »
 function homeAnchor() {
-  const open = findButton((t) => t === "Ouvrir" || t.startsWith("Ouverture"));
+  const open = findButton((t) => SEL.openButtonText.test(t));
   if (!open) return null;
   let anchor = open.nextElementSibling;
   while (anchor?.classList.contains("wmt-open-all")) anchor = anchor.nextElementSibling;
@@ -433,7 +455,7 @@ function ensurePullsWidgets() {
     if (!recapHost) {
       recapHost = document.createElement("div");
       recapHost.className = "wmt-recap-host";
-      mountPackRecap(recapHost);
+      mountPackRecap(recapHost, {onNext: openNextPack});
     }
     place(recapHost, recapAnchor);
   } else recapHost?.remove();
@@ -481,13 +503,55 @@ function sectionOf(el, landmark) {
   return block?.parentElement ? block : null;
 }
 
-// Collection : barre sous la recherche et les filtres de rareté
+// Collection : barre sous la recherche et les filtres de rareté. Avec une vue de la barre (toutes,
+// doublons, sans image, GIF, jamais vendues), sa liste (toute la collection) remplace la grille du
+// site (une page de 50 cartes), masquée ; quitter la page revient à la grille.
 function ensureCollectionBar() {
   const title = currentPath() === "/collection" && isOn("collectionBar") ? document.querySelector(SEL.pageTitle) : null;
   const search = title && document.querySelector(SEL.collectionSearch);
   const filters = search && sectionOf(search, title);
-  if (!filters) return hideIsland("collection");
-  showIsland("collection", CollectionBar, {}, after(filters));
+  if (filters) showIsland("collection", CollectionBar, {onOpen: openCardOnSite}, after(filters));
+  else {
+    hideIsland("collection");
+    setCollectionView(null);
+  }
+  // Grille du site : le bloc voisin de la barre qui contient les cartes, jamais celui du titre ou de la recherche
+  const tile = filters && collectionView.get().view ? document.querySelector(`main ${SEL.tile}`) : null;
+  const grid = tile && sectionOf(tile, islands.get("collection").host);
+  const hidden = grid && !grid.contains(title) && !grid.contains(search) ? grid : null;
+  for (const el of document.querySelectorAll("[data-wmt-hidden]")) if (el !== hidden) delete el.dataset.wmtHidden;
+  if (hidden) hidden.dataset.wmtHidden = "";
+}
+
+// Fenêtre d'une carte du site, ouverte depuis une liste de la barre de la Collection (clic du joueur
+// sur une carte) : la recherche du site affiche la carte, qui est cliquée dans la grille (même
+// masquée) ; la recherche reprend ensuite sa valeur, la fenêtre du site restant ouverte.
+export async function openCardOnSite({title, rarity}) {
+  const input = document.querySelector(SEL.collectionSearch);
+  if (!input) throw new Error("Ouvrez la page Collection pour afficher cette carte.");
+  const wanted = normTitle(title);
+  const r = (rarity || "").toLowerCase();
+  const find = () =>
+    [...document.querySelectorAll(`main ${SEL.tile}`)].find((t) => normTitle(t.querySelector(SEL.tileTitle)?.textContent || "") === wanted && (!r || RARITY_CLASS.exec(t.className)?.[1] === r));
+  const previous = input.value;
+  let tile = find();
+  if (!tile) {
+    typeInto(input, title);
+    for (let waited = 0; !tile && waited < 20000; waited += 200) {
+      await sleep(200);
+      tile = find();
+    }
+  }
+  tile?.click();
+  if (input.value !== previous) typeInto(input, previous);
+  if (!tile) throw new Error(`« ${title} » n'apparaît pas dans la grille du site : un filtre de rareté du site est peut-être actif.`);
+}
+
+// Saisie dans un champ du site (React) : valeur posée par le setter natif, puis événement input,
+// comme une frappe du joueur
+function typeInto(input, value) {
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, value);
+  input.dispatchEvent(new Event("input", {bubbles: true}));
 }
 
 // Fenêtre d'une carte (collection, profils, toutes les cartes) : bloc sous les détails
@@ -605,8 +669,10 @@ export function startSiteDom() {
   // Les pastilles « bonne affaire » dépendent du temps restant
   setInterval(() => currentPath().startsWith("/marketplace") && bump(), 60000);
   recapState.subscribe(schedule);
+  openAllState.subscribe(schedule);
   pullStats.subscribe(schedule);
   collectionRarity.subscribe(schedule);
+  collectionView.subscribe(schedule);
   // Ignore nos propres ajouts (badges, images) pour ne pas boucler
   const ours = (n) => n.nodeType === 1 && /\bwmt-/.test(n.className || "");
   new MutationObserver((mutations) => {

@@ -8,7 +8,7 @@ export const FEATURES = [
   {key: "wikiLink", group: "Cartes", label: "Lien Wikipédia", help: "Ajoute un bouton « W » qui ouvre l'article."},
   {key: "ownedBadges", group: "Cartes", label: "Possédée / manquante", help: "Signale, hors de votre collection, les cartes que vous avez déjà."},
   {key: "missingImages", group: "Cartes", label: "Images manquantes", help: "Cherche une image sur Wikimedia (Wikipédia, Wikidata, Commons) pour les cartes qui n'en ont pas. Requêtes anonymes, sans cookie ; jamais pour une image masquée par le site."},
-  {key: "collectionBar", group: "Pages du site", label: "Barre Toolbox sur la collection", help: "Sous les filtres de la page Collection : trier les nouvelles cartes sur place, accès aux doublons et aux prix."},
+  {key: "collectionBar", group: "Pages du site", label: "Barre Toolbox sur la collection", help: "Sous les filtres de la page Collection : trier les nouvelles cartes sur place, n'afficher que les cartes sans image ou en GIF, accès aux doublons et aux prix."},
   {key: "cardInsight", group: "Pages du site", label: "Infos dans la fiche d'une carte", help: "Dans la fenêtre d'une carte : prix moyen, thème, amis intéressés, ajout à une famille."},
   {key: "auctionInsight", group: "Pages du site", label: "Analyse des enchères", help: "Sur la page d'une enchère : prix moyen, écart avec la mise, carte déjà possédée ou non, amis intéressés."},
   {key: "dealBadges", group: "Pages du site", label: "Bonnes affaires du marché", help: "Signale sur le marché les enchères nettement sous le prix moyen (ou très au-dessus)."},

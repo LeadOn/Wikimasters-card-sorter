@@ -24,7 +24,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `GET /api/my-collection/stats?sort=rarity` | `{total, totalUnique, rarityCounts, tagOptions: [{id, name, color, cardCount}]}` |
 | Supabase `user_cards?select=*,cards(*)` | exemplaires du joueur avec la carte complète (résumé compris) |
 | Supabase `tags`, `user_card_tags`, `wishlist_items` | étiquettes, associations, liste de souhaits |
-| `POST /api/user-cards/{id}/discard` (sans corps, `id` d'un exemplaire `user_cards`) | défausse contre 1 WikiBidou ; réponse JSON, `{error}` si refusée (favori verrouillé, carte engagée dans un échange…). Utilisée par le récapitulatif de paquet |
+| `POST /api/user-cards/{id}/discard` (sans corps, `id` d'un exemplaire `user_cards`) | défausse contre 1 WikiBidou ; réponse JSON, `{error}` si refusée (favori verrouillé, carte engagée dans un échange…). Utilisée par le récapitulatif de paquet et les doublons du Marché |
 | `POST /api/user-cards/bulk-discard {card_ids}` | défausse groupée : `{discarded_count, failed}` (non utilisé) |
 
 ## Catalogue
@@ -69,6 +69,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 |---|---|
 | Supabase `POST rpc/sync_profile_packs` | profil avec `packs_remaining`, `packs_last_regen_at` (appelé par la page /pulls) |
 | `POST /api/packs/open` (sans corps), `/api/packs/pro-daily`, `/api/packs/special` | `{cards: [{…carte, summary, user_card_id}], packs_remaining, owned_copies}` ou `{error, human_verification_required}`. La page révèle les cartes une à une ; le bouton du bas affiche « Encore N cartes » puis « Continuer ». |
+| `POST /api/packs/open` trop tôt (relevé le 13/10/2026) | moins de 2 s après l'ouverture précédente : **429** `{error: "Ouverture trop rapide…", rate_limited: true, rate_limit_daily, retry_after: <date ISO>, packs_remaining}` + `Retry-After: 1`, sans consommer de paquet. Une ouverture en série espacée de 2,4 s a reçu un **403** `{human_verification_required: true}` au 2e paquet ; la page affiche alors une vérification Turnstile (`POST /api/human-check {token}`) puis relance l'ouverture. Une fois la vérification faite par le joueur, 7 paquets ont été ouverts à la suite, 2,4 s d'écart, sans nouvelle demande. |
 
 ## Interface (pour les badges)
 

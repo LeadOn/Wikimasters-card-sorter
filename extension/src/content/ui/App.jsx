@@ -18,6 +18,7 @@ import {PricesTab} from "./tabs/PricesTab";
 import {MarketTab} from "./tabs/MarketTab";
 import {PacksTab} from "./tabs/PacksTab";
 import {FamiliesTab} from "./tabs/FamiliesTab";
+import {ImagesTab} from "./tabs/ImagesTab";
 import {SettingsTab} from "./tabs/SettingsTab";
 import {SellDialogHost} from "./SellDialog";
 
@@ -30,6 +31,7 @@ const TABS = [
   {id: "market", label: "Marché", Comp: MarketTab},
   {id: "packs", label: "Paquets", Comp: PacksTab},
   {id: "families", label: "Familles", Comp: FamiliesTab},
+  {id: "images", label: "Images", Comp: ImagesTab},
   {id: "settings", label: "Réglages", Comp: SettingsTab},
 ];
 
@@ -187,8 +189,8 @@ export function App() {
         if (!ok) return;
         try {
           const r = await openAllPacks();
-          if (!r.packs) toast("Aucun paquet ouvert.");
-          else if (openAllState.get().error) toast(openAllState.get().error, {type: "error", duration: 10000});
+          if (openAllState.get().error) toast(openAllState.get().error, {type: "error", duration: 10000});
+          else if (!r.packs) toast("Aucun paquet ouvert.");
         } catch (e) {
           toast(errorMessage(e), {type: "error"});
         }

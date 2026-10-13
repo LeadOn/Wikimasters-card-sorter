@@ -11,11 +11,12 @@ Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-m
 ## Fonctionnalités
 
 - **Tri automatique** : un thème par carte (Histoire, Sciences, Sports, Pop-Culture…) posé en étiquette WikiMasters, l'étiquette `Doublon` sur les cartes en plusieurs exemplaires, et une étiquette « Pour : pseudo » pour chaque ami qu'une carte intéresse. Aperçu avant chaque tri ; vos étiquettes personnelles et vos corrections ne sont jamais touchées.
-- **Prix** : prix moyen de vente de chaque carte dans sa rareté, affiché sur les cartes du site, dans leur fiche et sur les enchères. Valeur de votre collection et classement de vos cartes les plus chères.
-- **Marché** : pastilles « bonne affaire » et « trop cher », suivi de vos enchères avec surenchère en un clic et alerte avant la fin, vente de vos doublons.
+- **Prix** : prix moyen de vente de chaque carte dans sa rareté, affiché sur les cartes du site, dans leur fiche et sur les enchères. Valeur de votre collection, classement de vos cartes les plus chères, et liste de celles qui ne se sont jamais vendues (onglet Prix et page Collection), à mettre aux enchères ou défausser une à une ou en lot.
+- **Marché** : pastilles « bonne affaire » et « trop cher », suivi de vos enchères avec surenchère en un clic et alerte avant la fin, vente ou défausse de vos doublons.
 - **Échanges** : profils d'intérêts partageables par code ; sur le profil d'un ami, ses cartes qui vous intéressent, les vôtres qui l'intéressent, et une offre équilibrée en prix moyen. Valeur de chaque côté des échanges en cours.
-- **Paquets** : récapitulatif après chaque paquet (nouveautés, doublons, prix, valeur totale) où chaque carte se met aux enchères ou se défausse pour 1 WikiBidou en un clic, taux de drop par rareté, « Tout ouvrir » sur votre clic.
+- **Paquets** : récapitulatif après chaque paquet (nouveautés, doublons, prix, valeur totale) où les cartes cochées se défaussent ensemble pour 1 WikiBidou chacune et où chaque carte se met aux enchères, « Ouvrir le prochain » pour enchaîner les paquets, taux de drop par rareté, « Tout ouvrir » sur votre clic.
 - **Familles** : groupes de cartes à compléter, choisies une à une ou remplies par une recherche, avec les cartes manquantes en vente.
+- **Images** : n'afficher que vos cartes sans image, ou celles dont l'image est un GIF, sur toute la collection (onglet Images et page Collection).
 - **Sur les cartes** : un nouvel affichage, avec l'image sur toute la carte et un cadre aux couleurs de la rareté ; les images manquantes cherchées sur Wikimedia ; thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
 
 Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part, et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
@@ -76,7 +77,7 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 
 - **Automatic sorting**: one theme per card stored as a WikiMasters tag, a `Doublon` tag on cards you own more than once, and a "Pour : name" tag for each friend a card would interest. Every sort is previewed first; your own tags and manual fixes are never touched.
 - **Prices**: average sale price of each card in its rarity, on cards, in their detail window and on auctions; collection value and most valuable cards.
-- **Market**: "good deal" and "overpriced" badges, your auctions with one-click outbid and an ending alert, selling your duplicates.
+- **Market**: "good deal" and "overpriced" badges, your auctions with one-click outbid and an ending alert, selling or discarding your duplicates.
 - **Trades**: shareable interest profiles; on a friend's profile, the cards you want from them, the cards they want from you, and a balanced offer.
 - **Packs**: a recap after each pack (new cards, duplicates, prices, total value) where each card can be put up for auction or discarded for 1 WikiBidou, drop rates, and "Open all" on your click.
 - **Families**: sets of cards to complete, hand-picked or filled from a search.

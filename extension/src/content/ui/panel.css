@@ -266,8 +266,11 @@ input[type="color"]::-moz-color-swatch { border: 0; border-radius: 3px; }
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+  max-width: 100%;
 }
-.chip .i { width: 12px; height: 12px; }
+.chip .i { width: 12px; height: 12px; flex: none; }
+/* Libellé trop long pour la carte ou la colonne : coupé par « … » (texte entier au survol) */
+.chip > .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* Thème : une pastille de sa couleur, le libellé reste neutre */
 .chip.theme::before { content: ""; width: 7px; height: 7px; border-radius: 1.5px; background: var(--c, #64748b); flex: none; }
 .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); background: color-mix(in srgb, var(--ok) 8%, transparent); }
@@ -325,12 +328,21 @@ button.chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .card.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
 /* Vignette cerclée de la couleur de rareté, comme le liseré des cartes du jeu */
 .card .thumb { width: 44px; height: 58px; border-radius: 4px; object-fit: cover; background: var(--surface-3); flex: none; outline: 1.5px solid var(--rc, var(--line-2)); outline-offset: 1.5px; margin: 1px; }
+/* Sans image : l'initiale du titre dans la couleur de la rareté (même serif que les cartes du site) ;
+   elle pulse tant que l'image de Wikimedia est cherchée */
+.card .thumb.initial { display: grid; place-items: center; font: 400 26px/1 Georgia, "Times New Roman", serif; color: color-mix(in srgb, var(--rc, var(--fg)) 65%, transparent); user-select: none; }
+.card .thumb.initial.searching { animation: pulse 1.2s ease-in-out infinite alternate; }
+@keyframes pulse { to { opacity: 0.45; } }
 .card .body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.card .t { font-weight: 600; font-size: 13px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card .head { display: flex; align-items: flex-start; gap: 6px; }
+.card .t { flex: 1; min-width: 0; font-weight: 600; font-size: 13px; line-height: 1.35; overflow: hidden; overflow-wrap: anywhere; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .card .d { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card .meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: auto; padding-top: 4px; }
+.card .meta { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: auto; padding-top: 4px; min-width: 0; }
+/* Case à cocher posée sur le coin de la vignette (sélection multiple) */
+.card .pick { position: absolute; top: 4px; left: 4px; z-index: 1; width: 16px; height: 16px; cursor: pointer; background: var(--surface); border-radius: 3px; }
 .card .price { margin-left: auto; font-size: 12.5px; font-weight: 600; }
-.card .act { position: absolute; top: 6px; right: 6px; }
+/* Actions en haut à droite, à côté du titre (qui passe à la ligne avant elles) */
+.card .act { flex: none; margin: -2px -4px 0 0; }
 table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.list th { text-align: left; color: var(--faint); font: 500 10.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
 table.list td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -376,14 +388,20 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
 .recap-total .k { color: var(--faint); font: 500 10.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
 .recap-total .v { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
 .recap-total .v.none { color: var(--faint); }
+/* Défausse groupée : cocher les cartes, puis un seul bouton */
+.recap-select { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 0 2px 0 10px; }
+.recap-select .check { font-size: 12.5px; color: var(--muted); }
+.recap-select-count { flex: 1; min-width: 0; color: var(--faint); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recap-select .gain { font: 600 11px var(--mono); color: var(--faint); }
+.recap-select .spinner { margin: 0; width: 12px; height: 12px; }
 .recap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .recap-list.compact, .recap-list:has(> li:nth-child(9)) { max-height: 52vh; overflow-y: auto; padding-right: 2px; }
-/* Une ligne par carte : vignette, titre et puces, prix, actions. Récapitulatif étroit : le prix
-   et les actions passent sous les puces (voir la requête de conteneur plus bas). */
+/* Une ligne par carte : case à cocher, vignette, titre et puces, prix, actions. Récapitulatif
+   étroit : le prix et les actions passent sous les puces (voir la requête de conteneur plus bas). */
 .recap-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "thumb card value do";
+  grid-template-columns: 15px auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "pick thumb card value do";
   align-items: center;
   column-gap: 12px;
   row-gap: 6px;
@@ -392,6 +410,10 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
   background: var(--surface);
   border: 1px solid var(--line);
 }
+.recap-row.choosable { cursor: pointer; }
+.recap-row.choosable:hover { border-color: var(--line-2); }
+.recap-row.picked { border-color: var(--accent); }
+.recap-pick { grid-area: pick; align-self: center; }
 .recap-thumb { grid-area: thumb; width: 34px; height: 44px; object-fit: cover; border-radius: 3px; background: var(--surface-3); outline: 1.5px solid var(--rc, var(--line-2)); outline-offset: 1.5px; margin: 1px; }
 .recap-card { grid-area: card; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .recap-value { grid-area: value; display: flex; justify-content: flex-end; min-width: 56px; }
@@ -413,11 +435,12 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
 }
 @container (max-width: 460px) {
   .recap-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "thumb card card" "thumb value do";
+    grid-template-columns: 15px auto minmax(0, 1fr) auto;
+    grid-template-areas: "pick thumb card card" "pick thumb value do";
     align-items: start;
     row-gap: 4px;
   }
+  .recap-select-count.hint { visibility: hidden; }
   .recap-value { justify-content: flex-start; align-self: center; min-width: 0; }
   .recap-do { margin-right: -6px; }
   .recap-total .v { font-size: 16px; }
@@ -427,6 +450,8 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
   .recap-sub { white-space: normal; }
 }
 .recap-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.recap-foot-do { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.recap-foot-do .num { font: 500 11.5px var(--mono); opacity: 0.75; }
 
 /* --- Taux de drop (écran « Ouvrir un paquet ») */
 .rates {

@@ -59,8 +59,8 @@ export function ThemeChip({theme}) {
   if (!theme) return null;
   const color = settings.get().themeColors[theme] || THEME_COLORS[theme] || "#64748b";
   return (
-    <span class="chip theme" style={{"--c": color}}>
-      {theme}
+    <span class="chip theme" style={{"--c": color}} title={theme}>
+      <span class="lbl">{theme}</span>
     </span>
   );
 }
@@ -86,13 +86,15 @@ export function Toggle({checked, onChange, label}) {
 }
 
 // Image de remplacement d'une carte sans image (réglage « Images manquantes »), cherchée sur Wikimedia ;
-// jamais pour une image masquée par le site, ni quand on ne sait pas si elle l'a été
+// jamais pour une image masquée par le site, ni quand on ne sait pas si elle l'a été.
+// url, null (pas d'image), ou undefined pendant la recherche
 export function useWikiImage(card) {
   const title = card?.wikipedia_title || card?.title;
   const wanted = Boolean(title) && !card?.image_url && card?.hide_image === false && isOn("missingImages");
-  const [src, setSrc] = useState(() => (wanted ? knownWikiImage(title) || null : null));
+  const [src, setSrc] = useState(() => (wanted ? knownWikiImage(title) : null));
   useEffect(() => {
     if (!wanted) return setSrc(null);
+    setSrc(knownWikiImage(title));
     let alive = true;
     wikiImage(title, card?.category || "").then((url) => alive && setSrc(url));
     return () => (alive = false);
@@ -102,30 +104,55 @@ export function useWikiImage(card) {
 
 // Badge d'une carte : {label, type: "ok" | "warn" | "danger" | "accent", icon}
 export const Badge = ({label, type, icon}) => (
-  <span class={`chip ${type || ""}`}>
+  <span class={`chip ${type || ""}`} title={label}>
     {icon && <Icon name={icon} size={12} />}
-    {label}
+    <span class="lbl">{label}</span>
   </span>
 );
 
-// Mini-carte : image, titre, description, rareté, thème, prix, badges
-export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, action}) {
+// Mini-carte : image, titre, description, rareté, thème, prix, badges.
+// check : case à cocher sur la vignette ({checked, onChange, label, disabled}) ; wiki : titre lié à l'article
+// Wikipédia (false quand un clic sur la carte fait autre chose, onClick)
+export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, action, check, wiki = true}) {
   const r = rarity || card?.rarity;
   const fallback = useWikiImage(card);
   const image = card?.image_url || fallback;
-  const href = card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null);
+  const href = wiki ? card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null) : null;
   return (
     <div class={`card${selected ? " sel" : ""}`} style={{"--rc": `var(--r-${r || "C"})`, cursor: onClick ? "pointer" : "default"}} onClick={onClick}>
-      {image ? <img class="thumb" src={image} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="thumb" />}
+      {check && (
+        <input
+          type="checkbox"
+          class="pick"
+          checked={check.checked}
+          disabled={check.disabled}
+          aria-label={check.label}
+          title={check.label}
+          onClick={(e) => e.stopPropagation()}
+          onChange={check.onChange}
+        />
+      )}
+      {image ? (
+        <img class="thumb" src={image} alt="" loading="lazy" referrerpolicy="no-referrer" />
+      ) : (
+        // Sans image (ou en attendant celle de Wikimedia) : l'initiale du titre, comme sur les cartes du site
+        <div class={`thumb initial${fallback === undefined ? " searching" : ""}`} aria-hidden="true">
+          {((card?.wikipedia_title || card?.title || "").match(/[\p{L}\p{N}]/u)?.[0] || "W").toUpperCase()}
+        </div>
+      )}
       <div class="body">
-        <div class="t" title={card?.wikipedia_title}>
-          {href ? (
-            <a href={href} target="_blank" rel="noopener noreferrer" style={{color: "inherit", textDecoration: "none"}} onClick={(e) => e.stopPropagation()}>
-              {card?.wikipedia_title || card?.title}
-            </a>
-          ) : (
-            card?.wikipedia_title || card?.title
-          )}
+        {/* Le titre s'arrête avant les boutons d'action, en haut à droite */}
+        <div class="head">
+          <div class="t" title={card?.wikipedia_title}>
+            {href ? (
+              <a href={href} target="_blank" rel="noopener noreferrer" style={{color: "inherit", textDecoration: "none"}} onClick={(e) => e.stopPropagation()}>
+                {card?.wikipedia_title || card?.title}
+              </a>
+            ) : (
+              card?.wikipedia_title || card?.title
+            )}
+          </div>
+          {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}
         </div>
         {card?.category && <div class="d" title={card.category}>{card.category}</div>}
         <div class="meta">
@@ -137,19 +164,18 @@ export function CardRow({card, rarity, theme, price, badges = [], selected, onCl
           {price != null && <Money v={price} class="price" />}
         </div>
       </div>
-      {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}
     </div>
   );
 }
 
 // Liste paginée côté client (évite de rendre des milliers de cartes d'un coup)
-export function Paged({items, pageSize = 60, render, empty = "Aucune carte."}) {
+export function Paged({items, pageSize = 60, render, empty = "Aucune carte.", class: cls = ""}) {
   const [shown, setShown] = useState(pageSize);
   useEffect(() => setShown(pageSize), [items, pageSize]);
   if (!items.length) return <div class="empty">{empty}</div>;
   return (
     <div class="stack">
-      <div class="cards">{items.slice(0, shown).map(render)}</div>
+      <div class={`cards${cls ? ` ${cls}` : ""}`}>{items.slice(0, shown).map(render)}</div>
       {shown < items.length && (
         <div class="row" style={{justifyContent: "center"}}>
           <button class="btn" onClick={() => setShown(shown + pageSize * 2)}>

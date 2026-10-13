@@ -31,6 +31,40 @@ function collectionValue(copies, prices) {
   return {value, priced, total};
 }
 
+// Exemplaires jamais vendus sur le marché : aucune vente conclue dans leur rareté, ou dans aucune
+// rareté (anyRarity). prices : Map(card_id → summary) ; une carte sans résumé n'a pas encore été lue.
+// Renvoie {unsold, unknown} : les exemplaires jamais vendus, et ceux dont on ne sait encore rien.
+function unsoldCopies(copies, prices, {anyRarity = false} = {}) {
+  const unsold = [];
+  const unknown = [];
+  for (const c of copies) {
+    const summary = prices.get(c.card_id);
+    if (!summary) unknown.push(c);
+    else if (anyRarity ? !Object.keys(summary).some((r) => averagePrice(summary, r) != null) : averagePrice(summary, c.rarity) == null) unsold.push(c);
+  }
+  return {unsold, unknown};
+}
+
+// Exemplaires regroupés par carte et par rareté : [{card_id, rarity, card, count, rows}], dans l'ordre
+// de première apparition. rows : les exemplaires (id de user_cards) de ce groupe.
+function groupCopies(copies) {
+  const groups = new Map();
+  for (const c of copies) {
+    const key = `${c.card_id}|${c.rarity}`;
+    const group = groups.get(key) || groups.set(key, {card_id: c.card_id, rarity: c.rarity, card: c.card, count: 0, rows: []}).get(key);
+    group.count += Math.max(1, Number(c.count) || 1);
+    group.rows.push(c);
+  }
+  return [...groups.values()];
+}
+
+// Exemplaire à mettre en vente ou à défausser : le moins rare, jamais un favori (le site les
+// verrouille : ni vente, ni défausse, ni échange), une carte shiny en dernier. null si tous sont en favori.
+function freeCopy(rows) {
+  const free = rows.filter((r) => !r.starred).sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity) || Boolean(a.is_shiny) - Boolean(b.is_shiny));
+  return free[0] || null;
+}
+
 // Cartes possédées en plusieurs exemplaires, avec le nombre d'exemplaires vendables (on en garde un).
 // copies : [{id, card_id, count?, starred?, rarity, …}] → [{card_id, copies, spare, rarity, starred, rows}]
 // La rareté retenue est celle du plus petit exemplaire (celui qu'on vendrait en premier).
@@ -46,12 +80,10 @@ function spareCards(copies) {
   const byRarity = (a, b) => rarityRank(a.rarity) - rarityRank(b.rarity);
   for (const e of byCard.values()) {
     if (e.copies < 2) continue;
-    // Exemplaire à mettre en vente : le moins rare, jamais un favori (le site les verrouille : ni
-    // vente, ni défausse, ni échange), une carte shiny en dernier. sellCopyId est l'id de user_cards
-    // attendu par le site ; null si tous les exemplaires sont en favori.
-    const sellable = e.rows.filter((r) => !r.starred).sort((a, b) => byRarity(a, b) || Boolean(a.is_shiny) - Boolean(b.is_shiny));
-    const rarity = (sellable[0] || [...e.rows].sort(byRarity)[0])?.rarity || null;
-    spares.push({...e, spare: e.copies - 1, rarity, sellCopyId: sellable[0]?.id || null});
+    // sellCopyId : l'id de user_cards attendu par le site ; null si tous les exemplaires sont en favori
+    const free = freeCopy(e.rows);
+    const rarity = (free || [...e.rows].sort(byRarity)[0])?.rarity || null;
+    spares.push({...e, spare: e.copies - 1, rarity, sellCopyId: free?.id || null});
   }
   return spares;
 }
@@ -116,4 +148,4 @@ function packNovelty(cards, copies) {
   });
 }
 
-module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, RARITY_COLORS, rarityRank, averagePrice, collectionValue, spareCards, summarizeSales, priceBatches, packNovelty};
+module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, RARITY_COLORS, rarityRank, averagePrice, collectionValue, unsoldCopies, groupCopies, freeCopy, spareCards, summarizeSales, priceBatches, packNovelty};

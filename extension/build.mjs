@@ -20,9 +20,9 @@ const SITE_MATCHES = ["https://www.wiki-masters.com/*", "https://wiki-masters.co
 // Firefox : conservées, ses scripts de contenu n'appliquent pas les mêmes règles.
 const FIREFOX_EXTRA_HOSTS = [
   "https://cyrxjeppjqsxxjayfrur.supabase.co/*",
-  // Images manquantes (option) : API de Wikipédia et de Wikidata (les images viennent de Wikimedia Commons)
-  "https://fr.wikipedia.org/*",
-  "https://en.wikipedia.org/*",
+  // Images manquantes (option) : API de Wikipédia (le français, l'anglais et, par les liens de
+  // Wikidata, d'autres langues) et de Wikidata (les images viennent de Wikimedia Commons)
+  "https://*.wikipedia.org/*",
   "https://www.wikidata.org/*",
 ];
 

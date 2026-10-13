@@ -16,8 +16,11 @@
     /^\/api\/packs\/(?:open|pro-daily|special)$/,
     /^\/api\/notifications$/,
     /^\/api\/wikibidous$/,
+    /^\/api\/user-cards\/[^/]+\/discard$/,
     /^\/rest\/v1\/rpc\/sync_profile_packs$/,
   ];
+  // Mise aux enchères par le site : seule la requête dit quel exemplaire est mis en vente (card_id)
+  const withRequest = (path, method) => path === "/api/marketplace" && String(method).toUpperCase() === "POST";
 
   function relative(url) {
     try {
@@ -48,15 +51,20 @@
     } catch {}
   }
 
-  function emit(path, method, status, text) {
-    if (!text) return;
-    let data;
+  const parse = (text) => {
     try {
-      data = JSON.parse(text);
+      return JSON.parse(text);
     } catch {
-      return;
+      return undefined;
     }
-    post({type: "response", path, method: (method || "GET").toUpperCase(), status, data});
+  };
+
+  // body : corps de la requête, transmis seulement quand la réponse ne suffit pas (withRequest)
+  function emit(path, method, status, text, body) {
+    const data = text ? parse(text) : undefined;
+    if (data === undefined) return;
+    const request = withRequest(path, method) && typeof body === "string" ? parse(body) : undefined;
+    post({type: "response", path, method: (method || "GET").toUpperCase(), status, data, request});
   }
 
   const originalFetch = window.fetch;
@@ -72,7 +80,7 @@
           res
             .clone()
             .text()
-            .then((text) => emit(path, method, res.status, text))
+            .then((text) => emit(path, method, res.status, text, init?.body))
             .catch(() => {});
         })
         .catch(() => {});
@@ -93,14 +101,14 @@
       if (this.__wmt) this.__wmt.headers[name] = value;
       return setHeader.apply(this, arguments);
     };
-    XHR.prototype.send = function () {
+    XHR.prototype.send = function (body) {
       const info = this.__wmt;
       if (info) {
         noteHeaders(info.url, info.headers);
         const path = relative(info.url);
         if (isWatched(path))
           this.addEventListener("load", () => {
-            if (this.responseType === "" || this.responseType === "text") emit(path, info.method, this.status, this.responseText);
+            if (this.responseType === "" || this.responseType === "text") emit(path, info.method, this.status, this.responseText, body);
           });
       }
       return send.apply(this, arguments);

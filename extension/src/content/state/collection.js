@@ -1,8 +1,10 @@
 // Ma collection (exemplaires), lue dans Supabase. Gardée en mémoire quelques minutes ; les ids des
-// cartes possédées sont aussi enregistrés pour les badges « possédée ».
+// cartes possédées sont aussi enregistrés pour les badges « possédée ». Défausse d'un exemplaire.
 import {fetchAll} from "../api/supabase";
+import {site} from "../api/site";
 import {createStore} from "../lib/store";
 import {load, save} from "../lib/storage";
+import {withLock} from "../lib/locks";
 import {on} from "../lib/bus";
 
 const MAX_AGE = 10 * 60 * 1000;
@@ -66,6 +68,9 @@ export function invalidateCollection() {
 // Nouvelles cartes vues dans un paquet : la collection en mémoire n'est plus à jour
 // (les ids possédés sont complétés par features/packs.js, qui a besoin de l'état d'avant).
 on("pack-opened", ({method}) => method === "POST" && invalidateCollection());
+// Défausse ou mise aux enchères faite avec les boutons du site (fenêtre d'une carte)
+on("copy-discarded", () => invalidateCollection());
+on("marketplace", ({method, path}) => method === "POST" && path === "/api/marketplace" && invalidateCollection());
 
 export function addOwned(cardIds) {
   const ids = owned.get().ids;
@@ -78,4 +83,20 @@ export function removeOwned(cardIds) {
   const ids = owned.get().ids;
   for (const id of cardIds) ids.delete(id);
   owned.set({ids});
+}
+
+// Défausse d'un exemplaire (id de user_cards) contre 1 WikiBidou, sur clic du joueur après
+// confirmation. Sous le verrou du tri : une écriture d'étiquettes en cours (tri automatique des
+// cartes tirées, tri appliqué) se termine avant que l'exemplaire disparaisse. Jamais rejouée ; sans
+// réponse du site (e.uncertain), la défausse a peut-être eu lieu : la collection en mémoire est invalidée.
+export async function discardCopy(userCardId) {
+  try {
+    await withLock("sort", () => site.discard(userCardId), {wait: true});
+  } catch (e) {
+    if (e.uncertain) invalidateCollection();
+    throw e;
+  }
+  invalidateCollection();
+  // Le site met à jour le solde de WikiBidous affiché quand il reçoit cet événement
+  window.dispatchEvent(new CustomEvent("wikimasters:wikibidous-balance-refresh"));
 }

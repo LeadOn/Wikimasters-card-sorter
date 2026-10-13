@@ -1,9 +1,11 @@
-// Onglet « Prix » : prix moyens de vente, valeur de ma collection, classement des plus chères.
+// Onglet « Prix » : prix moyens de vente, valeur de ma collection, classement des plus chères et
+// cartes jamais vendues (à mettre aux enchères ou à défausser).
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {loadMyCollection} from "../../state/collection";
 import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../../state/prices";
 import {CardRow, Money, Paged, Progress, Notice, fmt, plural} from "../components";
+import {CollectionCards} from "../CollectionCards";
 import {toast, errorMessage} from "../feedback";
 import {RARITIES, RARITY_LABEL, categorize} from "../../../../../core";
 
@@ -15,6 +17,7 @@ export function PricesTab() {
   const [onlyMissing, setOnlyMissing] = useState(true);
   const [bulk, setBulk] = useState(null);
   const [theme, setTheme] = useState(null);
+  const [view, setView] = useState("top"); // "top" : les plus chères ; "unsold" : jamais vendues
   const abort = useRef(null);
 
   useEffect(() => {
@@ -42,11 +45,14 @@ export function PricesTab() {
     const list = valued.filter((c) => c.rarity === r);
     return {r, copies: list.reduce((n, c) => n + c.count, 0), priced: list.filter((c) => c.price != null).length, value: list.reduce((n, c) => n + (c.price || 0) * c.count, 0)};
   });
+  // Thème de chaque carte, calculé une seule fois (le classement est recalculé à chaque prix reçu)
+  const themeCache = useMemo(() => new Map(), [copies]);
+  const themeOf = (card) => themeCache.get(card.id) ?? themeCache.set(card.id, categorize(card)[0]).get(card.id);
   const ranking = useMemo(
     () =>
       valued
         .filter((c) => c.price != null)
-        .map((c) => ({...c, theme: categorize(c.card)[0]}))
+        .map((c) => ({...c, theme: themeOf(c.card)}))
         .sort((a, b) => b.price - a.price),
     [copies, priceVersion.get().v],
   );
@@ -115,21 +121,35 @@ export function PricesTab() {
 
           <div class="box stack">
             <div class="row">
-              <h3 style={{flex: 1}}>Mes cartes les plus chères</h3>
-            </div>
-            <div class="chips">
-              {themes.map((t) => (
-                <button key={t} class={`chip${theme === t ? " on" : ""}`} onClick={() => setTheme(theme === t ? null : t)}>
-                  {t}
+              <h3 style={{flex: 1}}>{view === "unsold" ? "Mes cartes jamais vendues" : "Mes cartes les plus chères"}</h3>
+              <div class="seg" role="tablist">
+                <button role="tab" aria-selected={view === "top"} class={view === "top" ? "on" : ""} onClick={() => setView("top")}>
+                  Les plus chères
                 </button>
-              ))}
+                <button role="tab" aria-selected={view === "unsold"} class={view === "unsold" ? "on" : ""} onClick={() => setView("unsold")}>
+                  Jamais vendues
+                </button>
+              </div>
             </div>
-            <Paged
-              items={theme ? ranking.filter((c) => c.theme === theme) : ranking}
-              pageSize={30}
-              empty="Aucun prix chargé pour l'instant."
-              render={(c) => <CardRow key={`${c.card_id}|${c.rarity}`} card={c.card} rarity={c.rarity} theme={c.theme} price={c.price} badges={[c.count > 1 && {label: `×${c.count}`, type: "ok"}]} />}
-            />
+            {view === "unsold" ? (
+              <CollectionCards view="unsold" />
+            ) : (
+              <>
+                <div class="chips">
+                  {themes.map((t) => (
+                    <button key={t} class={`chip${theme === t ? " on" : ""}`} onClick={() => setTheme(theme === t ? null : t)}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <Paged
+                  items={theme ? ranking.filter((c) => c.theme === theme) : ranking}
+                  pageSize={30}
+                  empty="Aucun prix chargé pour l'instant."
+                  render={(c) => <CardRow key={`${c.card_id}|${c.rarity}`} card={c.card} rarity={c.rarity} theme={c.theme} price={c.price} badges={[c.count > 1 && {label: `×${c.count}`, type: "ok"}]} />}
+                />
+              </>
+            )}
           </div>
         </>
       )}
