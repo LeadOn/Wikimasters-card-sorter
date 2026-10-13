@@ -32,7 +32,7 @@ Tous les outils de ce dépôt, directement dans wiki-masters.com : pas de Node, 
    Firefox (128+) : `about:debugging#/runtime/this-firefox` → *Charger un module temporaire* → `dist/firefox/manifest.json`.
 3. Rechargez wiki-masters.com : l'entrée **Toolbox** apparaît dans le menu, et l'icône de l'extension ouvre les actions rapides.
 
-**Développement** : `npm run watch` (build continu), `npm test` (tests du moteur, sans réseau), `npm run eval` (qualité du classement). Les routes du site utilisées sont décrites dans [docs/site-api.md](docs/site-api.md).
+**Développement** : `npm run watch` (build continu), `npm test` (tests du moteur et de l'extension, sans réseau), `npm run eval` (qualité du classement). Les routes du site utilisées sont décrites dans [docs/site-api.md](docs/site-api.md).
 
 ### 🎯 Fonctionnalités des scripts Node
 - **Catégorisation Intelligente** : Analyse sémantique des titres, catégories et résumés des cartes pour les classer avec précision (ex: Faune, Science, Histoire...).

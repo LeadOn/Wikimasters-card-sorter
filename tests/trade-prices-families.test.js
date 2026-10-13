@@ -62,7 +62,7 @@ test("familles : règle, progression, partage", async () => {
   assert.match(code, /^WMT-F1\./);
   const back = core.familyFromShare((await core.decodeShareCode(code, "F")).payload);
   assert.deepEqual(back.cards, family.cards);
-  assert.deepEqual(back.rule, rule);
+  assert.deepEqual(back.rule, {...rule, themes: []}, "règle normalisée à l'import");
   await assert.rejects(core.decodeShareCode(code, "P"), /pas un code de profil/);
   await assert.rejects(core.decodeShareCode("WMT-P1.abc!", "P"), /Code invalide/);
   await assert.rejects(core.decodeShareCode("WMT-P1.AAAA", "P"), /incomplet/);
@@ -99,4 +99,39 @@ test("nouveautés d'un paquet", () => {
   // a : 2 exemplaires après le tirage (tous deux tirés) ; b : 3 (2 d'avant) ; c : inconnu (pas encore lu)
   const copies = new Map([["a", 2], ["b", 3]]);
   assert.deepEqual(core.packNovelty(cards, copies), [true, false, false, true]);
+});
+
+test("import d'une famille : champs vérifiés un à un", () => {
+  const back = core.familyFromShare({
+    name: "  Mix  ",
+    kind: "smart",
+    rule: {query: 42, keywords: "a", themes: ["Sports", 3], rarities: ["UR", "ZZ"]},
+    cards: [["1", "Yoda", "UR", "personnage", "javascript:alert(1)"], "pas une carte", [null, "sans id"], ["1", "Yoda bis"], ["2", "Vador", "XX", 5, "https://x/y.png"]],
+    cover: "inconnue",
+  });
+  assert.equal(back.name, "Mix");
+  assert.deepEqual(back.rule, {query: "", keywords: "a", exclude: "", themes: ["Sports"], rarities: ["UR"]});
+  assert.deepEqual(back.cards, [
+    {id: "1", title: "Yoda", rarity: "UR", category: "personnage", image_url: null},
+    {id: "2", title: "Vador", rarity: null, category: "", image_url: "https://x/y.png"},
+  ]);
+  assert.equal(back.cover, null);
+  assert.throws(() => core.familyFromShare({name: "", cards: []}), /illisible/);
+  assert.throws(() => core.familyFromShare(null), /illisible/);
+});
+
+test("codes de partage : contenu illisible ou anormalement volumineux refusé", async () => {
+  // JSON invalide une fois décompressé
+  const notJson = `WMT-P1.${core.bytesToBase64Url(new Uint8Array(await new Response(new Blob([new TextEncoder().encode("{pas du json")]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer()))}`;
+  await assert.rejects(core.decodeShareCode(notJson, "P"), /incomplet ou abîmé/);
+  // Quelques Ko qui se décompressent en plusieurs Mo
+  const huge = await core.encodeShareCode("P", {name: "x", pad: "a".repeat(3 * 1024 * 1024)});
+  assert.ok(huge.length < 20000);
+  await assert.rejects(core.decodeShareCode(huge, "P"), /volumineux/);
+});
+
+test("recherche d'échanges : un exemplaire avec count > 1 compte comme doublon", () => {
+  const mine = [{id: "m1", card_id: "b", count: 3, cards: card("b", "Lyon", "commune française")}];
+  const r = core.findTrades({mine, friendItems: [], wanted: ["Sports"], friendTag: null});
+  assert.deepEqual(r.toOffer.map((c) => [c.card_id, c.copies]), [["b", 3]]);
 });

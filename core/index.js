@@ -8,6 +8,7 @@ module.exports = {
   ...require("./profiles"),
   ...require("./builtin-profiles"),
   ...require("./tag-sync"),
+  ...require("./tag-writer"),
   ...require("./prices"),
   ...require("./trade"),
   ...require("./families"),

@@ -202,7 +202,7 @@ function FamilyDetail({family, onBack}) {
     if (!ok) return;
     try {
       const r = await familyToTag(family);
-      toast(`Étiquette « ${r.tag} » ajoutée à ${plural(r.count, "exemplaire")}.`, {type: "ok"});
+      toast(`Étiquette « ${r.tag} » ajoutée à ${plural(r.count, "exemplaire")}${r.failed ? ` (${r.failed} refusé(s) par le serveur)` : ""}.`, {type: r.failed ? "error" : "ok"});
     } catch (e) {
       toast(errorMessage(e), {type: "error"});
     }
@@ -279,13 +279,16 @@ function FamilyDetail({family, onBack}) {
 
 function ExportFamily({family, onClose}) {
   const [code, setCode] = useState(null);
+  const [error, setError] = useState(null);
   useEffect(() => {
-    exportFamily(family).then(setCode);
+    exportFamily(family)
+      .then(setCode)
+      .catch((e) => setError(errorMessage(e)));
   }, []);
   return (
     <Modal title={`Partager « ${family.name} »`} onClose={onClose}>
       <p class="help">Le code contient la liste des cartes (et la règle d'une famille intelligente), pas vos possessions.</p>
-      {code ? <Copyable text={code} /> : <div class="spinner" />}
+      {error ? <Notice type="error">{error}</Notice> : code ? <Copyable text={code} /> : <div class="spinner" />}
       <div class="actions"><button class="btn" onClick={onClose}>Fermer</button></div>
     </Modal>
   );

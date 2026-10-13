@@ -48,3 +48,19 @@ test("validation des profils", () => {
   assert.match(core.validateProfile({name: "a", rules: [{kw: "(" }]}).join(), /invalide/);
   assert.match(core.validateProfile({name: "a", rules: [{match: "inconnu"}]}).join(), /inconnu/);
 });
+
+test("validation d'un profil importé : structure, couleur, expressions dangereuses", () => {
+  for (const p of core.BUILTIN_PROFILES) assert.deepEqual(core.validateProfile(p), [], p.name);
+  const ok = {name: "Ana", color: "#123456", rules: [{kw: "rap"}]};
+  assert.deepEqual(core.validateProfile(ok), []);
+  const problems = (p) => core.validateProfile(p).join(" | ");
+  assert.match(problems({...ok, color: "red; background:url(x)"}), /Couleur invalide/);
+  assert.match(problems({...ok, name: "x".repeat(61)}), /Nom trop long/);
+  assert.match(problems({...ok, rules: [null]}), /Règle illisible/);
+  assert.match(problems({...ok, rules: [{kw: 42}]}), /texte attendu/);
+  assert.match(problems({...ok, rules: [{kw: "(a+)+$"}]}), /quantificateurs imbriqués/);
+  assert.match(problems({...ok, rules: [{kw: "a".repeat(5001)}]}), /trop longue/);
+  assert.match(problems({...ok, rules: [{match: "constructor"}]}), /Prédicat inconnu/);
+  assert.match(problems({...ok, rules: [{theme: ["Sports", 1]}]}), /Thème invalide/);
+  assert.equal(core.categorize({wikipedia_title: "X", category: "y"}, {profiles: [{name: "Z", rules: [{match: "constructor"}]}]}).length, 1, "prédicat hérité ignoré");
+});

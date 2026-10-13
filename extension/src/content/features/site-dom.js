@@ -86,6 +86,9 @@ function themeOf(info) {
 }
 
 const visible = new WeakSet();
+// Cartes observées : celles que le site a retirées de la page sont oubliées (sinon l'observateur
+// les garde en mémoire tout au long de la navigation)
+const observed = new Set();
 const io = new IntersectionObserver(
   (entries) => {
     for (const e of entries) {
@@ -96,6 +99,13 @@ const io = new IntersectionObserver(
   },
   {rootMargin: "200px"},
 );
+function forgetDetached() {
+  for (const tile of observed) {
+    if (tile.isConnected) continue;
+    io.unobserve(tile);
+    observed.delete(tile);
+  }
+}
 
 function chip(className, text, title) {
   const el = document.createElement("span");
@@ -112,8 +122,8 @@ function decorateTile(tile, version) {
   const key = `${title}|${version}|${visible.has(tile) ? 1 : 0}`;
   if (tile.dataset.wmtKey === key) return;
   tile.dataset.wmtKey = key;
-  if (!tile.dataset.wmtObserved) {
-    tile.dataset.wmtObserved = "1";
+  if (!observed.has(tile)) {
+    observed.add(tile);
     io.observe(tile);
   }
 
@@ -174,7 +184,7 @@ function decorateTile(tile, version) {
     const area = placeholder?.closest("div[class*='h-[45%]']") || placeholder?.parentElement?.parentElement;
     if (placeholder && area && !area.querySelector(".wmt-fallback-img") && !info.image_url) {
       wikiThumbnail(title).then((src) => {
-        if (!src || area.querySelector(".wmt-fallback-img")) return;
+        if (!src || !area.isConnected || area.querySelector(".wmt-fallback-img")) return;
         const img = document.createElement("img");
         img.className = "wmt-fallback-img";
         img.src = src;
@@ -276,8 +286,21 @@ function ensurePullsWidgets() {
 }
 
 // --- Boucle de rafraîchissement (regroupée par image)
+// Chaque étape est isolée : si le site change et qu'une étape échoue, les autres continuent
+// (repli silencieux, une seule trace par étape dans la console).
 let version = 0;
 let scheduled = false;
+let style = null;
+const reported = new Set();
+function attempt(label, fn) {
+  try {
+    fn();
+  } catch (e) {
+    if (reported.has(label)) return;
+    reported.add(label);
+    console.warn(`[WikiMasters Toolbox] ${label}`, e);
+  }
+}
 function schedule() {
   if (scheduled) return;
   scheduled = true;
@@ -285,14 +308,17 @@ function schedule() {
 }
 function run() {
   scheduled = false;
-  ensureNavEntry();
-  ensureOpenAllButton();
-  ensurePullsWidgets();
-  for (const tile of document.querySelectorAll(SEL.tile)) decorateTile(tile, version);
+  // Le site peut reconstruire le <head> en changeant de page
+  if (style && !style.isConnected) (document.head || document.documentElement).append(style);
+  attempt("menu", ensureNavEntry);
+  attempt("bouton Tout ouvrir", ensureOpenAllButton);
+  attempt("page Paquets", ensurePullsWidgets);
+  for (const tile of document.querySelectorAll(SEL.tile)) attempt("badges des cartes", () => decorateTile(tile, version));
+  forgetDetached();
 }
 
 export function startSiteDom() {
-  const style = document.createElement("style");
+  style = document.createElement("style");
   style.id = "wmt-site-style";
   style.textContent = siteCss;
   (document.head || document.documentElement).append(style);

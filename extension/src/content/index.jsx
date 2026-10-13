@@ -27,7 +27,8 @@ if (!window.__wmtContent) {
     await Promise.all([settings.ready, profiles.ready]);
     const host = document.createElement("div");
     host.id = "wikimasters-toolbox";
-    (document.body || document.documentElement).append(host);
+    const attach = () => host.isConnected || (document.body || document.documentElement).append(host);
+    attach();
     const root = host.attachShadow({mode: "open"});
     const style = document.createElement("style");
     style.textContent = panelCss;
@@ -35,13 +36,16 @@ if (!window.__wmtContent) {
     const mount = document.createElement("div");
     root.append(mount);
     render(<App />, mount);
+    // Si le site reconstruit le <body> (erreur de rendu, changement de mise en page), la Toolbox
+    // est raccrochée telle quelle, avec son état
+    setInterval(attach, 1500);
     startSiteDom();
     watchRoute();
-    if (readSession()) startBidAlerts();
+    startBidAlerts();
   };
   // Après le chargement complet : le site (React) doit avoir fini d'hydrater la page avant
   // qu'on y ajoute quoi que ce soit, sinon React signale un décalage et re-rend tout.
-  const start = () => setTimeout(boot, 300);
+  const start = () => setTimeout(() => boot().catch((e) => console.error("[WikiMasters Toolbox] démarrage impossible", e)), 300);
   if (document.readyState === "complete") start();
   else window.addEventListener("load", start, {once: true});
 

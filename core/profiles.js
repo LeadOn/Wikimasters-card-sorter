@@ -27,7 +27,7 @@ function ruleMatches(rule, card, f, genericCat) {
   }
   if (rule.match) {
     tested = true;
-    const predicate = PREDICATES[rule.match];
+    const predicate = Object.prototype.hasOwnProperty.call(PREDICATES, rule.match) && PREDICATES[rule.match];
     if (!predicate || !predicate(f)) return false;
   }
   const text = rule.field === "title" ? f.title : f.focus;
@@ -85,22 +85,44 @@ function simpleToProfile(simple) {
   return {name: simple.name.trim(), color: simple.color, about: simple.about || "", rules, simple};
 }
 
+// Un profil importé est appliqué à chaque carte de la collection : une expression trop longue,
+// ou à quantificateurs imbriqués (« (a+)+ », temps d'exécution explosif), figerait la page.
+const MAX_PATTERN = 5000;
+const NESTED_QUANTIFIER = /\((?:[^()\\]|\\.)*[+*}](?:[^()\\]|\\.)*\)[+*{]/;
+const MAX_NAME = 60;
+const isColor = (c) => typeof c === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(c);
+
 // Vérifie un profil (importé ou saisi) ; renvoie la liste des problèmes.
 function validateProfile(profile) {
   const problems = [];
   if (!profile || typeof profile !== "object") return ["Profil illisible."];
-  if (!String(profile.name || "").trim()) problems.push("Le profil n'a pas de nom.");
+  const name = typeof profile.name === "string" ? profile.name.trim() : "";
+  if (!name) problems.push("Le profil n'a pas de nom.");
+  else if (name.length > MAX_NAME) problems.push(`Nom trop long (${MAX_NAME} caractères au plus).`);
+  if (profile.color != null && !isColor(profile.color)) problems.push("Couleur invalide (format #rrggbb attendu).");
   if (!Array.isArray(profile.rules) || !profile.rules.length) problems.push("Le profil n'a aucune règle.");
-  for (const rule of profile.rules || []) {
+  for (const rule of Array.isArray(profile.rules) ? profile.rules : []) {
+    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+      problems.push("Règle illisible : chaque règle doit être un objet.");
+      continue;
+    }
     for (const key of ["kw", "with", "unless"]) {
       if (rule[key] == null) continue;
+      if (typeof rule[key] !== "string") {
+        problems.push(`Expression invalide (${key}) : texte attendu.`);
+        continue;
+      }
+      if (rule[key].length > MAX_PATTERN) problems.push(`Expression trop longue (${key}) : ${MAX_PATTERN} caractères au plus.`);
+      else if (NESTED_QUANTIFIER.test(rule[key])) problems.push(`Expression refusée (${key}) : quantificateurs imbriqués, trop lente à évaluer.`);
       try {
         new RegExp(rule[key]);
       } catch (e) {
         problems.push(`Expression invalide (${key}) : ${e.message}`);
       }
     }
-    if (rule.match && !PREDICATES[rule.match]) problems.push(`Prédicat inconnu : ${rule.match}`);
+    if (rule.theme != null && ![].concat(rule.theme).every((t) => typeof t === "string")) problems.push("Thème invalide : texte ou liste de textes attendu.");
+    if (rule.field != null && rule.field !== "title" && rule.field !== "focus") problems.push(`Champ inconnu : ${rule.field}`);
+    if (rule.match && !Object.prototype.hasOwnProperty.call(PREDICATES, rule.match)) problems.push(`Prédicat inconnu : ${rule.match}`);
   }
   return problems;
 }

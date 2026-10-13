@@ -25,6 +25,7 @@ Plutôt que d'utiliser des requêtes individuelles trop lentes ou de demander à
 - `core/engine.js` + `core/categorize.js` : score par thème, homonymies, politique FR / internationale ;
 - `core/builtin-profiles.js` : profils d'intérêts de la bande (tags « Pour : … »), format décrit dans `core/profiles.js` ;
 - `core/tag-sync.js` : plan de synchronisation des tags (fonctions pures) ;
+- `core/tag-writer.js` : écriture d'un plan en base (étiquettes relues avant création, ajouts avant suppressions, lots de 100, arrêt à la première panne), partagée par le script et l'extension ;
 - `core/trade.js`, `core/prices.js`, `core/families.js`, `core/share-code.js` : échanges, prix, familles, codes de partage.
 
 `scripts/categorize_cards.js` est la CLI de tri au-dessus de ce moteur.
@@ -139,7 +140,7 @@ L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node
 | `npm run build` | `dist/chrome` et `dist/firefox` |
 | `npm run watch` | build continu |
 | `npm run package` | `.zip` Chrome et Firefox dans `dist/` |
-| `npm test` | tests du moteur (`tests/`, sans réseau) |
+| `npm test` | tests du moteur, de l'écriture des étiquettes et de la couche réseau / stockage de l'extension (`tests/`, sans réseau : `fetch` et `chrome.storage` simulés, modules de l'extension chargés par `tests/helpers/extension.js`) |
 | `node extension/make-icons.mjs` | régénère les icônes |
 
 ### Tester sans installer l'extension
@@ -150,6 +151,8 @@ Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai 
 - **Pas d'ouverture automatique de paquets** ni de comportement qui imite un humain ou contourne une vérification du site.
 - Ne copiez aucun code d'une autre extension : les routes du site se relèvent dans son trafic ou son code client (`docs/site-api.md`).
 - Un changement du moteur se fait dans `core/` et profite aux scripts comme à l'extension : `npm test` + `node scripts/eval_categorize.js`.
+- **Pagination** : toute lecture paginée (`fetchAll`) est triée sur une clé unique (`order=obtained_at.desc,id.asc`, `order=user_card_id.asc`…) et dédoublonnée (`key`). Sans ordre stable, PostgreSQL peut renvoyer une ligne sur deux pages (faux « Doublon ») et en omettre une autre (carte triée prise pour non triée). Les filtres `in.(…)` passent par `restIn` (lots de 100 ids).
+- **Écritures** : les étiquettes passent par `core/tag-writer.js` (avec `tagClient`), sous le verrou `sort` ; une écriture restée sans réponse est signalée « incertaine » (`HttpError.uncertain`) et n'est jamais rejouée automatiquement, sauf si elle est idempotente.
 
 ## 5. Intégration Playwright MCP
 

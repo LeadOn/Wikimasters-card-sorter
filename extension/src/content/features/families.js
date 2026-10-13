@@ -1,13 +1,26 @@
 // Familles : groupes de cartes à collectionner (manuelles ou intelligentes), partage par code,
 // cartes manquantes en vente, conversion en étiquette WikiMasters.
 import {site} from "../api/site";
-import {rest} from "../api/supabase";
+import {rest, fetchAll, tagClient} from "../api/supabase";
 import {ensureSession} from "../lib/session";
 import {persistentStore} from "../lib/storage";
 import {createLimiter} from "../lib/http";
+import {withLock} from "../lib/locks";
 import {loadMyCollection} from "../state/collection";
 import {newId} from "../state/profiles";
-import {matchesFamilyRule, compactCard, familyToShare, familyFromShare, encodeShareCode, decodeShareCode} from "../../../../core";
+import {
+  matchesFamilyRule,
+  compactCard,
+  familyToShare,
+  familyFromShare,
+  encodeShareCode,
+  decodeShareCode,
+  ensureTags,
+  insertLinks,
+  isThemeTag,
+  isFriendTag,
+  DOUBLON,
+} from "../../../../core";
 
 // list : [{id, name, kind: "manual"|"smart", rule, cards: [{id, title, rarity, category, image_url}], cover, updatedAt}]
 export const families = persistentStore("families", {list: []});
@@ -84,25 +97,36 @@ export async function importFamily(code) {
 }
 
 // Crée (ou complète) l'étiquette « <nom> » sur mes exemplaires des cartes de la famille.
-// Étiquette personnelle : le tri automatique ne la touche jamais.
+// Étiquette personnelle : le tri automatique ne la touche jamais (un nom d'étiquette gérée par le
+// tri est donc refusé, sinon le prochain retri complet retirerait ces associations).
 export async function familyToTag(family, color = "#0ea5e9") {
+  const name = family.name.trim();
+  if (isThemeTag(name) || name === DOUBLON || isFriendTag(name))
+    throw new Error(`« ${name} » est une étiquette gérée par le tri automatique : renommez la famille avant d'en faire une étiquette.`);
   const session = await ensureSession();
   const copies = await loadMyCollection();
   const ids = new Set(family.cards.map((c) => c.id));
   const mine = copies.filter((c) => ids.has(c.card_id));
   if (!mine.length) throw new Error("Vous ne possédez aucune carte de cette famille.");
-  const name = family.name.trim();
-  const existing = await rest(`tags?select=*&user_id=eq.${session.userId}&name=eq.${encodeURIComponent(name)}`);
-  const tag = existing[0] || (await rest("tags?select=*", {method: "POST", prefer: "return=representation", body: {user_id: session.userId, name, color}}))[0];
-  const rows = mine.map((c) => ({user_card_id: c.id, tag_id: tag.id}));
-  for (let i = 0; i < rows.length; i += 100)
-    await rest("user_card_tags", {method: "POST", body: rows.slice(i, i + 100), prefer: "resolution=ignore-duplicates", retries: 4});
-  return {tag: name, count: rows.length};
+  // Même verrou que le tri : une étiquette n'est jamais créée deux fois en parallèle
+  return withLock(
+    "sort",
+    async () => {
+      const client = tagClient(session.userId);
+      const tagId = (await ensureTags(client, {[name]: color})).get(name);
+      const {inserted, failed} = await insertLinks(
+        client,
+        mine.map((c) => ({user_card_id: c.id, tag_id: tagId})),
+      );
+      return {tag: name, count: inserted, failed};
+    },
+    {wait: true},
+  );
 }
 
-// Famille manuelle à partir d'une étiquette existante
+// Famille manuelle à partir d'une étiquette existante (toutes ses associations, page par page)
 export async function familyFromTag(tag) {
-  const links = await rest(`user_card_tags?select=user_card_id&tag_id=eq.${tag.id}&limit=5000`);
+  const links = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${tag.id}&order=user_card_id.asc`);
   const set = new Set(links.map((l) => l.user_card_id));
   const copies = await loadMyCollection();
   const family = createFamily({name: tag.name});

@@ -19,13 +19,20 @@ function managedTags({profiles = [], themeColors = {}} = {}) {
 // Tag de thème générique (un seul par carte triée).
 const isThemeTag = (name) => Object.prototype.hasOwnProperty.call(THEME_COLORS, name);
 
-// userCards : [{id, card_id, count?, cards: {id, wikipedia_title, category, summary, image_url, …}}]
-// Renvoie [{userCard, tags}] ; Doublon si la carte est possédée en plusieurs exemplaires
-// (plusieurs lignes, ou une ligne dont `count` dépasse 1).
-function computeAssignments(userCards, {profiles = [], manualMapping = null} = {}) {
+// Nombre d'exemplaires de chaque carte : Map(card id → exemplaires), plusieurs lignes ou `count` > 1.
+function countCopies(userCards) {
   const copies = new Map();
   for (const uc of userCards)
     if (uc.cards?.id) copies.set(uc.cards.id, (copies.get(uc.cards.id) || 0) + Math.max(1, Number(uc.count) || 1));
+  return copies;
+}
+
+// userCards : [{id, card_id, count?, cards: {id, wikipedia_title, category, summary, image_url, …}}]
+// Renvoie [{userCard, tags}] ; Doublon si la carte est possédée en plusieurs exemplaires
+// (plusieurs lignes, ou une ligne dont `count` dépasse 1).
+// copies : à fournir (countCopies de toute la collection) quand userCards n'en est qu'une partie,
+// sinon deux exemplaires répartis dans deux parties ne seraient pas vus comme un doublon.
+function computeAssignments(userCards, {profiles = [], manualMapping = null, copies = countCopies(userCards)} = {}) {
   const assignments = [];
   for (const uc of userCards) {
     if (!uc.cards) continue;
@@ -112,4 +119,4 @@ function countByTag(assignments, managed) {
   return Object.keys(managed).filter((n) => counts[n]).map((name) => ({name, count: counts[name]}));
 }
 
-module.exports = {managedTags, isThemeTag, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag};
+module.exports = {managedTags, isThemeTag, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag};

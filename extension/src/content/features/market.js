@@ -15,11 +15,13 @@ export const isLeading = mine;
 export const msLeft = (a) => new Date(a.end_at).getTime() - Date.now();
 
 function setFromResponse(data) {
-  if (!data || !("bidding" in data || "selling" in data)) return;
+  if (!data || typeof data !== "object" || !("bidding" in data || "selling" in data)) return;
+  const prev = bidsState.get();
+  const list = (value, fallback) => (Array.isArray(value) ? value : fallback);
   bidsState.set({
-    selling: data.selling ?? bidsState.get().selling,
-    bidding: (data.bidding ?? bidsState.get().bidding).filter((a) => !a.status || a.status === "active"),
-    won: data.won ?? bidsState.get().won,
+    selling: list(data.selling, prev.selling),
+    bidding: list(data.bidding, prev.bidding).filter((a) => !a.status || a.status === "active"),
+    won: list(data.won, prev.won),
     at: Date.now(),
   });
 }
@@ -52,6 +54,8 @@ export async function placeBid(auction, amount) {
     return {ok: true};
   } catch (e) {
     if (e.code === "bid_too_low" && e.data?.min) return {ok: false, min: e.data.min, error: `Mise trop basse : minimum ${e.data.min}.`};
+    // Sans réponse, l'enchère a peut-être été placée : l'état affiché est relu
+    if (e.uncertain) refreshBids();
     return {ok: false, error: e.message};
   }
 }
@@ -71,14 +75,20 @@ function checkAlerts() {
 }
 export function startBidAlerts() {
   bidsState.subscribe(checkAlerts);
+  // Le prochain passage est toujours programmé, même si celui-ci échoue
   const tick = async () => {
-    if (isOn("bidAlerts") && document.visibilityState === "visible" && bidsState.get().bidding.length) await refreshBids({withBalance: false});
-    checkAlerts();
-    pollTimer = setTimeout(tick, bidsState.get().bidding.some((a) => msLeft(a) < 5 * 60000) ? 20000 : 60000);
+    try {
+      if (isOn("bidAlerts") && readSession() && document.visibilityState === "visible" && bidsState.get().bidding.length) await refreshBids({withBalance: false});
+      checkAlerts();
+    } catch (e) {
+      console.warn("[WikiMasters Toolbox] alertes d'enchères", e);
+    } finally {
+      pollTimer = setTimeout(tick, bidsState.get().bidding.some((a) => msLeft(a) < 5 * 60000) ? 20000 : 60000);
+    }
   };
   // Première lecture : savoir si j'ai des enchères en cours
   setTimeout(async () => {
-    if (isOn("bidAlerts")) await refreshBids({withBalance: false});
+    if (isOn("bidAlerts") && readSession()) await refreshBids({withBalance: false});
     tick();
   }, 4000);
   return () => clearTimeout(pollTimer);
@@ -106,8 +116,20 @@ export async function loadSpares() {
 export const spareValue = (s) => priceOf(s.card_id, s.rarity);
 
 // Mise en vente d'un exemplaire (le site choisit l'exemplaire). Après confirmation du joueur.
+// Sans réponse du site, la vente a peut-être eu lieu : la liste est relue avant toute nouvelle
+// tentative, pour ne pas mettre en vente un deuxième exemplaire par erreur.
 export async function sellCard({cardId, baseAmount, durationMinutes}) {
-  const res = await site.createAuction({cardId, baseAmount, durationMinutes});
+  let res;
+  try {
+    res = await site.createAuction({cardId, baseAmount, durationMinutes});
+  } catch (e) {
+    if (e.uncertain) {
+      invalidateCollection();
+      loadSpares();
+      refreshBids({withBalance: false});
+    }
+    throw e;
+  }
   invalidateCollection();
   const quota = await site.marketplaceQuota().catch(() => null);
   sellState.set((s) => ({

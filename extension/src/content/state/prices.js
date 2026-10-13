@@ -9,7 +9,7 @@ import {site} from "../api/site";
 import {rest} from "../api/supabase";
 import {createStore} from "../lib/store";
 import {createLimiter} from "../lib/http";
-import {load, save} from "../lib/storage";
+import {load, save, update} from "../lib/storage";
 import {on} from "../lib/bus";
 import {lookupId} from "../lib/registry";
 import {settings} from "./settings";
@@ -18,28 +18,53 @@ import {averagePrice, summarizeSales, priceBatches} from "../../../../core/price
 const KEY = "prices";
 // Le serveur renvoie souvent des erreurs passagères : un prix en échec est redemandé après 5 min
 const ERROR_RETRY = 5 * 60 * 1000;
+// Au-delà, une entrée est oubliée (le cache ne grossit pas indéfiniment)
+const MAX_KEEP = 30 * 24 * 3600 * 1000;
 const PAGE = 1000;
 const cache = new Map(); // card_id → {s: summary, t: date, err?}
 export const priceVersion = createStore({v: 0, loaded: false});
 export const queueState = createStore({pending: 0, paused: false});
 
-let dirty = false;
+// Enregistrement au plus toutes les 2 s, y compris pendant un long chargement (un délai remis à
+// zéro à chaque prix n'enregistrerait rien avant la fin). Seules les entrées modifiées sont écrites,
+// fusionnées avec le cache enregistré : les prix chargés par un autre onglet sont conservés.
+const dirty = new Set();
 let flushTimer = null;
-function touch() {
+function touch(cardId) {
   priceVersion.set((s) => ({...s, v: s.v + 1}));
-  dirty = true;
-  clearTimeout(flushTimer);
-  flushTimer = setTimeout(flush, 2000);
+  if (cardId) dirty.add(cardId);
+  flushTimer ||= setTimeout(flush, 2000);
 }
 async function flush() {
-  if (!dirty) return;
-  dirty = false;
-  await save(KEY, Object.fromEntries(cache)).catch(() => {});
+  flushTimer = null;
+  if (!dirty.size) return;
+  const ids = [...dirty];
+  dirty.clear();
+  await update(KEY, {}, (stored) => {
+    for (const id of ids) {
+      const entry = cache.get(id);
+      if (entry && !(stored[id]?.t > entry.t)) stored[id] = entry;
+    }
+    return stored;
+  }).catch(() => {});
 }
+// Dernier enregistrement quand l'onglet est fermé ou caché
+addEventListener("pagehide", flush);
+document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flush());
 
 export const ready = load(KEY, {}).then((saved) => {
-  for (const [id, v] of Object.entries(saved)) if (!cache.has(id)) cache.set(id, v);
+  const cutoff = Date.now() - MAX_KEEP;
+  const expired = [];
+  for (const [id, v] of Object.entries(saved || {})) {
+    if (!v || !(v.t > cutoff)) expired.push(id);
+    else if (!cache.has(id)) cache.set(id, v);
+  }
   priceVersion.set((s) => ({v: s.v + 1, loaded: true}));
+  if (expired.length)
+    update(KEY, {}, (stored) => {
+      for (const id of expired) if (!(stored[id]?.t > cutoff)) delete stored[id];
+      return stored;
+    }).catch(() => {});
 });
 
 const maxAge = () => settings.get().priceMaxAgeHours * 3600 * 1000;
@@ -60,11 +85,11 @@ export const priceMap = () => new Map([...cache].map(([id, v]) => [id, v.s]));
 
 function store(cardId, summary) {
   cache.set(cardId, {s: summary || {}, t: Date.now()});
-  touch();
+  touch(cardId);
 }
 function markError(cardId) {
   cache.set(cardId, {s: cache.get(cardId)?.s || null, t: Date.now(), err: true});
-  touch();
+  touch(cardId);
 }
 
 // Résumés que le site charge lui-même (fiche de mise en vente) : gratuits
@@ -99,7 +124,11 @@ async function siteSummary(id, signal) {
   }
 }
 
-// Un lot trop lourd (délai du serveur dépassé) est coupé en deux ; une carte seule passe par la route du site.
+// Lot trop lourd pour le serveur (délai dépassé) : il est coupé en deux, et une carte seule passe
+// par la route du site. Toute autre erreur (réseau, serveur en panne) marque simplement le lot en
+// échec, sans multiplier les requêtes : il sera redemandé quelques minutes plus tard.
+const tooHeavy = (e) => e.code === "57014" || e.code === "timeout" || [504, 522, 524].includes(e.status);
+
 async function fetchBatch(ids, signal) {
   if (!directSource) {
     for (const id of ids) await siteSummary(id, signal);
@@ -110,13 +139,21 @@ async function fetchBatch(ids, signal) {
     for (const id of ids) store(id, summaries.get(id) || {});
   } catch (e) {
     if (e.name === "AbortError") throw e;
-    if ([401, 403, 404].includes(e.status)) directSource = false;
-    if (ids.length > 1 && directSource) {
+    // Table des ventes plus lisible (droits modifiés par le site) : route du site, plus lente
+    if (e.status === 403 || e.status === 404) {
+      directSource = false;
+      return fetchBatch(ids, signal);
+    }
+    if (!tooHeavy(e)) {
+      for (const id of ids) markError(id);
+      return;
+    }
+    if (ids.length > 1) {
       const mid = Math.ceil(ids.length / 2);
       await fetchBatch(ids.slice(0, mid), signal);
       await fetchBatch(ids.slice(mid), signal);
     } else {
-      for (const id of ids) await siteSummary(id, signal);
+      await siteSummary(ids[0], signal);
     }
   }
 }
@@ -185,6 +222,7 @@ export async function loadPrices(items, {force = false, onProgress, signal} = {}
 
 export async function clearPrices() {
   cache.clear();
+  dirty.clear();
   await save(KEY, {});
   touch();
 }

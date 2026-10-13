@@ -5,6 +5,7 @@
 const {categorize} = require("./categorize");
 const {hasKeyword, normalize} = require("./text");
 const {keywordsToPattern} = require("./profiles");
+const {RARITIES} = require("./prices");
 
 // rule : {query, themes: [], keywords: "…", exclude: "…", rarities: []}
 // Une carte du catalogue entre dans une famille intelligente si elle passe tous les filtres présents.
@@ -46,14 +47,37 @@ function familyToShare(family) {
   };
 }
 
+// Le code vient d'un autre joueur : chaque champ est vérifié et ramené au format attendu.
+const text = (v, max = 500) => (typeof v === "string" ? v.slice(0, max) : "");
+const httpUrl = (v) => (typeof v === "string" && /^https?:\/\//i.test(v) ? v : null);
+const stringList = (v, allowed) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && (!allowed || allowed.includes(x))) : []);
+
 function familyFromShare(payload) {
-  if (!payload || !payload.name || !Array.isArray(payload.cards)) throw new Error("Code de famille illisible.");
+  const name = text(payload?.name, 80).trim();
+  if (!name || !Array.isArray(payload.cards)) throw new Error("Code de famille illisible.");
+  const cards = [];
+  const seen = new Set();
+  for (const entry of payload.cards) {
+    if (!Array.isArray(entry)) continue;
+    const [id, title, rarity, category, image_url] = entry;
+    if (typeof id !== "string" || !id || seen.has(id)) continue;
+    seen.add(id);
+    cards.push({id, title: text(title), rarity: RARITIES.includes(rarity) ? rarity : null, category: text(category), image_url: httpUrl(image_url)});
+  }
+  const smart = payload.kind === "smart";
+  const rule = smart && payload.rule && typeof payload.rule === "object" ? payload.rule : null;
   return {
-    name: String(payload.name),
-    kind: payload.kind === "smart" ? "smart" : "manual",
-    rule: payload.rule || null,
-    cards: payload.cards.map(([id, title, rarity, category, image_url]) => ({id, title, rarity: rarity || null, category, image_url: image_url || null})),
-    cover: payload.cover || null,
+    name,
+    kind: smart ? "smart" : "manual",
+    rule: rule && {
+      query: text(rule.query, 200),
+      keywords: text(rule.keywords, 2000),
+      exclude: text(rule.exclude, 2000),
+      themes: stringList(rule.themes),
+      rarities: stringList(rule.rarities, RARITIES),
+    },
+    cards,
+    cover: typeof payload.cover === "string" && seen.has(payload.cover) ? payload.cover : null,
   };
 }
 

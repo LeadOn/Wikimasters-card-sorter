@@ -173,7 +173,11 @@ export function SortTab() {
           <div class="row">
             <h3 style={{flex: 1, fontSize: "16px"}}>{s.plan.newOnly ? "Aperçu : nouvelles cartes" : "Aperçu : retri complet"}</h3>
             <button class="btn ghost" onClick={() => sortState.set({plan: null})}>Annuler</button>
-            <button class={`btn ${s.plan.newOnly ? "primary" : "danger"}`} disabled={!s.plan.insertCount && !s.plan.deleteCount && !s.plan.upserts.recolor.length} onClick={apply}>
+            <button
+              class={`btn ${s.plan.newOnly ? "primary" : "danger"}`}
+              disabled={!s.plan.insertCount && !s.plan.deleteCount && !s.plan.upserts.recolor.length && !s.plan.upserts.create.length && !s.plan.extraTagIds.length}
+              onClick={apply}
+            >
               Appliquer
             </button>
           </div>

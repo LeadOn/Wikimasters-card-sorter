@@ -25,6 +25,15 @@ test("doublons : plusieurs lignes ou une ligne avec count > 1", () => {
   assert.ok(!byId.u1.includes("Doublon"));
 });
 
+test("doublons : comptés sur toute la collection même quand le classement se fait par tranches", () => {
+  // u2 et u3 (même carte) dans deux tranches différentes
+  const copies = core.countCopies(collection);
+  const chunked = [...core.computeAssignments(collection.slice(0, 2), {copies}), ...core.computeAssignments(collection.slice(2), {copies})];
+  assert.deepEqual(chunked, core.computeAssignments(collection));
+  const naive = core.computeAssignments(collection.slice(2));
+  assert.ok(!naive.find((a) => a.userCard.id === "u3").tags.includes("Doublon"), "sans `copies`, une tranche seule ne voit pas le doublon");
+});
+
 test("mode incrémental : seules les cartes sans thème sont classées, Doublon recalculé partout", () => {
   const assignments = core.computeAssignments(collection);
   // u1 déjà triée (et corrigée à la main en Sports), u2 triée, u3 et u4 non triées

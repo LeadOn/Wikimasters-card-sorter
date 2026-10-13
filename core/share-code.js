@@ -17,9 +17,31 @@ function base64UrlToBytes(text) {
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 
-async function transform(bytes, stream) {
-  const out = new Response(new Blob([bytes]).stream().pipeThrough(stream));
-  return new Uint8Array(await out.arrayBuffer());
+// Un code décompressé ne dépasse jamais quelques centaines de Ko : au-delà, il est refusé
+// (un code fabriqué pour se décompresser en gigaoctets figerait la page).
+const MAX_DECODED = 2 * 1024 * 1024;
+
+async function transform(bytes, stream, maxBytes = Infinity) {
+  const reader = new Blob([bytes]).stream().pipeThrough(stream).getReader();
+  const chunks = [];
+  let size = 0;
+  for (;;) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    size += value.length;
+    if (size > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new RangeError("too large");
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.length;
+  }
+  return out;
 }
 
 // type : une lettre ("P" profil, "F" famille)
@@ -35,13 +57,15 @@ async function decodeShareCode(code, expectedType) {
   if (!m) throw new Error("Code invalide : il doit commencer par « WMT- ».");
   if (expectedType && m[1] !== expectedType)
     throw new Error(expectedType === "P" ? "Ce code n'est pas un code de profil." : "Ce code n'est pas un code de famille.");
-  let json;
+  let payload;
   try {
-    json = new TextDecoder().decode(await transform(base64UrlToBytes(m[2]), new DecompressionStream("deflate-raw")));
-  } catch {
+    const json = new TextDecoder().decode(await transform(base64UrlToBytes(m[2]), new DecompressionStream("deflate-raw"), MAX_DECODED));
+    payload = JSON.parse(json);
+  } catch (e) {
+    if (e instanceof RangeError) throw new Error("Code refusé : son contenu est anormalement volumineux.");
     throw new Error("Code incomplet ou abîmé : vérifiez qu'il a été copié en entier.");
   }
-  return {type: m[1], payload: JSON.parse(json)};
+  return {type: m[1], payload};
 }
 
 module.exports = {encodeShareCode, decodeShareCode, bytesToBase64Url, base64UrlToBytes};

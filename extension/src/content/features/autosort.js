@@ -3,17 +3,16 @@
 // - thème + tags « Pour : … » sur chaque nouvel exemplaire qui n'a encore aucun thème ;
 // - Doublon sur tous les exemplaires d'une carte possédée en plusieurs exemplaires ;
 // - aucune suppression, aucune autre carte touchée, étiquettes personnelles jamais modifiées.
-import {rest} from "../api/supabase";
+import {restIn, rest, tagClient} from "../api/supabase";
 import {ensureSession} from "../lib/session";
+import {withLock} from "../lib/locks";
 import {activeProfiles} from "../state/profiles";
 import {settings} from "../state/settings";
 import {invalidateCollection} from "../state/collection";
-import {categorize, managedTags, isThemeTag, DOUBLON} from "../../../../core";
-
-const inList = (ids) => `in.(${[...new Set(ids)].join(",")})`;
+import {categorize, managedTags, isThemeTag, ensureTags, insertLinks, DOUBLON} from "../../../../core";
 
 // Exemplaires des cartes tirées : user_card_id fourni par le site, sinon les plus récents de chaque carte
-async function pulledCopies(cards, rows) {
+function pulledCopies(cards, rows) {
   const byCard = new Map();
   for (const r of rows) (byCard.get(r.card_id) || byCard.set(r.card_id, []).get(r.card_id)).push(r);
   const taken = new Set();
@@ -27,7 +26,13 @@ async function pulledCopies(cards, rows) {
 
 // cards : cartes de la réponse du site ({id, wikipedia_title, category, summary, image_url, user_card_id…})
 // Renvoie {byIndex: [{status: "sorted", tags} | {status: "already", doublon} | {status: "unknown"}], doublons}
-export async function sortPulledCards(cards) {
+// Verrou partagé avec le tri : deux tris simultanés (deux paquets, deux onglets) pourraient sinon
+// créer deux fois la même étiquette. Celui-ci attend son tour au lieu d'échouer.
+export function sortPulledCards(cards) {
+  return withLock("sort", () => sortNow(cards), {wait: true});
+}
+
+async function sortNow(cards) {
   const session = await ensureSession();
   const profiles = activeProfiles();
   const managed = managedTags({profiles, themeColors: settings.get().themeColors});
@@ -35,15 +40,14 @@ export async function sortPulledCards(cards) {
 
   const [tags, copies, summaries] = await Promise.all([
     rest(`tags?select=id,name,color&user_id=eq.${session.userId}`, {retries: 3}),
-    rest(`user_cards?select=id,card_id,count,obtained_at&card_id=${inList(ids)}`, {retries: 3}),
-    cards.some((c) => c.summary == null) ? rest(`cards?select=id,summary&id=${inList(ids)}`, {retries: 3}) : Promise.resolve([]),
+    restIn("user_cards?select=id,card_id,count,obtained_at", "card_id", ids, {retries: 3}),
+    cards.some((c) => c.summary == null) ? restIn("cards?select=id,summary", "id", ids, {retries: 3}) : Promise.resolve([]),
   ]);
   const summaryOf = new Map(summaries.map((s) => [s.id, s.summary]));
-  const pulledIds = await pulledCopies(cards, copies);
+  const pulledIds = pulledCopies(cards, copies);
 
   // Étiquettes déjà présentes sur les exemplaires tirés (un exemplaire déjà trié n'est pas reclassé)
-  const known = pulledIds.filter(Boolean);
-  const links = known.length ? await rest(`user_card_tags?select=user_card_id,tag_id&user_card_id=${inList(known)}`, {retries: 3}) : [];
+  const links = await restIn("user_card_tags?select=user_card_id,tag_id", "user_card_id", pulledIds, {retries: 3});
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
   const hasTheme = new Set(links.filter((l) => isThemeTag(tagName.get(l.tag_id) || "")).map((l) => l.user_card_id));
 
@@ -65,23 +69,16 @@ export async function sortPulledCards(cards) {
   const doublons = copies.filter((r) => total.get(r.card_id) > 1);
   for (const r of doublons) wanted.push({userCardId: r.id, name: DOUBLON});
   cards.forEach((c, i) => {
-    if (total.get(c.id) <= 1) return;
+    if (!(total.get(c.id) > 1)) return;
     if (byIndex[i].status === "sorted") byIndex[i].tags.push(DOUBLON);
     else byIndex[i].doublon = true;
   });
 
-  // Étiquettes gérées manquantes : créées à la demande (une seule par nom)
-  const tagId = new Map();
-  for (const t of tags) if (t.name in managed && !tagId.has(t.name)) tagId.set(t.name, t.id);
-  for (const name of new Set(wanted.map((w) => w.name))) {
-    if (tagId.has(name)) continue;
-    const [created] = await rest("tags?select=*", {method: "POST", prefer: "return=representation", body: {user_id: session.userId, name, color: managed[name]}});
-    tagId.set(name, created.id);
-  }
-
+  // Étiquettes gérées manquantes : créées à la demande, après relecture (core/tag-writer.js)
+  const client = tagClient(session.userId);
+  const tagId = await ensureTags(client, Object.fromEntries([...new Set(wanted.map((w) => w.name))].map((name) => [name, managed[name]])), {known: tags});
   const rows = wanted.map((w) => ({user_card_id: w.userCardId, tag_id: tagId.get(w.name)})).filter((r) => r.tag_id);
-  for (let i = 0; i < rows.length; i += 100)
-    await rest("user_card_tags", {method: "POST", body: rows.slice(i, i + 100), prefer: "resolution=ignore-duplicates", retries: 4});
+  await insertLinks(client, rows);
   invalidateCollection();
   return {byIndex, doublons: doublons.length};
 }

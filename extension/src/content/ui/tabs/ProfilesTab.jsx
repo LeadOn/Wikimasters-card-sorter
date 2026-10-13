@@ -157,16 +157,19 @@ function ProfileEditor({initial, isMine, onSave, onClose}) {
 
 function ExportDialog({profile, onClose}) {
   const [code, setCode] = useState(null);
+  const [error, setError] = useState(null);
   useEffect(() => {
     const {id, enabled, ...rest} = profile;
-    encodeShareCode("P", rest).then(setCode);
+    encodeShareCode("P", rest)
+      .then(setCode)
+      .catch((e) => setError(errorMessage(e)));
   }, []);
   return (
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="modal">
         <h3>Partager le profil « {profile.name} »</h3>
         <p class="help">Envoyez ce code à vos amis : dans leur Toolbox, onglet Profils, « Importer un code ».</p>
-        {code ? <Copyable text={code} /> : <div class="spinner" />}
+        {error ? <Notice type="error">{error}</Notice> : code ? <Copyable text={code} /> : <div class="spinner" />}
         <div class="actions"><button class="btn" onClick={onClose}>Fermer</button></div>
       </div>
     </div>

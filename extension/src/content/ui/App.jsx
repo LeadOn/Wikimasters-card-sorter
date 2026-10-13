@@ -183,6 +183,13 @@ export function App() {
           toast(errorMessage(e), {type: "error"});
         }
       }),
+      on("extension-stale", () =>
+        toast("La Toolbox a été mise à jour : rechargez la page WikiMasters pour qu'elle continue d'enregistrer vos données.", {
+          type: "error",
+          duration: 0,
+          action: {label: "Recharger", run: () => location.reload()},
+        }),
+      ),
       on("bid-alert", (a) =>
         toast(`Enchère bientôt terminée et vous êtes dépassé : ${a.card?.wikipedia_title}`, {
           type: "error",

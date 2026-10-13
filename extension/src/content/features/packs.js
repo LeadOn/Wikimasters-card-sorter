@@ -1,13 +1,13 @@
 // Paquets : récapitulatif, statistiques de tirage et « Tout ouvrir » (sur clic, après confirmation).
 import {site} from "../api/site";
-import {rest} from "../api/supabase";
+import {restIn} from "../api/supabase";
 import {withLock} from "../lib/locks";
 import {createStore} from "../lib/store";
 import {persistentStore} from "../lib/storage";
 import {on, emit} from "../lib/bus";
 import {sleep, HumanCheckError} from "../lib/http";
 import {isOn} from "../state/settings";
-import {owned, addOwned} from "../state/collection";
+import {owned, addOwned, invalidateCollection} from "../state/collection";
 import {loadPrices} from "../state/prices";
 import {packNovelty} from "../../../../core/prices";
 import {sortPulledCards} from "./autosort";
@@ -72,12 +72,9 @@ function handleOpened(cards, {packs = 1, wasOwned, revealing = false}) {
 // n'en apporte (une requête pour tout le paquet, la collection en mémoire peut être absente ou ancienne).
 async function markNovelty(at, cards) {
   try {
-    const ids = [...new Set(cards.map((c) => c.id))];
+    const rows = await restIn("user_cards?select=card_id,count", "card_id", cards.map((c) => c.id), {retries: 3});
     const copies = new Map();
-    for (let i = 0; i < ids.length; i += 100) {
-      const rows = await rest(`user_cards?select=card_id,count&card_id=in.(${ids.slice(i, i + 100).join(",")})`, {retries: 3});
-      for (const r of rows) copies.set(r.card_id, (copies.get(r.card_id) || 0) + Math.max(1, Number(r.count) || 1));
-    }
+    for (const r of rows) copies.set(r.card_id, (copies.get(r.card_id) || 0) + Math.max(1, Number(r.count) || 1));
     const novelty = packNovelty(cards, copies);
     const updated = cards.map((c, i) => ({...c, isNew: novelty[i]}));
     if (recapState.get().at === at) recapState.set({cards: updated});
@@ -112,8 +109,10 @@ export async function openAllPacks() {
     try {
       for (let guard = 0; guard < 100; guard++) {
         const res = await site.openPack();
+        // Réponse sans cartes (erreur rendue en 200, format changé) : on s'arrête sans rien supposer
+        if (!Array.isArray(res?.cards) || !res.cards.length) throw new Error(res?.error ? String(res.error) : "réponse du site sans cartes");
         packs++;
-        all.push(...(res.cards || []));
+        all.push(...res.cards);
         openAllState.set({opened: packs});
         if (typeof res.packs_remaining === "number") packsStatus.set({remaining: res.packs_remaining, at: Date.now()});
         if (!res.packs_remaining) break;
@@ -124,6 +123,8 @@ export async function openAllPacks() {
     } finally {
       openAllState.set({running: false});
       if (all.length) {
+        // Ces ouvertures ne passent pas par la page : la collection en mémoire n'est plus à jour
+        invalidateCollection();
         addOwned(all.map((c) => c.id));
         handleOpened(all, {packs, wasOwned});
       }

@@ -1,11 +1,15 @@
 // Requêtes réseau prudentes : délai maximal, réessais avec délai croissant pour les lectures,
 // respect des 429 (Retry-After), et jamais de réessai automatique d'une écriture non idempotente.
 export class HttpError extends Error {
-  constructor(message, {status = 0, code = null, data = null} = {}) {
+  // code : code d'erreur du serveur (PostgREST, site), ou "timeout" / "network" / "bad_response"
+  // uncertain : écriture restée sans réponse, peut-être prise en compte par le serveur
+  constructor(message, {status = 0, code = null, data = null, uncertain = false} = {}) {
     super(message);
+    this.name = "HttpError";
     this.status = status;
     this.code = code;
     this.data = data;
+    this.uncertain = uncertain;
   }
 }
 
@@ -17,19 +21,27 @@ export class HumanCheckError extends HttpError {
       code: "human_verification_required",
       data,
     });
+    this.name = "HumanCheckError";
   }
 }
 
+export const abortError = () => new DOMException("Annulé", "AbortError");
+
 export const sleep = (ms, signal) =>
   new Promise((resolve, reject) => {
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(t);
-      reject(new DOMException("Annulé", "AbortError"));
-    });
+    if (signal?.aborted) return reject(abortError());
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, {once: true});
   });
 
-const backoff = (attempt) => Math.min(30000, 1500 * 2 ** (attempt - 1)) * (0.75 + Math.random() * 0.5);
+export const backoff = (attempt) => Math.min(30000, 1500 * 2 ** (attempt - 1)) * (0.75 + Math.random() * 0.5);
 
 // Nombre maximal de tâches simultanées
 export function createLimiter(max) {
@@ -54,6 +66,27 @@ export function createLimiter(max) {
     });
 }
 
+// fn(item) pour chaque élément, `concurrency` à la fois. À la première erreur, plus aucune tâche
+// n'est lancée et l'erreur est renvoyée une fois les tâches en cours terminées (rien ne continue
+// en arrière-plan après l'échec).
+export async function runAll(items, fn, {concurrency = 4, signal} = {}) {
+  const queue = [...items];
+  let error = null;
+  const worker = async () => {
+    while (queue.length && !error && !signal?.aborted) {
+      const item = queue.shift();
+      try {
+        await fn(item);
+      } catch (e) {
+        error ||= e;
+      }
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(concurrency, queue.length)}, worker));
+  if (error) throw error;
+  if (signal?.aborted) throw abortError();
+}
+
 function describe(status, data) {
   const detail = typeof data === "object" && data ? data.error || data.message || data.code : null;
   if (status === 401 || status === 403) return detail || "Accès refusé : reconnectez-vous à WikiMasters.";
@@ -62,13 +95,23 @@ function describe(status, data) {
   return detail || `Erreur ${status}`;
 }
 
-// retries : nombre total de tentatives (par défaut 6 pour une lecture, 1 pour une écriture)
-export async function request(url, {method = "GET", headers = {}, body, timeout = 45000, retries, credentials = "include", signal} = {}) {
-  const attempts = retries ?? (method === "GET" ? 6 : 1);
+const isHumanCheck = (data) => data && typeof data === "object" && (data.code === "human_verification_required" || data.human_verification_required === true);
+
+// retries : nombre total de tentatives (par défaut 6 pour une lecture, 1 pour une écriture ; une
+// écriture idempotente — suppression par filtre, ajout ignorant les doublons — peut en demander plus).
+// Toutes les réponses attendues sont du JSON : une page HTML (vérification Cloudflare, maintenance)
+// reçue à la place est une erreur, pas des données.
+export async function request(url, {method = "GET", headers = {}, body, timeout = 45000, retries, credentials = "include", signal, retryDelay = backoff} = {}) {
+  const write = method !== "GET";
+  const attempts = retries ?? (write ? 1 : 6);
   for (let attempt = 1; ; attempt++) {
-    if (signal?.aborted) throw new DOMException("Annulé", "AbortError");
+    if (signal?.aborted) throw abortError();
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeout);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      ctrl.abort();
+    }, timeout);
     const onAbort = () => ctrl.abort();
     signal?.addEventListener("abort", onAbort);
     let res;
@@ -82,29 +125,49 @@ export async function request(url, {method = "GET", headers = {}, body, timeout 
         signal: ctrl.signal,
       });
       text = await res.text();
-    } catch (e) {
-      if (signal?.aborted) throw new DOMException("Annulé", "AbortError");
-      if (attempt >= attempts) throw new HttpError("Le site ne répond pas (réseau ou délai dépassé).", {status: 0});
-      await sleep(backoff(attempt), signal);
+    } catch {
+      if (signal?.aborted) throw abortError();
+      if (attempt >= attempts) {
+        const code = timedOut ? "timeout" : "network";
+        if (write)
+          throw new HttpError(
+            attempts === 1
+              ? "Pas de réponse du site : l'action a peut-être été prise en compte. Vérifiez sur WikiMasters avant de réessayer."
+              : "Pas de réponse du site : l'opération est restée inachevée, vous pouvez la relancer.",
+            {status: 0, code, uncertain: true},
+          );
+        throw new HttpError(timedOut ? "Le site met trop de temps à répondre." : "Le site ne répond pas (connexion interrompue ?).", {status: 0, code});
+      }
+      await sleep(retryDelay(attempt), signal);
       continue;
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener("abort", onAbort);
     }
     let data = null;
+    let json = true;
     if (text) {
       try {
         data = JSON.parse(text);
       } catch {
         data = text;
+        json = false;
       }
     }
-    if (res.ok) return data;
-    if (data && typeof data === "object" && (data.code === "human_verification_required" || data.human_verification_required))
-      throw new HumanCheckError(data);
-    const retryable = res.status === 408 || res.status === 425 || res.status === 429 || res.status >= 500;
-    if (!retryable || attempt >= attempts) throw new HttpError(describe(res.status, data), {status: res.status, code: data?.code, data});
+    if (isHumanCheck(data) && !res.ok) throw new HumanCheckError(data);
+    if (res.ok && json) return data;
+    const unexpected = res.ok; // 2xx mais pas du JSON
+    const retryable = unexpected || res.status === 408 || res.status === 425 || res.status === 429 || res.status >= 500;
+    if (!retryable || attempt >= attempts) {
+      if (unexpected)
+        throw new HttpError("Réponse inattendue du site (page de vérification ou de maintenance ?). Rechargez la page WikiMasters puis réessayez.", {
+          status: res.status,
+          code: "bad_response",
+          uncertain: write,
+        });
+      throw new HttpError(describe(res.status, data), {status: res.status, code: data?.code ?? null, data});
+    }
     const retryAfter = Number(res.headers.get("retry-after"));
-    await sleep(retryAfter > 0 ? Math.min(120, retryAfter) * 1000 : backoff(attempt), signal);
+    await sleep(retryAfter > 0 ? Math.min(120, retryAfter) * 1000 : retryDelay(attempt), signal);
   }
 }

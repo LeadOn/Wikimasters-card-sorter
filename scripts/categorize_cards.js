@@ -33,6 +33,19 @@ function readToken() {
   }
 }
 
+// Claims du token (id du joueur, expiration). Vérifiés avant toute requête : un token expiré
+// ferait échouer le script au milieu de l'écriture.
+function tokenClaims(token = readToken()) {
+  let claims = null;
+  try {
+    claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url"));
+  } catch {}
+  if (!claims?.sub) throw new Error("Token absent ou illisible : récupérez-en un nouveau dans token.txt (voir AGENTS.md).");
+  if (claims.exp * 1000 < Date.now() + 5 * 60 * 1000)
+    throw new Error(`Token expiré ou sur le point d'expirer (${new Date(claims.exp * 1000).toLocaleTimeString("fr-FR")}) : récupérez-en un nouveau (voir AGENTS.md).`);
+  return claims;
+}
+
 const headers = {
   authorization: `Bearer ${readToken()}`,
   ...(process.env.SUPABASE_API_KEY && {apikey: process.env.SUPABASE_API_KEY}),
@@ -40,39 +53,91 @@ const headers = {
 };
 
 const BASE_URL = "https://cyrxjeppjqsxxjayfrur.supabase.co/rest/v1";
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const httpError = (message, status, code = null) => Object.assign(new Error(message), {status, code});
 
+// Les lectures et les écritures idempotentes (PATCH, DELETE par filtre, ajout qui ignore les doublons)
+// sont réessayées sur les erreurs passagères (réseau, 5xx, 429). Une création n'est jamais rejouée :
+// sans réponse, on ne sait pas si elle a eu lieu.
 async function api(pathAndQuery, options = {}) {
-  const res = await fetch(`${BASE_URL}/${pathAndQuery}`, {
-    ...options,
-    headers: {...headers, ...options.headers},
-  });
-  if (!res.ok)
-    throw new Error(`${options.method || "GET"} ${pathAndQuery} → ${res.status} ${await res.text()}`);
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  const method = options.method || "GET";
+  const prefer = options.headers?.Prefer || "";
+  const idempotent = method !== "POST" || prefer.includes("resolution=ignore-duplicates");
+  const attempts = options.attempts ?? (idempotent ? 4 : 1);
+  for (let attempt = 1; ; attempt++) {
+    let res;
+    let text;
+    try {
+      res = await fetch(`${BASE_URL}/${pathAndQuery}`, {
+        ...options,
+        headers: {...headers, ...options.headers},
+        signal: AbortSignal.timeout(90000),
+      });
+      text = await res.text();
+    } catch (e) {
+      if (attempt >= attempts) throw httpError(`${method} ${pathAndQuery} → pas de réponse (${e.message})`, 0);
+      await sleep(2000 * attempt);
+      continue;
+    }
+    if (res.ok) {
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch {
+        throw httpError(`${method} ${pathAndQuery} → réponse illisible (${text.slice(0, 80)})`, res.status, "bad_response");
+      }
+    }
+    let code = null;
+    try {
+      code = JSON.parse(text).code || null;
+    } catch {}
+    const transient = res.status === 408 || res.status === 429 || res.status >= 500;
+    if (!transient || attempt >= attempts) throw httpError(`${method} ${pathAndQuery} → ${res.status} ${text.slice(0, 300)}`, res.status, code);
+    await sleep(2000 * attempt);
+  }
 }
 
-async function fetchAll(query) {
-  let rows = [];
+// Lecture paginée complète. La requête doit être triée sur une clé unique (`order=…`) : sans ordre
+// stable, PostgreSQL peut renvoyer une ligne sur deux pages et en omettre une autre. `key` dédoublonne
+// en plus les lignes déplacées d'une page à l'autre par une écriture pendant la lecture.
+async function fetchAll(query, {key = null} = {}) {
+  const rows = [];
+  const seen = new Set();
   for (let page = 0; ; page++) {
     const batch = await api(`${query}&limit=1000&offset=${page * 1000}`);
-    rows = rows.concat(batch);
+    if (!Array.isArray(batch)) throw new Error(`${query} : réponse inattendue du serveur.`);
+    for (const row of batch) {
+      if (key && row[key] != null) {
+        if (seen.has(row[key])) continue;
+        seen.add(row[key]);
+      }
+      rows.push(row);
+    }
     if (batch.length < 1000) return rows;
   }
 }
 
 // Associations actuelles d'un tag. Lecture tag par tag : une lecture globale dépasse le délai du serveur.
 async function readTagged(tagId) {
-  const rows = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${tagId}`);
+  const rows = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${tagId}&order=user_card_id.asc`);
   return new Set(rows.map((r) => r.user_card_id));
 }
 
+// Accès aux étiquettes pour core/tag-writer.js
+const tagClient = (userId) => ({
+  listTags: () => api(`tags?select=id,name,color&user_id=eq.${userId}`),
+  createTag: async ({name, color}) =>
+    (await api("tags?select=*", {method: "POST", headers: {Prefer: "return=representation"}, body: JSON.stringify({user_id: userId, name, color})}))?.[0],
+  recolorTag: (id, color) => api(`tags?id=eq.${id}`, {method: "PATCH", body: JSON.stringify({color})}),
+  insertLinks: (rows) => api("user_card_tags", {method: "POST", headers: {Prefer: "resolution=ignore-duplicates"}, body: JSON.stringify(rows)}),
+  deleteLinks: (tagId, ids) => api(`user_card_tags?tag_id=eq.${tagId}&user_card_id=in.(${ids.join(",")})`, {method: "DELETE"}),
+  deleteTag: (id) => api(`tags?id=eq.${id}`, {method: "DELETE"}),
+});
+
 async function processCards({dryRun = false, newOnly = false} = {}) {
+  const userId = tokenClaims().sub;
   console.log("Fetching tags and cards...");
-  const existingTags = await api("tags?select=*");
-  const userCards = await fetchAll("user_cards?select=*,cards(*)");
-  const userId = existingTags[0]?.user_id || userCards[0]?.user_id;
-  if (!userId) throw new Error("Impossible de déterminer l'utilisateur (aucun tag ni carte).");
+  const existingTags = await api(`tags?select=*&user_id=eq.${userId}`);
+  const userCards = await fetchAll(`user_cards?select=*,cards(*)&user_id=eq.${userId}&order=id.asc`, {key: "id"});
 
   const assignments = core.computeAssignments(userCards, {profiles: PROFILES, manualMapping});
 
@@ -120,56 +185,25 @@ async function processCards({dryRun = false, newOnly = false} = {}) {
   const unmanaged = existingTags.filter((t) => !(t.name in TAG_COLORS)).map((t) => t.name);
   if (unmanaged.length) console.log(`Tags personnels conservés : ${unmanaged.join(", ")}`);
 
-  const {existing, create, recolor} = core.planTagUpserts(existingTags, TAG_COLORS, toInsert, {newOnly});
-  const tagMap = {...existing};
-  for (const {id, color} of recolor) await api(`tags?id=eq.${id}`, {method: "PATCH", body: JSON.stringify({color})});
-  for (const {name, color} of create) {
-    const [created] = await api("tags?select=*", {
-      method: "POST",
-      headers: {Prefer: "return=representation"},
-      body: JSON.stringify({user_id: userId, name, color}),
+  // Ajouts d'abord, suppressions ensuite, en ne relisant que les différences (core/tag-writer.js) :
+  // si le script s'interrompt, une carte a au pire un tag en trop, et le relancer termine le travail.
+  const upserts = core.planTagUpserts(existingTags, TAG_COLORS, toInsert, {newOnly});
+  let lastStep = null;
+  let result;
+  try {
+    result = await core.applyPlan(tagClient(userId), {toInsert, toDelete, extraTagIds, upserts, managed: TAG_COLORS}, {
+      onProgress: ({step, done, total}) => {
+        if (step !== lastStep) console.log({tags: "Mise à jour des tags...", insert: "Ajout des associations...", delete: "Retrait des associations obsolètes..."}[step]);
+        lastStep = step;
+        if (total && done && done % 1000 === 0) console.log(`  ${done}/${total}`);
+      },
     });
-    tagMap[name] = created;
+  } catch (e) {
+    const p = e.partial || {};
+    console.error(`Écriture interrompue (${p.inserted ?? 0} ajout(s), ${p.deleted ?? 0} retrait(s) faits) : relancez la même commande pour terminer.`);
+    throw e;
   }
-
-  // On n'écrit que les différences avec l'existant (la base est lente et une suppression
-  // massive peut dépasser le délai du serveur). Ajouts d'abord, suppressions ensuite :
-  // si le script s'interrompt, une carte a au pire un tag en trop, jamais un tag en moins.
-  const rows = toInsert.map((i) => ({user_card_id: i.userCardId, tag_id: tagMap[i.name].id}));
-  let failed = 0;
-  for (let i = 0; i < rows.length; i += 100) {
-    const chunk = rows.slice(i, i + 100);
-    try {
-      await api("user_card_tags", {
-        method: "POST",
-        headers: {Prefer: "resolution=ignore-duplicates"},
-        body: JSON.stringify(chunk),
-      });
-    } catch (e) {
-      // Un lot refusé : on réessaie ligne par ligne pour ne perdre que les lignes fautives
-      for (const item of chunk) {
-        try {
-          await api("user_card_tags", {
-            method: "POST",
-            headers: {Prefer: "resolution=ignore-duplicates"},
-            body: JSON.stringify([item]),
-          });
-        } catch (err) {
-          failed++;
-          if (failed <= 5) console.error(err.message);
-        }
-      }
-    }
-  }
-
-  for (const {tagId, ids} of toDelete) {
-    for (let i = 0; i < ids.length; i += 100) {
-      const chunk = ids.slice(i, i + 100).join(",");
-      await api(`user_card_tags?tag_id=eq.${tagId}&user_card_id=in.(${chunk})`, {method: "DELETE"});
-    }
-  }
-  for (const id of extraTagIds) await api(`tags?id=eq.${id}`, {method: "DELETE"});
-
+  const {failed} = result;
   console.log(failed ? `Terminé avec ${failed} ajout(s) en échec.` : "Synchronisation terminée.");
 }
 
@@ -181,4 +215,4 @@ if (require.main === module)
     console.error(e);
     process.exitCode = 1;
   });
-module.exports = {categorize, explain, hasKeyword, readToken, api, fetchAll, TAG_COLORS};
+module.exports = {categorize, explain, hasKeyword, readToken, tokenClaims, api, fetchAll, TAG_COLORS};

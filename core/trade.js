@@ -4,7 +4,7 @@
 const {categorize} = require("./categorize");
 const {rarityRank, averagePrice} = require("./prices");
 
-// mine        : mes exemplaires [{id, card_id, cards: {…carte avec résumé}}]
+// mine        : mes exemplaires [{id, card_id, count?, cards: {…carte avec résumé}}]
 // friendItems : collection de l'ami [{id, card_id, count, is_shiny, card: {…}}]
 // summaries   : Map(card_id → résumé Wikipédia) pour les cartes de l'ami (la route du site ne le donne pas)
 // wanted      : tags recherchés pour moi (« Pour : <moi> », ou thèmes génériques)
@@ -13,7 +13,8 @@ const {rarityRank, averagePrice} = require("./prices");
 // prices      : Map(card_id → résumé de prix), facultatif
 function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Set(), pending = new Set(), wanted, friendTag, profiles = [], rarities = [], prices = new Map()}) {
   const myCopies = new Map();
-  for (const uc of mine) myCopies.set(uc.card_id, (myCopies.get(uc.card_id) || 0) + 1);
+  // Une ligne peut représenter plusieurs exemplaires (`count`), comme pour l'étiquette Doublon
+  for (const uc of mine) myCopies.set(uc.card_id, (myCopies.get(uc.card_id) || 0) + Math.max(1, Number(uc.count) || 1));
   const friendOwns = new Set(friendItems.map((it) => it.card_id));
   const describe = (card, summary) => {
     const tags = categorize({...card, summary: summary || ""}, {profiles});

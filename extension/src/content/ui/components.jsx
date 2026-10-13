@@ -146,8 +146,16 @@ export function Copyable({text}) {
       <div class="row">
         <button
           class="btn primary sm"
-          onClick={async () => {
-            await navigator.clipboard.writeText(text);
+          onClick={async (e) => {
+            const button = e.currentTarget;
+            try {
+              await navigator.clipboard.writeText(text);
+            } catch {
+              // Presse-papiers refusé par le navigateur : copie via la sélection du texte
+              const area = button.closest(".stack")?.querySelector("textarea");
+              area?.select();
+              if (!document.execCommand?.("copy")) return;
+            }
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}

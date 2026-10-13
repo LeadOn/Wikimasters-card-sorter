@@ -251,7 +251,10 @@ async function main() {
   console.log("Lecture de ma collection et de ma liste de souhaits...");
   const [mine, wishlist] = await Promise.all([
     retry(() =>
-      fetchAll("user_cards?select=id,card_id,cards(id,wikipedia_title,category,summary,rarity,image_url,wikipedia_url,pageviews)"),
+      fetchAll(
+        `user_cards?select=id,card_id,count,cards(id,wikipedia_title,category,summary,rarity,image_url,wikipedia_url,pageviews)&user_id=eq.${claims.sub}&order=id.asc`,
+        {key: "id"},
+      ),
     ),
     retry(() => api("wishlist_items?select=card_id")).catch(() => []),
   ]);

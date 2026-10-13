@@ -1,7 +1,7 @@
 // Recherche d'échanges avec un ami (équivalent de scripts/trade_finder.js) et échanges en cours.
 import {site} from "../api/site";
 import {rest} from "../api/supabase";
-import {createLimiter} from "../lib/http";
+import {runAll} from "../lib/http";
 import {createStore} from "../lib/store";
 import {load, save} from "../lib/storage";
 import {ensureSession} from "../lib/session";
@@ -59,46 +59,55 @@ const compact = (it) => ({
 async function friendCollection(username, {rarities, refresh, signal}) {
   const key = cacheKey(username, rarities);
   let cache = refresh ? null : await load(key, null);
-  if (cache && (Date.now() - new Date(cache.fetched_at)) / 3.6e6 > MAX_AGE_H) cache = null;
+  const usable = cache && typeof cache.pages === "object" && Number.isInteger(cache.pageCount) && cache.summaries && typeof cache.summaries === "object";
+  if (!usable || (Date.now() - new Date(cache.fetched_at)) / 3.6e6 > MAX_AGE_H) cache = null;
   if (!cache) {
     tradeState.set({step: `Lecture de la collection de ${username}`, progress: null});
     const first = await site.profileCollection(username, 0, {rarities, stats: true, signal});
-    const pageSize = (first.collection || []).length || 50;
+    if (!Array.isArray(first?.collection)) throw new Error(`Collection de ${username} : réponse inattendue du site.`);
+    const pageSize = first.collection.length || 50;
+    const total = Number(first.total) || 0;
     cache = {
       fetched_at: new Date().toISOString(),
-      total: first.total ?? 0,
-      pageCount: Math.ceil((first.total ?? 0) / pageSize),
+      total,
+      pageCount: Math.ceil(total / pageSize),
       pendingTradeCardIds: first.pendingTradeCardIds || [],
-      pages: {0: (first.collection || []).map(compact)},
+      pages: {0: first.collection.map(compact)},
       summaries: {},
     };
-    await save(key, cache);
+    await save(key, cache).catch(() => {});
   }
   const missing = [];
   for (let p = 0; p < cache.pageCount; p++) if (!cache.pages[p]) missing.push(p);
   let done = cache.pageCount - missing.length;
+  // Enregistrement au plus toutes les 1,5 s : une lecture interrompue reprend où elle s'était arrêtée
   let saveTimer = null;
   const persist = () => {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => save(key, cache).catch(() => {}), 1500);
+    saveTimer ||= setTimeout(() => {
+      saveTimer = null;
+      save(key, cache).catch(() => {});
+    }, 1500);
   };
-  const limit = createLimiter(CONCURRENCY);
   const progress = () => tradeState.set({step: `Collection de ${username} : ${cache.total.toLocaleString("fr-FR")} cartes`, progress: {done, total: cache.pageCount}});
   progress();
-  await Promise.all(
-    missing.map((p) =>
-      limit(async () => {
-        if (signal?.aborted) return;
+  try {
+    // À la première page en échec (après réessais), plus aucune page n'est demandée
+    await runAll(
+      missing,
+      async (p) => {
         const res = await site.profileCollection(username, p, {rarities, signal});
-        cache.pages[p] = (res.collection || []).map(compact);
+        if (!Array.isArray(res?.collection)) throw new Error(`Collection de ${username} : réponse inattendue du site (page ${p + 1}).`);
+        cache.pages[p] = res.collection.map(compact);
         done++;
         progress();
         persist();
-      }),
-    ),
-  );
-  clearTimeout(saveTimer);
-  await save(key, cache);
+      },
+      {concurrency: CONCURRENCY, signal},
+    );
+  } finally {
+    clearTimeout(saveTimer);
+    await save(key, cache).catch(() => {});
+  }
   // La pagination par décalage peut renvoyer deux fois une carte si la collection bouge pendant la lecture
   const items = new Map();
   for (const page of Object.values(cache.pages)) for (const it of page) items.set(it.id, it);
@@ -111,21 +120,23 @@ async function loadSummaries(cardIds, cache, key, signal) {
   const batches = [];
   for (let i = 0; i < todo.length; i += 100) batches.push(todo.slice(i, i + 100));
   let done = 0;
-  const limit = createLimiter(4);
-  await Promise.all(
-    batches.map((ids) =>
-      limit(async () => {
-        if (signal?.aborted) return;
-        try {
-          const rows = await rest(`cards?select=id,summary&id=in.(${ids.join(",")})`, {retries: 4, signal});
-          for (const r of rows) cache.summaries[r.id] = (r.summary || "").slice(0, 1000);
-        } catch {}
-        done += ids.length;
-        tradeState.set({step: "Lecture des résumés des cartes", progress: {done, total: todo.length}});
-      }),
-    ),
+  // Un résumé illisible n'empêche pas l'analyse (la carte est classée sur sa description) ;
+  // il sera redemandé à la prochaine recherche.
+  await runAll(
+    batches,
+    async (ids) => {
+      try {
+        const rows = await rest(`cards?select=id,summary&id=in.(${ids.join(",")})`, {retries: 4, signal});
+        for (const r of rows) cache.summaries[r.id] = (r.summary || "").slice(0, 1000);
+      } catch (e) {
+        if (e.name === "AbortError") throw e;
+      }
+      done += ids.length;
+      tradeState.set({step: "Lecture des résumés des cartes", progress: {done, total: todo.length}});
+    },
+    {concurrency: 4, signal},
   );
-  await save(key, cache);
+  await save(key, cache).catch(() => {});
 }
 
 // themes : null → mon tag « Pour : <moi> » ; sinon liste de thèmes génériques recherchés
@@ -142,7 +153,7 @@ export async function findTradesWith(friend, {themes = null, rarities = [], refr
 
     tradeState.set({step: "Lecture de ma collection et de ma liste de souhaits"});
     const [copies, wishlist] = await Promise.all([loadMyCollection({withSummary: true}), rest("wishlist_items?select=card_id").catch(() => [])]);
-    const mine = copies.map((c) => ({id: c.id, card_id: c.card_id, cards: c.card}));
+    const mine = copies.map((c) => ({id: c.id, card_id: c.card_id, count: c.count, cards: c.card}));
     const {cache, key, items} = await friendCollection(friend.username, {rarities, refresh, signal});
     const myIds = new Set(mine.map((m) => m.card_id));
     await loadSummaries(items.filter((it) => !myIds.has(it.card_id)).map((it) => it.card_id), cache, key, signal);
@@ -180,7 +191,8 @@ on("trades", ({data, path}) => {
   if (!path.includes("active=1") && Array.isArray(data?.trades)) activeTrades.set({list: data.trades, at: Date.now()});
 });
 export async function refreshTrades() {
-  const {trades = []} = await site.trades();
-  activeTrades.set({list: trades, at: Date.now()});
-  return trades;
+  const res = await site.trades();
+  if (!Array.isArray(res?.trades)) throw new Error("Échanges : réponse inattendue du site.");
+  activeTrades.set({list: res.trades, at: Date.now()});
+  return res.trades;
 }
