@@ -132,7 +132,12 @@
     "title": "Hyundai Genesis",
     "category": "automobile",
     "summary": "La Hyundai Genesis est une berline routière du constructeur automobile sud-coréen Hyundai, présentée en 2007 et vendue à partir de 2008. Elle est vendue en Corée du Sud, en Chine, en Amérique du Nord et en Amérique du Sud. Elle n'est pas vendue en Europe en raison de l'échec de Lexus. Elle a été élue voiture de l'année 2009 en Amérique du Nord. \nElle succède à la Dynasty qui avait été produite jusqu'en 2005, et également à la Hyundai Azera. Elle est une concurrente des BMW Série 5 et Lexus GS.\nDans la gamme Hyundai elle fait partie de la gamme \"luxury\" et se place entre la Hyundai Grandeur/Azera qu'elle remplacera et l'Equus.\nLe modèle commercialisé en Corée du Sud a la particularité de ne pas porter le logo Hyundai standard.",
-    "expected": "Automobile & Transports"
+    "expected": "Automobile & Transports",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
   },
   {
     "title": "Katakura Kagetsuna",
@@ -1593,6 +1598,9 @@
     "friends": {
       "include": [
         "Pour : Oaffew"
+      ],
+      "exclude": [
+        "Pour : KKIIMM_"
       ]
     }
   },
@@ -2644,6 +2652,287 @@
     "friends": {
       "include": [
         "Pour : PHB"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "British shorthair",
+    "category": "race de chat",
+    "summary": "",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Alaskan Husky",
+    "category": "race de chien",
+    "summary": "",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Satin (lapin)",
+    "category": "race de lapin domestique",
+    "summary": "Le Satin est une race de lapin domestique apparue aux États-Unis dans les années 1930 à la suite d'une mutation génétique.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Kirby's Fun Pak",
+    "category": "jeu vidéo de 1996",
+    "summary": "",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "32 (nombre)",
+    "category": "nombre entier naturel",
+    "summary": "Le nombre 32 (trente-deux) est l'entier naturel qui suit 31 et qui précède 33.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Théorème des cercles inscrits égaux",
+    "category": null,
+    "summary": "En géométrie, le théorème des cercles inscrits égaux concerne la construction suivante : on trace une suite de segments (les rayons) joignant un point fixé à une droite donnée (la base) telle que les cercles inscrits dans les triangles formés par deux rayons consécutifs et la base aient même rayon. Dans l'illustration, les cercles bleus définissent l'espacement entre les rayons.\nLe théorème stipule que les cercles inscrits dans les triangles formés (à partir d'un segment donné) par un rayon sur deux, un rayon sur trois, etc. et la base ont également même rayon (cf. les cercles verts dans la figure).\nIl existe de nombreuses démonstrations de ce théorème. Celles présentées ci-dessous utilisent\n\nun théorème classique du wasan (mathématiques japonaises traditionnelles) pour la première\nun théorème de Jordan Tabov pour la deuxième\nla trigonométrie hyperbolique  pour la troisième\nOn trouvera dans les références  deux démonstrations utilisant un minimum de trigonométrie circulaire, et une aut",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Intégrale de Dirichlet",
+    "category": "intégrale impropre convergente",
+    "summary": "L'intégrale de Dirichlet est l'intégrale de la fonction sinus cardinal sur la demi-droite des réels positifs\n\n  \n    \n      \n        \n          ∫\n          \n            0\n          \n          \n            +\n            ∞\n          \n        \n        \n          \n            \n              sin\n              ⁡\n              x\n            \n            x\n          \n        \n        \n        \n          \n            d\n          \n        \n        x\n        =\n        \n          \n            π\n            2\n          \n        \n      \n    \n    {\\displaystyle \\int _{0}^{+\\infty }{\\frac {\\sin x}{x}}\\,{\\textrm {d}}x={\\frac {\\pi }{2}}}\n  \n.\nIl s'agit d'une intégrale impropre semi-convergente, c'est-à-dire qu'elle n'est pas absolument convergente \n  \n    \n      \n        \n          (\n          \n            \n              ∫\n              \n                0\n              \n              \n                +\n                ∞\n              \n            \n            \n              \n                \n           ",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Liste des distinctions de Stray Kids",
+    "category": "page de liste de Wikimedia",
+    "summary": "Cet article présente la liste des distinctions de Stray Kids.\nStray Kids (coréen : 스트레이 키즈, romanisé : Seuteurei Kijeu), est un boys band sud-coréen originaire de Séoul en Corée du Sud, formé par JYP Entertainment. Le groupe est composé de huit membres se prénommant Bang Chan, Lee Know, Changbin, Hyunjin, Han, Felix, Seungmin et I.N. Le groupe a fait ses débuts avec leur deuxième extended play I Am Not le 26 mars 2018 après leur extended play de pré-débuts, Mixtape, composé de musiques de la série Stray Kids, et qui est sorti en janvier 2018. Le groupe a sorti deux extended plays supplémentaires en 2018, I Am Who en août et I Am You en octobre, avec une réception commerciale positive. Les quatre extended plays ont valu au groupe six premiers prix en 2018 et au début de 2019, dont celui du meilleur nouvel artiste masculin aux Mnet Asian Music Awards 2018, du meilleur nouvel artiste aux 33e Golden Disc Awards et du débutant de l'année aux 28e Seoul Music Awards et aux Asia Artist Awards ",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Jang Seung-yeon",
+    "category": "chanteuse sud-coréenne",
+    "summary": "Jang Seungyeon (en coréen : 장승연), appelée Seungyeon (승연), est une chanteuse et danseuse sud-coréenne. Elle est membre du girl group CLC.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Crush (chanteur)",
+    "category": "chanteur sud-coréen",
+    "summary": "Shin Hyo-seob, dit Crush (hangeul⁣ : 크러쉬), né le 3 mai 1992 est un chanteur hip-hop et R&B sud-coréen sous contrat avec P nation. Il débute en 2012 avec le single Red Dress et sort un album studio, Crush On You.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Pseudoplatystoma orinocoense",
+    "category": "poisson",
+    "summary": "Pseudoplatystoma orinocoense est un poisson chat d'Amérique du Sud qui se trouve dans le bassin de l'Orénoque, au Venezuela.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "NGC 5406",
+    "category": "galaxie",
+    "summary": "NGC 5406 est une vaste galaxie spirale barrée située dans la constellation des Chiens de chasse. Sa vitesse par rapport au fond diffus cosmologique est de 5 571 ± 13 km/s, ce qui correspond à une distance de Hubble de 82,2 ± 5,8 Mpc (∼268 millions d'al). NGC 5406 a été découverte par l'astronome germano-britannique William Herschel en 1787.\nLa classe de luminosité de NGC 5406 est II-III et elle présente une large raie HI. Selon la base de données Simbad, NGC 5406 est une galaxie LINER, c'est-à-dire une galaxie dont le noyau présente un spectre d'émission caractérisé par de larges raies d'atomes faiblement ionisés.\nÀ ce jour, huit mesures non basées sur le décalage vers le rouge (redshift) donnent une distance de 47,388 ± 28,604 Mpc (∼155 millions d'al), ce qui est à l'extérieur des valeurs de la distance de Hubble. Notons que c'est avec la valeur moyenne des mesures indépendantes, lorsqu'elles existent, que la base de données NASA/IPAC calcule le diamètre d'une galaxie, ce qui est parf",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Université des sciences appliquées de Laponie",
+    "category": "université finlandaise",
+    "summary": "L'université des sciences appliquées de Laponie (en finnois : Lapin ammattikorkeakoulu) est un établissement d'enseignement supérieur et de recherche situé à Kemi, Tornio et  Rovaniemi en Finlande.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Jung Yi-seo",
+    "category": "actrice sud-coréenne",
+    "summary": "Jung Yi-seo (en coréen : 정이서) est une actrice sud-coréenne née le 13 août 1993. Elle est connue pour ses rôles dans des séries télévisées comme Tale of the Nine Tailed, Mine (en), Snowdrop et All of Us Are Dead. Elle est aussi apparue dans des films comme Parasite, Samjin Company English Class, Real et Josée.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Sannakji",
+    "category": "plat coréen à base de pieuvre vivante",
+    "summary": "Le sannakji ou sannakji hoe est un type de hoe (en), ou plat cru, dans la cuisine coréenne. Ce plat consiste en nakji (hangul : 낙지, une petite pieuvre) qui a été découpée vivante en petits morceaux et servie immédiatement, habituellement peu assaisonnée avec du sésame et de l'huile de sésame. Les morceaux de nakji en général se tortillent toujours dans l’assiette quand ils sont servis. Les nakji peuvent également être servies entières et vivantes dans le cas de bébés pieuvres.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Notitia provinciarum et civitatum Galliae",
+    "category": "liste de manuscrits du Moyen Âge",
+    "summary": "La Notitia provinciarum et civitatum Galliae (en français : « Registre des provinces et cités de la Gaule »), souvent abrégée en Noticia Galliarum, est une liste, compilée à la fin du IVe siècle et au début du Ve siècle, des dix-sept provinces de la Gaule avec cent quinze civitates, sept castra et un portus.\nPlus de cent manuscrits, parfois interpolés, attestent de son importance au Moyen Âge.\nLes Fausses décrétales attribuaient la Notitia à Anaclet.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    }
+  },
+  {
+    "title": "Hello Kitty",
+    "category": "personnage de fiction de Sanrio",
+    "summary": "Hello Kitty est un personnage de fiction japonais créé par Sanrio en 1974, emblème de la culture kawaii.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "High School Musical : Premiers pas sur scène",
+    "category": "téléfilm de Kenny Ortega diffusé en 2006",
+    "summary": "High School Musical : Premiers pas sur scène est un téléfilm musical américain de Disney Channel réalisé par Kenny Ortega, diffusé en 2006.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Zac Efron",
+    "category": "acteur et chanteur américain",
+    "summary": "Zac Efron est un acteur et chanteur américain né le 18 octobre 1987 à San Luis Obispo.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "BTS (groupe)",
+    "category": "boys band sud-coréen",
+    "summary": "BTS est un boys band sud-coréen formé en 2013 par Big Hit Entertainment.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Rosé (chanteuse)",
+    "category": "chanteuse néo-zélandaise et sud-coréenne",
+    "summary": "Roseanne Park, dite Rosé, est une chanteuse néo-zélandaise et sud-coréenne, membre du girl group Blackpink.",
+    "friends": {
+      "include": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Brevet de technicien supérieur",
+    "category": "diplôme national de l'enseignement supérieur français",
+    "summary": "Le brevet de technicien supérieur (BTS) est un diplôme national de l'enseignement supérieur français.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Big Bang",
+    "category": "modèle cosmologique",
+    "summary": "Le Big Bang est un modèle cosmologique utilisé pour décrire l'origine et l'évolution de l'Univers.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Jack Kirby",
+    "category": "dessinateur et scénariste américain de comics",
+    "summary": "Jack Kirby est un dessinateur, scénariste et éditeur américain de comics.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Fiat Panda",
+    "category": "modèle d'automobile",
+    "summary": "La Fiat Panda est une automobile citadine du constructeur italien Fiat.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Sumi Jo",
+    "category": "soprano sud-coréenne",
+    "summary": "Sumi Jo est une chanteuse d'opéra sud-coréenne, soprano colorature.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
+      ]
+    },
+    "synthetic": true
+  },
+  {
+    "title": "Lisa Stansfield",
+    "category": "chanteuse britannique",
+    "summary": "Lisa Stansfield est une chanteuse britannique de soul.",
+    "friends": {
+      "exclude": [
+        "Pour : KKIIMM_"
       ]
     },
     "synthetic": true

@@ -4,6 +4,9 @@
 const RARITIES = ["L", "UR", "SR", "R", "PC", "C"];
 const RARITY_RANK = {L: 5, UR: 4, SR: 3, R: 2, PC: 1, C: 0};
 const RARITY_LABEL = {L: "Légendaire", UR: "Ultra Rare", SR: "Super Rare", R: "Rare", PC: "Peu commune", C: "Commune"};
+// Couleurs des raretés sur wiki-masters.com (badges, filtres et lueur des cartes), relevées le 13/10/2026.
+// Reprises telles quelles dans extension/src/content/ui/panel.css (--r-L, …) et le rapport de trade_finder.js.
+const RARITY_COLORS = {L: "#ffe144", UR: "#fa9931", SR: "#ed6fa3", R: "#c6a7f2", PC: "#b1cff2", C: "#b8f2d5"};
 const rarityRank = (r) => RARITY_RANK[r] ?? -1;
 
 // summary : {RARETÉ: {average, count, latest}} (réponse du site) → prix moyen pour cette rareté, ou null
@@ -108,4 +111,4 @@ function packNovelty(cards, copies) {
   });
 }
 
-module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, rarityRank, averagePrice, collectionValue, spareCards, summarizeSales, priceBatches, packNovelty};
+module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, RARITY_COLORS, rarityRank, averagePrice, collectionValue, spareCards, summarizeSales, priceBatches, packNovelty};

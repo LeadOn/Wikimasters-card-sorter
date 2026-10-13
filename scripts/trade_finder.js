@@ -11,7 +11,7 @@
 const fs = require("fs");
 const path = require("path");
 const {readToken, api, fetchAll, TAG_COLORS} = require("./categorize_cards");
-const {findTrades, BUILTIN_PROFILES} = require("../core");
+const {findTrades, BUILTIN_PROFILES, RARITY_COLORS} = require("../core");
 
 const SITE = "https://www.wiki-masters.com";
 const ROOT = path.join(__dirname, "..");
@@ -352,7 +352,7 @@ function renderHtml({friend, wanted, friendTag, toAsk, toOffer, cache}) {
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
   .card { display:flex; gap:10px; padding:10px; background:var(--card); border:1px solid var(--line); border-left-width:4px; border-radius:8px; color:inherit; text-decoration:none; }
   .card:hover { border-color:var(--muted); }
-  .r-L { border-left-color:#f59e0b; } .r-UR { border-left-color:#a855f7; } .r-SR { border-left-color:#3b82f6; }
+  ${Object.entries(RARITY_COLORS).map(([r, color]) => `.r-${r} { border-left-color:${color}; }`).join(" ")}
   img, .noimg { width:56px; height:72px; object-fit:cover; border-radius:4px; flex:none; background:var(--line); }
   .body { min-width:0; } .title { font-weight:600; } .desc { color:var(--muted); font-size:12px; margin:2px 0 6px; }
   .badges { display:flex; flex-wrap:wrap; gap:4px; } .badges span { font-size:11px; padding:1px 6px; border-radius:4px; background:var(--line); }

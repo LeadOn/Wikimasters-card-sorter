@@ -1,7 +1,6 @@
 // Récapitulatif du dernier paquet : bloc intégré à la page Paquets (et à l'onglet Paquets de la
 // Toolbox), jamais une fenêtre. Les prix arrivent pendant la révélation des cartes ; tant qu'ils
 // ne sont pas là, un indicateur de chargement les remplace.
-import {render} from "preact";
 import {useStore} from "../lib/store";
 import {recapState, dismissRecap} from "../features/packs";
 import {planSort} from "../features/sorter";
@@ -11,7 +10,7 @@ import {Rarity, ThemeChip, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {emit} from "../lib/bus";
 import {categorize, isThemeTag, DOUBLON} from "../../../../core";
-import panelCss from "./panel.css";
+import {mountIsland} from "./islands/mount";
 
 function Price({card, loading}) {
   const status = priceStatus(card.id, card.rarity);
@@ -124,11 +123,5 @@ export function PackRecapView({onClose, compact = false}) {
 
 // Bloc autonome inséré dans la page du site, isolé dans son propre Shadow DOM
 export function mountPackRecap(host) {
-  const root = host.attachShadow({mode: "open"});
-  const style = document.createElement("style");
-  style.textContent = panelCss;
-  root.append(style);
-  const mount = document.createElement("div");
-  root.append(mount);
-  render(<PackRecapView onClose={dismissRecap} />, mount);
+  mountIsland(host, PackRecapView)({onClose: dismissRecap});
 }

@@ -1,14 +1,13 @@
 // Taux de drop par rareté, sur l'écran « Ouvrir un paquet ».
 // Deux sources : mes tirages comptés par l'extension, ou la répartition de toute ma collection
 // (proche des taux de drop, la plupart des cartes venant des paquets) en attendant assez de tirages.
-// Barres d'une seule teinte : la rareté est portée par son libellé, pas par la couleur.
-import {render} from "preact";
+// Barres aux couleurs de rareté du site ; la rareté est aussi portée par son libellé.
 import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {pullStats, collectionRarity} from "../features/packs";
 import {RARITIES, RARITY_LABEL} from "../../../../core";
 import {fmt} from "./components";
-import panelCss from "./panel.css";
+import {mountIsland} from "./islands/mount";
 
 // En dessous de ce nombre de cartes tirées, la collection donne une meilleure estimation
 const MIN_PULLED = 50;
@@ -53,7 +52,7 @@ export function DropRatesView() {
           {RARITIES.map((r) => {
             const n = Number(counts[r]) || 0;
             return (
-              <li key={r} class="rates-row" title={`${RARITY_LABEL[r]} : ${fmt(n)} carte${n > 1 ? "s" : ""} sur ${fmt(total)} (${pct(n, total)})`}>
+              <li key={r} class="rates-row" style={{"--rc": `var(--r-${r})`}} title={`${RARITY_LABEL[r]} : ${fmt(n)} carte${n > 1 ? "s" : ""} sur ${fmt(total)} (${pct(n, total)})`}>
                 <span class={`rarity ${r}`}>{r}</span>
                 <span class="rates-name">{RARITY_LABEL[r]}</span>
                 <span class="rates-track">
@@ -74,11 +73,5 @@ export function DropRatesView() {
 }
 
 export function mountDropRates(host) {
-  const root = host.attachShadow({mode: "open"});
-  const style = document.createElement("style");
-  style.textContent = panelCss;
-  root.append(style);
-  const mount = document.createElement("div");
-  root.append(mount);
-  render(<DropRatesView />, mount);
+  mountIsland(host, DropRatesView)({});
 }

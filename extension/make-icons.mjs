@@ -46,15 +46,17 @@ function roundRect(x, y, cx, cy, w, h, r, angle = 0) {
   return Math.hypot(Math.max(px, 0), Math.max(py, 0)) + Math.min(Math.max(px, py), 0) - r;
 }
 
-function render(size) {
+// pad : marge transparente (le Chrome Web Store recommande 16 px autour d'un dessin de 96 px en 128 px)
+function render(size, pad = 0) {
   const ss = 4;
+  const inner = size - 2 * pad;
   const buf = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
       let acc = [0, 0, 0, 0];
       for (let sy = 0; sy < ss; sy++)
         for (let sx = 0; sx < ss; sx++) {
-          const u = (x + (sx + 0.5) / ss) / size, v = (y + (sy + 0.5) / ss) / size;
+          const u = (x + (sx + 0.5) / ss - pad) / inner, v = (y + (sy + 0.5) / ss - pad) / inner;
           let col = [0, 0, 0, 0];
           if (roundRect(u, v, 0.5, 0.5, 1, 1, 0.22) <= 0) {
             const t = (u + v) / 2;
@@ -74,5 +76,6 @@ function render(size) {
   return png(size, buf);
 }
 
-for (const size of [16, 32, 48, 128]) fs.writeFileSync(path.join(out, `${size}.png`), render(size));
+for (const size of [16, 32, 48]) fs.writeFileSync(path.join(out, `${size}.png`), render(size));
+fs.writeFileSync(path.join(out, "128.png"), render(128, 16));
 console.log("Icônes générées dans", out);

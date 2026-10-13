@@ -150,6 +150,50 @@ const BUILTIN_PROFILES = [
       },
     ],
   },
+  {
+    name: "KKIIMM_",
+    color: "#d946ef",
+    about: "Tout ce qui est mignon (chiots, chatons, kawaii…), mathématiques, High School Musical, K-pop",
+    rules: [
+      {
+        kw:
+          "kawaii|mignon(?:ne)?s?|mignonnerie|adorables?|chibi|peluches?|ours en peluche|nounours|doudous?|hello kitty|sanrio|my melody|kuromi|cinnamoroll|pompompurin|pochacco|keroppi|rilakkuma|sumikko gurashi|gudetama|aggretsuko|pusheen|molang|squishmallows?|tamagotchi|furby|sylvanian families|littlest pet shop|my little pony|mon petit poney|bisounours|care bears|pikachu|évoli|rondoudou|totoro|ponyo|hamtaro|lilo et stitch|lilo & stitch|winnie l'ourson|barbapapa|animal crossing",
+      },
+      // Kirby le personnage de Nintendo, pas Jack Kirby
+      {kw: "kirby", with: "jeux? vidéos?|nintendo|hal laboratory"},
+      // "chat" / "chien" seuls sont trop ambigus (poisson-chat, constellation des Chiens de chasse…)
+      {
+        kw:
+          "chiots?|chatons?|races? de (?:chiens?|chats?|lapins?|cochons? d'inde|hamsters?)|(?:chiens?|chats?) (?:de race|de compagnie|domestiques?|célèbres?|de fiction)|chiennes?|felis (?:silvestris )?catus|canis (?:lupus )?familiaris|animal de compagnie|animaux de compagnie" +
+          "|lapins?|lapereaux|hamsters?|cochons? d'inde|gerbilles?|chinchillas?|furets?|hérissons?|écureuils?|loutres?|pandas?|koalas?|quokkas?|fennecs?|suricates?|alpagas?|axolotls?|capybaras?|wombats?|manchots?|pingouins?|bébés? phoques?|bébés? animaux",
+        unless: "star wars|fiat|python|logiciels?|bandit manchot|batman|gotham|laponie|hélicoptères?",
+      },
+      {
+        kw:
+          "maths?|mathématiques?|mathématicien(?:ne)?s?|théorèmes?|conjectures?|lemmes?|équations?|algèbres?|algébriques?|géométrie|géométriques?|arithmétiques?|topologie|topologiques?|probabilités?|statistiques?|statisticien(?:ne)?s?|nombres? premiers?|nombres? entiers?|entiers? naturels?|nombres? (?:réels?|complexes?|rationnels?|irrationnels?|transcendants?|surréels?|parfaits?)|nombre d'or|nombre pi|constante mathématique|fractales?|polynômes?|polynomiale?s?|polygones?|polyèdres?|polytopes?|trigonométrie|trigonométriques?|logarithmes?|intégrales? (?:de|d'|impropres?)|calcul (?:différentiel|intégral|infinitésimal)|espaces? vectoriels?|théorie des (?:graphes|nombres|ensembles|groupes|catégories|jeux)|suite de fibonacci|fibonacci|médaille fields|prix abel|euclide|pythagore|sudoku|ruban de möbius|bouteille de klein",
+      },
+      {
+        kw:
+          "high school musical|troy bolton|gabriella montez|sharpay(?: evans)?|chad danforth|taylor mckessie|kelsi nielsen|zac efron|vanessa hudgens|ashley tisdale|lucas grabeel|corbin bleu|monique coleman|kenny ortega",
+      },
+      {
+        kw:
+          "k-pop|kpop|hallyu|vague coréenne|bangtan boys|blackpink|stray kids|newjeans|le sserafim|aespa|itzy|red velvet|girls' generation|super junior|shinee|got7|ateez|mamamoo|2ne1|enhypen|tomorrow x together|i-dle|monsta x|babymonster|gangnam style|g-dragon|jungkook|jimin|kim tae-hyung|jisoo|hybe|big hit music|big hit entertainment|sm entertainment|yg entertainment|jyp entertainment|mnet asian music awards|mama awards|produce 101",
+      },
+      // Noms courts ou ambigus ("BTS" est aussi un diplôme, "Big Bang" une théorie, "Rosé" un vin) : seulement en contexte coréen
+      {
+        kw: "bts|bigbang|big bang|twice|exo|seventeen|ive|nct|txt|psy|jennie|lisa|rosé|suga|iu",
+        with: "sud-coréen(?:ne)?s?|corée du sud|séoul|k-pop|kpop",
+      },
+      // Artistes et titres sud-coréens ("coréen" seul apparaît dans les transcriptions "(en coréen : …)")
+      {
+        kw: "sud-coréen(?:ne)?s?|corée du sud",
+        with:
+          "chanteu(?:r|se)s?|chansons?|singles?|albums?|ep|mini-albums?|boys? band|boysband|girl group|girls? band|groupe (?:de musique|musical|vocal|pop)|rappeu(?:r|se)s?|idoles?|clips?",
+        unless: "opéra|lyriques?|soprano|mezzo-soprano|ténor|baryton|pansori|trot|musique classique",
+      },
+    ],
+  },
 ];
 
 module.exports = {BUILTIN_PROFILES};

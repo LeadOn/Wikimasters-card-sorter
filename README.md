@@ -24,6 +24,7 @@ Tous les outils de ce dépôt, directement dans wiki-masters.com : pas de Node, 
 - **Paquets** : récapitulatif dans la page après la dernière carte (nouveautés, doublons, prix), tri automatique des cartes tirées (option), taux de drop par rareté, « Tout ouvrir » sur clic. Pas d'ouverture automatique.
 - **Familles** : groupes de cartes à compléter, manuels ou remplis par une recherche, partage par code, cartes manquantes en vente, conversion en étiquette.
 - **Cartes** : pastille du thème, prix, possédée / nouvelle, lien Wikipédia, image de remplacement (option).
+- **Directement dans les pages du site**, sans ouvrir la Toolbox : barre de tri sur la Collection (aperçu puis application sur place) ; dans la fiche d'une carte, prix moyen, thème, amis intéressés et ajout à une famille ; sur une enchère, prix moyen et écart avec la mise ; sur le Marché, pastilles « bonne affaire » (fin d'enchère sous le prix moyen) ; sur le profil d'un ami, les cartes à échanger.
 - Chaque fonctionnalité se désactive dans les Réglages. Aucune écriture sans clic, aucun serveur tiers.
 
 **Installation (mode développeur)**
@@ -32,7 +33,7 @@ Tous les outils de ce dépôt, directement dans wiki-masters.com : pas de Node, 
    Firefox (128+) : `about:debugging#/runtime/this-firefox` → *Charger un module temporaire* → `dist/firefox/manifest.json`.
 3. Rechargez wiki-masters.com : l'entrée **Toolbox** apparaît dans le menu, et l'icône de l'extension ouvre les actions rapides.
 
-**Développement** : `npm run watch` (build continu), `npm test` (tests du moteur et de l'extension, sans réseau), `npm run eval` (qualité du classement). Les routes du site utilisées sont décrites dans [docs/site-api.md](docs/site-api.md).
+**Développement** : `npm run watch` (build continu), `npm test` (tests du moteur et de l'extension, sans réseau), `npm run eval` (qualité du classement). Les routes du site utilisées sont décrites dans [docs/site-api.md](docs/site-api.md). Publication sur le Chrome Web Store : [store/README.md](store/README.md) ; politique de confidentialité : [PRIVACY.md](PRIVACY.md).
 
 ### 🎯 Fonctionnalités des scripts Node
 - **Catégorisation Intelligente** : Analyse sémantique des titres, catégories et résumés des cartes pour les classer avec précision (ex: Faune, Science, Histoire...).
@@ -106,11 +107,11 @@ This repository contains a set of automated Node.js scripts designed to smartly 
 
 All the tools of this repository, right inside wiki-masters.com: no Node, no token to copy, no AI agent. Full specification (French): [docs/cahier-des-charges.md](docs/cahier-des-charges.md).
 
-**Features**: automatic sorting (new cards only, or a full re-sort, with a preview first) and `Doublon` tag · interest profiles for you and your friends ("Pour : …" tags, shareable codes) · trade finder with a balanced offer and the value of pending trades · average sale prices on cards, bulk loading, collection value, most valuable cards · your auctions (one-click outbid with confirmation, ending alert) and selling your duplicates · pack recap, pull statistics, "open all" on click (never automatic) · families (manual or search-based card sets, shareable codes) · card badges (theme, price, owned/new, Wikipedia link). Every feature can be turned off; nothing is written without a click; no third-party server.
+**Features**: automatic sorting (new cards only, or a full re-sort, with a preview first) and `Doublon` tag · interest profiles for you and your friends ("Pour : …" tags, shareable codes) · trade finder with a balanced offer and the value of pending trades · average sale prices on cards, bulk loading, collection value, most valuable cards · your auctions (one-click outbid with confirmation, ending alert) and selling your duplicates · pack recap, pull statistics, "open all" on click (never automatic) · families (manual or search-based card sets, shareable codes) · card badges (theme, price, owned/new, Wikipedia link) · right inside the site's pages: a sort bar on the Collection page, price/theme/interested friends/families in a card's window, auction analysis (average price vs. current bid), "good deal" badges on the market, trade finder on a friend's profile. Every feature can be turned off; nothing is written without a click; no third-party server.
 
 **Install (developer mode)**: `npm install && npm run build`, then load `dist/chrome` as an unpacked extension (`chrome://extensions`, developer mode), or `dist/firefox/manifest.json` as a temporary add-on in Firefox 128+. Reload wiki-masters.com: a **Toolbox** entry appears in the menu.
 
-**Development**: `npm run watch`, `npm test`, `npm run eval`. Site routes used: [docs/site-api.md](docs/site-api.md).
+**Development**: `npm run watch`, `npm test`, `npm run eval`. Site routes used: [docs/site-api.md](docs/site-api.md). Chrome Web Store release: [store/README.md](store/README.md) (French); privacy policy: [PRIVACY.md](PRIVACY.md).
 
 ### 🎯 Node script features
 - **Smart Categorization**: Semantic analysis of card titles, categories, and summaries to accurately classify them (e.g., Fauna, Science, History...).

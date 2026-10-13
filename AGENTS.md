@@ -130,8 +130,8 @@ L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node
   - `lib/` : session lue dans les cookies, requêtes avec réessais (`http.js` : lectures réessayées, **écritures jamais rejouées**, 429 respectés, `HumanCheckError` quand le site demande une vérification anti-robot), stockage `chrome.storage.local`, verrou entre onglets, bus d'événements, registre des cartes vues (par titre : le DOM du site n'expose pas les ids).
   - `api/` : Supabase REST et routes `/api` du site.
   - `state/` : réglages, profils, ma collection, cache des prix.
-  - `features/` : tri, échanges, marché, paquets, familles, intégration dans les pages (`site-dom.js` regroupe **tous** les sélecteurs du site).
-  - `ui/` : panneau et onglets.
+  - `features/` : tri, échanges, marché, paquets, familles, intégration dans les pages (`site-dom.js` regroupe **tous** les sélecteurs du site et place les blocs intégrés).
+  - `ui/` : panneau et onglets ; `ui/islands/` : blocs intégrés aux pages du site (barre de la collection, fiche d'une carte, enchère, profil d'un ami), montés par `mountIsland` dans un Shadow DOM. Un bloc est placé par rapport à l'imbrication de la page (`sectionOf`), pas aux classes Tailwind du site.
 - `extension/src/popup/` : popup d'actions rapides.
 
 ### Commandes

@@ -135,3 +135,9 @@ test("recherche d'échanges : un exemplaire avec count > 1 compte comme doublon"
   const r = core.findTrades({mine, friendItems: [], wanted: ["Sports"], friendTag: null});
   assert.deepEqual(r.toOffer.map((c) => [c.card_id, c.copies]), [["b", 3]]);
 });
+
+test("couleurs des raretés : celles du site, identiques dans l'extension", () => {
+  assert.deepEqual(Object.keys(core.RARITY_COLORS), core.RARITIES);
+  const css = require("node:fs").readFileSync(require("node:path").join(__dirname, "../extension/src/content/ui/panel.css"), "utf8");
+  for (const [r, color] of Object.entries(core.RARITY_COLORS)) assert.match(css, new RegExp(`--r-${r}: ${color};`), `--r-${r} dans panel.css`);
+});

@@ -1,15 +1,24 @@
 // Intégration dans les pages du site : entrée « Toolbox » dans le menu, badges sur les cartes,
-// bouton « Tout ouvrir » sur la page Paquets, images de remplacement.
+// bouton « Tout ouvrir » sur la page Paquets, images de remplacement, et blocs de la Toolbox
+// (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur.
 // Tous les sélecteurs du site sont ici : si le site change, c'est le seul fichier à adapter.
 import {emit} from "../lib/bus";
 import {lookupTitle, registryVersion, normTitle} from "../lib/registry";
 import {settings, isOn} from "../state/settings";
 import {owned} from "../state/collection";
-import {priceOf, requestPrice, priceVersion} from "../state/prices";
+import {priceOf, summaryOf, requestPrice, priceVersion} from "../state/prices";
 import {wikiThumbnail} from "./wiki-images";
 import {recapState, markRevealed, dismissRecap, pullStats, collectionRarity, refreshCollectionRarity} from "./packs";
+import {auctionById, auctionVersion, nextBid, msLeft} from "./market";
+import {resolveCard} from "./card-lookup";
 import {mountPackRecap} from "../ui/PackRecap";
 import {mountDropRates} from "../ui/DropRates";
+import {mountIsland} from "../ui/islands/mount";
+import {CollectionBar} from "../ui/islands/CollectionBar";
+import {CardInsight} from "../ui/islands/CardInsight";
+import {AuctionInsight} from "../ui/islands/AuctionInsight";
+import {FriendTrades} from "../ui/islands/FriendTrades";
+import {readSession} from "../lib/session";
 import {categorize, THEME_COLORS} from "../../../../core";
 import siteCss from "../ui/site.css";
 
@@ -22,7 +31,20 @@ const SEL = {
   pullsOpenButton: "main button",
   // Bouton du bas de la révélation des cartes : « Encore 3 cartes », puis « Continuer »
   revealButtonText: /^(Continuer|Encore \d+ cartes?)$/,
+  pageTitle: "main h1",
+  collectionSearch: 'main input[placeholder^="Rechercher par titre"]',
+  // Fenêtre d'une carte : voile plein écran, titre en h2, carte en grand (classe glow-<rareté>)
+  modal: "div.fixed.inset-0",
+  modalTitle: "h2",
+  modalTile: 'div[class*="glow-"]',
+  modalActionText: /^(Mettre aux enchères|Défausser)/,
+  // Onglets du profil d'un joueur
+  profileTabText: /^(Vitrine|Collection)$/,
 };
+// « Bonne affaire » : seulement dans les dernières minutes d'une enchère
+const DEAL_WINDOW = 15 * 60 * 1000;
+const AUCTION_PATH = /^\/marketplace\/([0-9a-f-]{36})\/?$/;
+const PROFILE_PATH = /^\/profile\/([^/]+)\/?$/;
 const RARITY_CLASS = /\bglow-(l|ur|sr|r|pc|c)\b/;
 // Bouton de la page dont le texte passe le test (hors boutons de l'extension)
 const findButton = (test) => [...document.querySelectorAll(SEL.pullsOpenButton)].find((b) => !b.className.includes("wmt-") && test(b.textContent.trim()));
@@ -152,6 +174,25 @@ function decorateTile(tile, version) {
     const price = priceOf(info.id, rarity);
     if (price != null) box.append(chip("wmt-chip-price", `${price.toLocaleString("fr-FR")} ₩`, "Prix moyen de vente pour cette rareté"));
     else if (visible.has(tile)) requestPrice(info.id, {rarity});
+  }
+  // Marché : mise comparée au prix moyen (l'enchère est retrouvée par le lien de la carte).
+  // Une mise de départ est presque toujours basse et l'enchère va monter : « bonne affaire »
+  // seulement pour une enchère qui se termine bientôt ; « trop cher » dès que la mise minimale
+  // dépasse nettement ce que la carte vaut d'habitude. Moyenne sur 3 ventes au moins.
+  if (isOn("dealBadges") && path.startsWith("/marketplace")) {
+    const auction = auctionById(AUCTION_PATH.exec(tile.closest("a[href]")?.getAttribute("href") || "")?.[1]);
+    const cardId = auction && (auction.card_id || info.id);
+    const auctionRarity = auction && (auction.snapshot_rarity || rarity);
+    const bid = auction ? nextBid(auction) : null;
+    const avg = auction && (summaryOf(cardId)?.[auctionRarity]?.count || 0) >= 3 ? priceOf(cardId, auctionRarity) : null;
+    if (avg && bid) {
+      const gap = Math.round((100 * (bid - avg)) / avg);
+      const left = msLeft(auction);
+      const fmt = (n) => n.toLocaleString("fr-FR");
+      if (gap <= -25 && left > 0 && left < DEAL_WINDOW)
+        box.append(chip("wmt-chip-deal", `−${-gap} %`, `Bonne affaire : se termine dans ${Math.ceil(left / 60000)} min, mise minimale ${fmt(bid)} ₩ pour un prix moyen de ${fmt(avg)} ₩`));
+      else if (gap >= 50) box.append(chip("wmt-chip-pricey", `+${gap} %`, `Mise minimale ${fmt(bid)} ₩ pour un prix moyen de ${fmt(avg)} ₩`));
+    }
   }
   // La collection globale affiche déjà « Possédée » : badge inutile là-bas
   if (isOn("ownedBadges") && !onMyCollection && !path.startsWith("/global-collection")) {
@@ -285,6 +326,94 @@ function ensurePullsWidgets() {
   } else ratesHost?.remove();
 }
 
+// --- Blocs de la Toolbox dans les pages (« îlots »)
+// Chaque îlot est créé une fois, re-rendu seulement quand ses données changent, et replacé sous
+// son ancre à chaque passage (le site re-rend ses pages) ; il est retiré quand la page ne s'y prête plus.
+const islands = new Map(); // nom → {host, update, key}
+function showIsland(name, Component, props, place) {
+  let it = islands.get(name);
+  if (!it) {
+    const host = document.createElement("div");
+    host.className = `wmt-island wmt-island-${name}`;
+    it = {host, update: mountIsland(host, Component), key: null};
+    islands.set(name, it);
+  }
+  const key = JSON.stringify(props);
+  if (key !== it.key) {
+    it.key = key;
+    it.update(props);
+  }
+  place(it.host);
+}
+const hideIsland = (name) => islands.get(name)?.host.remove();
+const after = (anchor) => (host) => (host.previousElementSibling !== anchor || !host.isConnected) && anchor.after(host);
+const appendTo = (parent) => (host) => (host.parentElement !== parent || host.nextElementSibling) && parent.append(host);
+
+// Bloc de la page qui contient `el`, au même niveau que `landmark` (premier ancêtre dont le parent
+// contient aussi le repère) : ne dépend pas des classes du site, seulement de l'imbrication.
+function sectionOf(el, landmark) {
+  let block = el;
+  while (block?.parentElement && !block.parentElement.contains(landmark)) block = block.parentElement;
+  return block?.parentElement ? block : null;
+}
+
+// Collection : barre sous la recherche et les filtres de rareté
+function ensureCollectionBar() {
+  const title = currentPath() === "/collection" && isOn("collectionBar") ? document.querySelector(SEL.pageTitle) : null;
+  const search = title && document.querySelector(SEL.collectionSearch);
+  const filters = search && sectionOf(search, title);
+  if (!filters) return hideIsland("collection");
+  showIsland("collection", CollectionBar, {}, after(filters));
+}
+
+// Fenêtre d'une carte (collection, profils, toutes les cartes) : bloc sous les détails
+function ensureCardInsight() {
+  const modal = isOn("cardInsight")
+    ? [...document.querySelectorAll(SEL.modal)].find((m) => m.querySelector(SEL.modalTitle) && m.querySelector(SEL.modalTile))
+    : null;
+  const titleEl = modal?.querySelector(SEL.modalTitle);
+  const tile = modal?.querySelector(SEL.modalTile);
+  // Colonne des détails : le bloc qui contient le titre, à côté de la grande carte
+  const details = titleEl && tile && sectionOf(titleEl, tile);
+  if (!details || details.contains(tile)) return hideIsland("card");
+  const title = normTitle(titleEl.textContent);
+  const info = lookupTitle(title) || {};
+  if (!info.id) resolveCard(title);
+  const rarity = (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase() || info.rarity || null;
+  const card = {
+    id: info.id || null,
+    title,
+    rarity,
+    category: info.category || titleEl.parentElement?.parentElement?.querySelector("p")?.textContent.trim() || "",
+    summary: info.summary || "",
+    image_url: info.image_url || null,
+    owned: info.owned ?? null,
+    onMyCollection: currentPath().startsWith("/collection"),
+  };
+  showIsland("card", CardInsight, {card}, appendTo(details));
+}
+
+// Page d'une enchère : analyse sous le formulaire de mise
+function ensureAuctionInsight() {
+  const id = isOn("auctionInsight") ? AUCTION_PATH.exec(currentPath())?.[1] : null;
+  const title = id && document.querySelector(SEL.pageTitle);
+  const tile = title && document.querySelector(`main ${SEL.modalTile}`);
+  const column = title && tile && sectionOf(title, tile);
+  if (!column || column.contains(tile)) return hideIsland("auction");
+  showIsland("auction", AuctionInsight, {auctionId: id}, appendTo(column));
+}
+
+// Profil d'un autre joueur : échanges sous l'en-tête du profil
+function ensureFriendTrades() {
+  const name = isOn("friendTrades") ? decodeURIComponent(PROFILE_PATH.exec(currentPath())?.[1] || "") : "";
+  const me = readSession()?.username;
+  const title = name && (!me || name.toLowerCase() !== me.toLowerCase()) ? document.querySelector(SEL.pageTitle) : null;
+  const tab = title && [...document.querySelectorAll("main button")].find((b) => SEL.profileTabText.test(b.textContent.trim()));
+  const header = tab && sectionOf(title, tab);
+  if (!header) return hideIsland("friend");
+  showIsland("friend", FriendTrades, {username: title.textContent.trim() || name}, after(header));
+}
+
 // --- Boucle de rafraîchissement (regroupée par image)
 // Chaque étape est isolée : si le site change et qu'une étape échoue, les autres continuent
 // (repli silencieux, une seule trace par étape dans la console).
@@ -313,6 +442,10 @@ function run() {
   attempt("menu", ensureNavEntry);
   attempt("bouton Tout ouvrir", ensureOpenAllButton);
   attempt("page Paquets", ensurePullsWidgets);
+  attempt("barre de la collection", ensureCollectionBar);
+  attempt("fiche d'une carte", ensureCardInsight);
+  attempt("analyse d'enchère", ensureAuctionInsight);
+  attempt("échanges sur un profil", ensureFriendTrades);
   for (const tile of document.querySelectorAll(SEL.tile)) attempt("badges des cartes", () => decorateTile(tile, version));
   forgetDetached();
 }
@@ -333,6 +466,9 @@ export function startSiteDom() {
     bump();
   });
   owned.subscribe(bump);
+  auctionVersion.subscribe(bump);
+  // Les pastilles « bonne affaire » dépendent du temps restant
+  setInterval(() => currentPath().startsWith("/marketplace") && bump(), 60000);
   recapState.subscribe(schedule);
   pullStats.subscribe(schedule);
   collectionRarity.subscribe(schedule);

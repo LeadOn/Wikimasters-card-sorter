@@ -28,6 +28,42 @@ function setFromResponse(data) {
 on("marketplace", ({data, path}) => path.includes("mine=1") && setFromResponse(data));
 on("wikibidous", ({data}) => typeof data?.balance === "number" && bidsState.set({balance: data.balance}));
 
+// --- Enchères vues dans les réponses du site (liste du marché, fiche d'une enchère, mes enchères),
+// pour les blocs intégrés aux pages : analyse d'une enchère, pastilles « bonne affaire ».
+const auctions = new Map(); // id → enchère
+export const auctionVersion = createStore({v: 0});
+function rememberAuctions(list) {
+  let changed = false;
+  for (const a of Array.isArray(list) ? list : []) {
+    if (!a?.id) continue;
+    auctions.set(a.id, {...auctions.get(a.id), ...a});
+    changed = true;
+  }
+  if (changed) auctionVersion.set((s) => ({v: s.v + 1}));
+}
+on("marketplace", ({data}) => {
+  for (const key of ["auctions", "selling", "bidding", "won"]) rememberAuctions(data?.[key]);
+});
+on("auction", ({data}) => data?.auction && rememberAuctions([data.auction]));
+export const auctionById = (id) => auctions.get(id) || null;
+
+// Fiche d'une enchère que le site n'a pas (encore) chargée devant nous : lue une fois
+const loading = new Map();
+export function loadAuction(id) {
+  if (!loading.has(id))
+    loading.set(
+      id,
+      site
+        .auction(id)
+        .then((res) => {
+          if (res?.auction) rememberAuctions([res.auction]);
+          return res?.auction || null;
+        })
+        .finally(() => setTimeout(() => loading.delete(id), 30000)),
+    );
+  return loading.get(id);
+}
+
 export async function refreshBids({withBalance = true} = {}) {
   bidsState.set({loading: true, error: null});
   try {

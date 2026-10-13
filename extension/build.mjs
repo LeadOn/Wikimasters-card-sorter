@@ -14,22 +14,30 @@ const zip = process.argv.includes("--zip");
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
 const SITE_MATCHES = ["https://www.wiki-masters.com/*", "https://wiki-masters.com/*"];
+// Chrome : les requêtes d'un script de contenu suivent les règles CORS de la page, et Supabase
+// (le site l'appelle lui-même) comme l'API de Wikipédia (origin=*) les autorisent. Aucune
+// permission d'hôte n'est donc demandée pour eux (moins d'alertes, examen du Web Store plus simple).
+// Firefox : conservées, ses scripts de contenu n'appliquent pas les mêmes règles.
+const FIREFOX_EXTRA_HOSTS = ["https://cyrxjeppjqsxxjayfrur.supabase.co/*", "https://fr.wikipedia.org/*"];
 
 function manifest(target) {
   const m = {
     manifest_version: 3,
     name: "WikiMasters Toolbox",
     version: pkg.version,
-    description: "Tri automatique, doublons, échanges, prix, enchères, paquets et familles pour WikiMasters.",
+    // 132 caractères au plus (Chrome Web Store)
+    description: "Outils non officiels pour WikiMasters : tri automatique, doublons, échanges, prix, enchères, paquets et familles.",
     icons: {16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png"},
     action: {default_popup: "popup.html", default_title: "WikiMasters Toolbox", default_icon: {16: "icons/16.png", 32: "icons/32.png"}},
     permissions: ["storage", "unlimitedStorage"],
-    host_permissions: [...SITE_MATCHES, "https://cyrxjeppjqsxxjayfrur.supabase.co/*", "https://fr.wikipedia.org/*"],
+    host_permissions: [...SITE_MATCHES, ...(target === "firefox" ? FIREFOX_EXTRA_HOSTS : [])],
     content_scripts: [
       {matches: SITE_MATCHES, js: ["hook.js"], run_at: "document_start", world: "MAIN"},
       {matches: SITE_MATCHES, js: ["content.js"], run_at: "document_start"},
     ],
   };
+  // Scripts de contenu dans le « monde principal » (Chrome 111+) ; build ciblé sur Chrome 120
+  if (target === "chrome") m.minimum_chrome_version = "120";
   if (target === "firefox") {
     m.browser_specific_settings = {
       gecko: {id: "wikimasters-toolbox@leadon", strict_min_version: "128.0", data_collection_permissions: {required: ["none"]}},

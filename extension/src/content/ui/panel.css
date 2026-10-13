@@ -15,12 +15,13 @@
   --ok: #22c55e;
   --warn: #f59e0b;
   --danger: #f87171;
-  --r-L: #f59e0b;
-  --r-UR: #c084fc;
-  --r-SR: #60a5fa;
-  --r-R: #4ade80;
-  --r-PC: #a3aec4;
-  --r-C: #6b7280;
+  /* Couleurs des raretés du site (core/prices.js → RARITY_COLORS) */
+  --r-L: #ffe144;
+  --r-UR: #fa9931;
+  --r-SR: #ed6fa3;
+  --r-R: #c6a7f2;
+  --r-PC: #b1cff2;
+  --r-C: #b8f2d5;
   --radius: 12px;
   --shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -229,7 +230,7 @@ input[type="color"] { width: 34px; height: 28px; padding: 0; border: 1px solid v
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 button.chip { border: 1px solid transparent; cursor: pointer; }
 button.chip.on { border-color: var(--accent); background: var(--accent-soft); }
-.rarity { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #0d0e14; background: var(--r-C); }
+.rarity { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #0d1117; background: var(--r-C); }
 .rarity.L { background: var(--r-L); }
 .rarity.UR { background: var(--r-UR); }
 .rarity.SR { background: var(--r-SR); }
@@ -354,7 +355,35 @@ table.list tr:hover td { background: var(--surface); }
 .rates-row:hover { background: var(--surface-2); }
 .rates-name { color: var(--muted); }
 .rates-track { height: 10px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
-.rates-bar { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.rates-bar { display: block; height: 100%; border-radius: 4px; background: var(--rc, var(--accent)); }
 .rates-pct { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rates-n { text-align: right; color: var(--faint); font-variant-numeric: tabular-nums; }
 .rates-caption, .rates-empty { margin: 0; color: var(--muted); font-size: 11.5px; }
+
+/* --- Blocs intégrés aux pages du site (collection, fiche d'une carte, enchère, profil d'un ami) */
+.island {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--fg);
+  text-align: left;
+  animation: rise 0.2s ease-out;
+}
+.island.compact { padding: 10px 12px; gap: 7px; border-radius: 12px; }
+.island-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.island-head .logo { width: 24px; height: 24px; font-size: 10px; border-radius: 7px; }
+.island-title { font-weight: 700; font-size: 14px; }
+.island-sub { color: var(--muted); font-size: 12px; }
+.island-actions { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.island .notice { flex: 1; padding: 8px 11px; }
+.island .cards.mini { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.kv { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; min-height: 22px; }
+.kv .k { color: var(--muted); font-size: 12px; min-width: 104px; }
+.island.stacked .kv { gap: 3px 8px; }
+.island.stacked .kv .k { width: 100%; min-width: 0; }
+.price-big { font-weight: 800; color: #fde68a; font-variant-numeric: tabular-nums; }
+.mini-select { width: auto; height: 26px; min-height: 26px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); font-size: 12px; cursor: pointer; }

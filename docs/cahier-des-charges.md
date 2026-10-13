@@ -122,6 +122,20 @@ Remplacent les règles codées en dur pour chaque ami.
 | C3 | Image de remplacement (Wikipédia / Wikimedia Commons) pour les cartes sans image | P3 |
 | C4 | Son discret à l'arrivée d'une notification | P3 |
 
+### 3.9 Intégration dans les pages du site
+
+Les fonctions courantes sont accessibles là où le joueur en a besoin, sans ouvrir la Toolbox. Chaque bloc
+(« îlot ») est isolé dans un Shadow DOM, se désactive dans les réglages (groupe « Pages du site ») et
+partage son état avec l'onglet correspondant du panneau.
+
+| # | Fonctionnalité | Prio |
+|---|---|---|
+| D1 | **Collection** : barre sous les filtres — « Trier les nouvelles cartes » (aperçu sur place : cartes à classer, étiquettes, doublons ; « Appliquer » sur clic), raccourcis Doublons et Prix | P2 |
+| D2 | **Fiche d'une carte** (fenêtre ouverte au clic, sur toutes les pages) : prix moyen de la rareté (instantané si en cache), thème, amis intéressés (« Pour : … »), possession, ajout à une famille | P2 |
+| D3 | **Page d'une enchère** : prix moyen, écart entre la mise et ce prix, carte déjà possédée ou nouvelle, amis intéressés | P2 |
+| D4 | **Marché** : pastille « −X % » sur une enchère qui se termine dans moins de 15 min sous le prix moyen, « +X % » quand la mise minimale dépasse nettement le prix moyen (moyenne sur 3 ventes au moins) | P3 |
+| D5 | **Profil d'un ami** : recherche d'échanges sur place (raretés au choix), aperçu des cartes à demander et à proposer, profil de la bande en un clic | P2 |
+
 ## 4. Hors périmètre (pour l'instant)
 
 - Ouverture automatique des paquets sans clic, ou tout ce qui imite un comportement humain.
@@ -152,7 +166,7 @@ tests/         tests node --test
 
 ## 7. État d'implémentation (v0.1.0)
 
-Toutes les fonctionnalités des sections 3.1 à 3.8 sont implémentées. Écarts et précisions :
+Toutes les fonctionnalités des sections 3.1 à 3.9 sont implémentées. Écarts et précisions :
 
 | # | Précision |
 |---|---|
@@ -161,7 +175,7 @@ Toutes les fonctionnalités des sections 3.1 à 3.8 sont implémentées. Écarts
 | S6 | Verrou `navigator.locks` pour le tri et « Tout ouvrir » ; le tri des cartes tirées et « famille → étiquette » attendent leur tour sur le même verrou (une étiquette n'est jamais créée deux fois). |
 | S9 | Tests sans réseau du moteur, de l'écriture des étiquettes (`core/tag-writer.js`, reprise après panne) et de la couche réseau / stockage de l'extension (`fetch` et `chrome.storage` simulés). |
 | K1 | Récapitulatif intégré à la page Paquets (pas de fenêtre) : il attend que le site ait révélé la dernière carte (bouton « Continuer »), s'affiche dessous, puis reste sous le bouton « Ouvrir ». Prix chargés dès l'ouverture, avec indicateur de chargement par carte et pour le total. Nouveautés calculées par une requête sur les exemplaires possédés. Paquet normal, PRO du jour et spéciaux. Le récapitulatif disparaît au retour sur l'écran « Ouvrir un paquet » (il y reste seulement après « Tout ouvrir »). |
-| K2 | Graphique des taux de drop par rareté sur l'écran « Ouvrir un paquet » : mes tirages comptés par l'extension, ou la répartition de toute ma collection tant qu'il y a moins de 50 cartes tirées. Barres d'une seule teinte, rareté portée par le libellé (la palette des raretés du site n'est pas lisible en couleurs seules). |
+| K2 | Graphique des taux de drop par rareté sur l'écran « Ouvrir un paquet » : mes tirages comptés par l'extension, ou la répartition de toute ma collection tant qu'il y a moins de 50 cartes tirées. Barres aux couleurs de rareté du site, rareté aussi portée par le libellé. |
 | T5 | Option « Trier automatiquement les cartes tirées » (désactivée par défaut) : dès l'ouverture d'un paquet, les exemplaires tirés (identifiés par `user_card_id` dans la réponse du site) reçoivent thème, « Pour : … » et Doublon, en quelques requêtes ; un exemplaire qui a déjà un thème n'est pas modifié, rien n'est supprimé. Le récapitulatif affiche les étiquettes posées. Sans l'option, il propose « Trier les nouvelles cartes ». |
 | T6 | Non implémenté (P3) : la correction passe par les profils ou par l'ajout de la carte au jeu de test. |
 | P1-P2 | Prix calculés à partir des ventes conclues (table `auctions`), lues par lots : toute une collection (~7 600 cartes) en ~5 min, au lieu de ~12 s par carte avec la route du site, gardée en dernier recours. |

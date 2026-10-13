@@ -64,3 +64,10 @@
   width: min(420px, 100%);
   margin: 14px auto 0;
 }
+
+/* Blocs de la Toolbox insérés dans les pages (leur contenu est dans un Shadow DOM) */
+.wmt-island { display: block; }
+.wmt-island-card { margin-top: 12px; }
+.wmt-island-auction { margin-top: 4px; }
+.wmt-chip-deal { background: rgba(22, 163, 74, 0.92); }
+.wmt-chip-pricey { background: rgba(185, 28, 28, 0.85); }
