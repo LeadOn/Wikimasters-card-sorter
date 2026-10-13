@@ -30,6 +30,27 @@ Rien n'est jamais écrit sur votre compte sans un clic de votre part.
 
 L'extension s'intègre aux pages de wiki-masters.com. Chaque élément ci-dessous se désactive dans les [réglages](#réglages).
 
+### L'affichage des cartes
+
+Partout où le site affiche des cartes (collection, catalogue, marché, profils, fenêtre d'une carte, paquets), la Toolbox les présente autrement :
+
+- l'**image occupe toute la carte** au lieu de sa moitié haute ;
+- la texture de rareté du site devient le **cadre** de la carte (doré pour une légendaire, orange pour une ultra rare…) ;
+- le titre, la description, vos étiquettes et les points d'attaque et de défense passent **sur l'image**, sur un voile sombre qui les garde lisibles ;
+- une image très large (logo, bandeau, panorama) est montrée **en entier** en haut de la carte, sur une copie floutée d'elle-même ;
+- une carte sans image affiche l'**initiale de son titre** dans la couleur de sa rareté.
+
+Avec l'option **Images manquantes**, les cartes sans image en reçoivent une, cherchée sur Wikimedia : l'image de l'article sur Wikipédia en français, puis celle de l'élément Wikidata, celle de l'article en anglais (affiches de films, pochettes d'albums), la photo d'un membre pour un duo ou un groupe, un logo, un blason ou un drapeau, et enfin sa carte de localisation pour un lieu. Les mêmes images complètent les vignettes du panneau Toolbox.
+
+La recherche reste prudente :
+
+- une image **masquée par le site** (signalée) n'est jamais remplacée ;
+- pour un **sujet sensible** (sexualité, chirurgie, maladie, violence, mort…), seules les images principales des articles de Wikipédia, choisies par ses éditeurs, sont utilisées ;
+- toute autre image est vérifiée contre la liste des images que Wikipédia refuse d'afficher hors contexte ;
+- une page d'homonymie ne reçoit pas d'image.
+
+Le site garde la main sur ses cartes : un clic ouvre toujours la carte, le bouton favori reste à sa place. Pour retrouver l'affichage d'origine, coupez *Nouvel affichage des cartes* dans les [réglages](#réglages).
+
 ### Sur les cartes (marché, profils, catalogue)
 
 Des pastilles s'ajoutent en haut à droite de chaque carte affichée par le site :
@@ -44,7 +65,7 @@ Des pastilles s'ajoutent en haut à droite de chaque carte affichée par le site
 | `−34 %` | **Bonne affaire** sur le marché : l'enchère se termine dans moins de 15 minutes et la mise minimale est au moins 25 % sous le prix moyen |
 | `+120 %` | **Trop cher** sur le marché : la mise minimale dépasse le prix moyen d'au moins 50 % |
 
-Les pastilles du marché ne s'affichent que si la carte a été vendue au moins trois fois dans sa rareté. En option, les cartes sans image reçoivent la miniature de leur article Wikipédia.
+Les pastilles du marché ne s'affichent que si la carte a été vendue au moins trois fois dans sa rareté.
 
 ### Page Collection
 
@@ -81,7 +102,11 @@ Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, c
 ### Page Paquets
 
 - **Tout ouvrir**, à côté du bouton *Ouvrir* du site : ouvre d'un coup tous vos paquets disponibles, sans animation, après confirmation. L'ouverture s'arrête à la première erreur ou si le site demande une vérification anti-robot, à faire vous-même sur la page.
-- **Récapitulatif du paquet**, sous les cartes une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix moyen de chaque carte et valeur totale du paquet.
+- **Récapitulatif du paquet**, sous les cartes une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix moyen de chaque carte et valeur totale du paquet. Chaque carte peut y être traitée sur place :
+  - **Vendre** ouvre la fenêtre de mise aux enchères (mise de départ préremplie avec le prix moyen, durée de 10 minutes à 12 heures, nombre de ventes en cours) ;
+  - **Défausser +1** retire l'exemplaire de votre collection contre 1 WikiBidou, après une confirmation qui précise s'il s'agit de votre seul exemplaire, d'une carte shiny, ou d'une carte qui vaut davantage aux enchères. Le solde affiché par le site se met à jour.
+
+  Une fois l'action faite, la ligne l'indique (« En vente », « Défaussée »). Si le tri automatique des cartes tirées est en cours, la défausse attend qu'il ait fini.
 - **Taux de drop** par rareté sur l'écran d'ouverture : d'après vos tirages comptés par l'extension, ou d'après toute votre collection tant que moins de 50 cartes ont été tirées.
 
 ### Page Échanges
@@ -157,7 +182,7 @@ Le prix d'une carte est la moyenne de ses 200 dernières ventes **dans sa raret�
 
 - **Mes enchères** : votre solde de WikiBidous, chaque enchère avec la mise actuelle, le temps restant et si vous êtes en tête ou dépassé. Quand vous êtes dépassé, un bouton propose la mise suivante : cliquez, vérifiez le montant dans la confirmation, c'est placé. Si la mise est devenue trop basse entre-temps, la Toolbox vous propose le minimum demandé par le site.
 - **Mes ventes en cours**.
-- **Vendre mes doublons** : vos cartes en plusieurs exemplaires, les plus chères d'abord. *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix moyen) et la durée (10 minutes à 12 heures). Vous gardez toujours au moins un exemplaire, et le nombre de ventes simultanées autorisé par le site est affiché.
+- **Vendre mes doublons** : vos cartes en plusieurs exemplaires, les plus chères d'abord. *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix moyen) et la durée (10 minutes à 12 heures). Vous gardez toujours au moins un exemplaire, et le nombre de ventes simultanées autorisé par le site est affiché. L'exemplaire mis en vente est le moins rare, jamais un favori (le site les verrouille) ; si tous vos exemplaires sont en favori, la vente est impossible.
 
 ### Paquets
 
@@ -217,11 +242,12 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 
 | Groupe | Fonction | Par défaut |
 |---|---|---|
+| Cartes | Nouvel affichage des cartes | activée |
 | Cartes | Pastille du thème | activée |
 | Cartes | Prix moyen | activée |
 | Cartes | Lien Wikipédia | activée |
 | Cartes | Possédée / manquante | activée |
-| Cartes | Images manquantes (requête à fr.wikipedia.org) | désactivée |
+| Cartes | Images manquantes (requêtes anonymes à Wikimedia) | désactivée |
 | Pages du site | Barre Toolbox sur la collection | activée |
 | Pages du site | Infos dans la fiche d'une carte | activée |
 | Pages du site | Analyse des enchères | activée |
@@ -244,7 +270,7 @@ L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défau
 
 ## Sécurité et vie privée
 
-- **Aucune écriture sans clic.** Poser des étiquettes, enchérir, mettre en vente, ouvrir des paquets : rien ne se fait sans que vous cliquiez, et les actions importantes demandent une confirmation.
+- **Aucune écriture sans clic.** Poser des étiquettes, enchérir, mettre en vente, défausser, ouvrir des paquets : rien ne se fait sans que vous cliquiez, et les actions importantes demandent une confirmation.
 - **Pas d'ouverture automatique de paquets** ni de comportement qui imite un joueur. Si le site demande une vérification anti-robot, la Toolbox s'arrête et vous laisse la faire.
 - **Vos étiquettes personnelles ne sont jamais modifiées** : seuls les thèmes, les « Pour : … » et `Doublon` sont gérés par la Toolbox.
 - **Le serveur est ménagé** : peu de requêtes en parallèle, pauses en cas de surcharge, et une écriture restée sans réponse n'est jamais renvoyée automatiquement (elle est signalée comme « peut-être prise en compte »).
@@ -271,6 +297,15 @@ Le serveur n'a pas répondu à temps. La Toolbox ne renvoie jamais une écriture
 
 **« Tout ouvrir » s'est arrêté.**
 Le site a demandé une vérification anti-robot ou a renvoyé une erreur. Faites la vérification sur la page Paquets, puis recommencez.
+
+**Une carte n'a pas d'image, même avec l'option « Images manquantes ».**
+Wikimedia n'a aucune image pour cet article (fréquent pour une personne peu connue ou une œuvre récente), c'est une page d'homonymie, le site a masqué son image, ou le sujet est sensible et Wikipédia ne lui donne pas d'image principale. Une recherche sans résultat est refaite au bout d'une semaine.
+
+**Je préfère l'affichage des cartes du site.**
+Coupez *Nouvel affichage des cartes* dans les réglages : les cartes reprennent immédiatement leur aspect d'origine.
+
+**Une carte du récapitulatif indique « Défausse à vérifier » ou « Vente à vérifier ».**
+Le site n'a pas répondu à temps : l'action a peut-être été faite. Vérifiez dans votre collection ou sur le Marché avant de recommencer ; la Toolbox ne renvoie jamais une défausse ou une vente d'elle-même.
 
 **Une carte affiche « jamais vendue dans cette rareté ».**
 Aucune vente conclue n'existe pour cette carte dans cette rareté : il n'y a pas de prix moyen à calculer.

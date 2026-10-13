@@ -1,7 +1,8 @@
 // Composants d'interface réutilisables.
 import {useState, useEffect} from "preact/hooks";
 import {RARITY_LABEL, THEME_COLORS} from "../../../../core";
-import {settings} from "../state/settings";
+import {settings, isOn} from "../state/settings";
+import {wikiImage, knownWikiImage} from "../features/wiki-images";
 import {Icon, Mark} from "../../shared/Brand";
 
 export {Icon, Mark};
@@ -84,6 +85,21 @@ export function Toggle({checked, onChange, label}) {
   );
 }
 
+// Image de remplacement d'une carte sans image (réglage « Images manquantes »), cherchée sur Wikimedia ;
+// jamais pour une image masquée par le site, ni quand on ne sait pas si elle l'a été
+export function useWikiImage(card) {
+  const title = card?.wikipedia_title || card?.title;
+  const wanted = Boolean(title) && !card?.image_url && card?.hide_image === false && isOn("missingImages");
+  const [src, setSrc] = useState(() => (wanted ? knownWikiImage(title) || null : null));
+  useEffect(() => {
+    if (!wanted) return setSrc(null);
+    let alive = true;
+    wikiImage(title, card?.category || "").then((url) => alive && setSrc(url));
+    return () => (alive = false);
+  }, [title, wanted]);
+  return wanted ? src : null;
+}
+
 // Badge d'une carte : {label, type: "ok" | "warn" | "danger" | "accent", icon}
 export const Badge = ({label, type, icon}) => (
   <span class={`chip ${type || ""}`}>
@@ -95,10 +111,12 @@ export const Badge = ({label, type, icon}) => (
 // Mini-carte : image, titre, description, rareté, thème, prix, badges
 export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, action}) {
   const r = rarity || card?.rarity;
+  const fallback = useWikiImage(card);
+  const image = card?.image_url || fallback;
   const href = card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null);
   return (
     <div class={`card${selected ? " sel" : ""}`} style={{"--rc": `var(--r-${r || "C"})`, cursor: onClick ? "pointer" : "default"}} onClick={onClick}>
-      {card?.image_url ? <img class="thumb" src={card.image_url} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="thumb" />}
+      {image ? <img class="thumb" src={image} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="thumb" />}
       <div class="body">
         <div class="t" title={card?.wikipedia_title}>
           {href ? (

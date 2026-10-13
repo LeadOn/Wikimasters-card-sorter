@@ -2,11 +2,12 @@
 import {persistentStore} from "../lib/storage";
 
 export const FEATURES = [
+  {key: "cardStyle", group: "Cartes", label: "Nouvel affichage des cartes", help: "Image sur toute la carte, cadre aux couleurs de la rareté, titre et statistiques en surimpression. Désactivez pour retrouver l'affichage du site."},
   {key: "themeBadges", group: "Cartes", label: "Pastille du thème", help: "Affiche le thème calculé par le moteur sur les cartes du marché, des amis et du catalogue."},
   {key: "priceBadges", group: "Cartes", label: "Prix moyen", help: "Affiche le prix moyen de vente (pour la rareté de la carte) quand il est connu."},
   {key: "wikiLink", group: "Cartes", label: "Lien Wikipédia", help: "Ajoute un bouton « W » qui ouvre l'article."},
   {key: "ownedBadges", group: "Cartes", label: "Possédée / manquante", help: "Signale, hors de votre collection, les cartes que vous avez déjà."},
-  {key: "missingImages", group: "Cartes", label: "Images manquantes", help: "Cherche une illustration sur Wikipédia pour les cartes sans image (requête à fr.wikipedia.org, sans cookie)."},
+  {key: "missingImages", group: "Cartes", label: "Images manquantes", help: "Cherche une image sur Wikimedia (Wikipédia, Wikidata, Commons) pour les cartes qui n'en ont pas. Requêtes anonymes, sans cookie ; jamais pour une image masquée par le site."},
   {key: "collectionBar", group: "Pages du site", label: "Barre Toolbox sur la collection", help: "Sous les filtres de la page Collection : trier les nouvelles cartes sur place, accès aux doublons et aux prix."},
   {key: "cardInsight", group: "Pages du site", label: "Infos dans la fiche d'une carte", help: "Dans la fenêtre d'une carte : prix moyen, thème, amis intéressés, ajout à une famille."},
   {key: "auctionInsight", group: "Pages du site", label: "Analyse des enchères", help: "Sur la page d'une enchère : prix moyen, écart avec la mise, carte déjà possédée ou non, amis intéressés."},

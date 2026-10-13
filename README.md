@@ -14,9 +14,9 @@ Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-m
 - **Prix** : prix moyen de vente de chaque carte dans sa rareté, affiché sur les cartes du site, dans leur fiche et sur les enchères. Valeur de votre collection et classement de vos cartes les plus chères.
 - **Marché** : pastilles « bonne affaire » et « trop cher », suivi de vos enchères avec surenchère en un clic et alerte avant la fin, vente de vos doublons.
 - **Échanges** : profils d'intérêts partageables par code ; sur le profil d'un ami, ses cartes qui vous intéressent, les vôtres qui l'intéressent, et une offre équilibrée en prix moyen. Valeur de chaque côté des échanges en cours.
-- **Paquets** : récapitulatif après chaque paquet (nouveautés, doublons, prix, valeur totale), taux de drop par rareté, « Tout ouvrir » sur votre clic.
+- **Paquets** : récapitulatif après chaque paquet (nouveautés, doublons, prix, valeur totale) où chaque carte se met aux enchères ou se défausse pour 1 WikiBidou en un clic, taux de drop par rareté, « Tout ouvrir » sur votre clic.
 - **Familles** : groupes de cartes à compléter, choisies une à une ou remplies par une recherche, avec les cartes manquantes en vente.
-- **Sur les cartes** : thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
+- **Sur les cartes** : un nouvel affichage, avec l'image sur toute la carte et un cadre aux couleurs de la rareté ; les images manquantes cherchées sur Wikimedia ; thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
 
 Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part, et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
 
@@ -78,8 +78,9 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 - **Prices**: average sale price of each card in its rarity, on cards, in their detail window and on auctions; collection value and most valuable cards.
 - **Market**: "good deal" and "overpriced" badges, your auctions with one-click outbid and an ending alert, selling your duplicates.
 - **Trades**: shareable interest profiles; on a friend's profile, the cards you want from them, the cards they want from you, and a balanced offer.
-- **Packs**: a recap after each pack (new cards, duplicates, prices, total value), drop rates, and "Open all" on your click.
+- **Packs**: a recap after each pack (new cards, duplicates, prices, total value) where each card can be put up for auction or discarded for 1 WikiBidou, drop rates, and "Open all" on your click.
 - **Families**: sets of cards to complete, hand-picked or filled from a search.
+- **Cards**: a new card layout with a full-bleed image and a rarity-colored frame; missing images looked up on Wikimedia.
 
 Every feature can be turned off. Nothing is written to your account without a click, there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface and documentation are in French: see the [user guide](docs/guide.md).
 

@@ -79,7 +79,7 @@ extension/
         packs.js               récapitulatif, statistiques de tirage, « Tout ouvrir »
         families.js            familles : catalogue, cartes manquantes en vente, étiquettes
         card-lookup.js         carte affichée par le site mais jamais vue dans ses réponses
-        wiki-images.js         miniatures Wikipédia pour les cartes sans image (option)
+        wiki-images.js         images Wikimedia pour les cartes sans image (option) : Wikipédia, Wikidata
         notify.js              sons de notification et d'alerte
         site-dom.js            intégration aux pages : tous les sélecteurs du site sont ici
       ui/                      interface (Preact, dans un Shadow DOM)
@@ -87,8 +87,9 @@ extension/
         components.jsx         composants communs (carte, montant, progression, message…)
         feedback.js            toasts et confirmations
         panel.css              styles du panneau et des blocs intégrés
-        site.css               styles injectés dans les pages du site (préfixe wmt-)
-        PackRecap.jsx          récapitulatif de paquet
+        site.css               styles injectés dans les pages du site : badges, nouvel affichage des cartes
+        PackRecap.jsx          récapitulatif de paquet, avec vente et défausse de chaque carte
+        SellDialog.jsx         fenêtre de mise aux enchères (Marché, récapitulatif de paquet)
         DropRates.jsx          taux de drop par rareté
         tabs/                  un fichier par onglet du panneau
         islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil)
@@ -150,6 +151,8 @@ joueur ──clic──▶ ui/ ──▶ features/ ──▶ api/ (http.js) ─�
 
 `features/site-dom.js` regroupe **tous** les sélecteurs du site. Une boucle, déclenchée par les changements de la page et des données, place les badges sur les cartes, le bouton « Tout ouvrir », l'entrée du menu et les blocs intégrés (`ui/islands/`). Chaque étape est isolée : si le site change et qu'un élément n'est plus trouvé, seule cette étape cesse de fonctionner, sans erreur visible. Un bloc se place par rapport à l'imbrication de la page (`sectionOf`), jamais par rapport aux classes Tailwind du site, qui changent souvent.
 
+**Nouvel affichage des cartes.** `site-dom.js` reconnaît les parties d'une carte du site (texture de rareté, zone image, zone texte, badge, étiquettes, attaque et défense) et leur pose des repères `data-wmt-*` ; `site.css` ne cible que ces repères. React ne touche pas à ces attributs, et la boucle les repose si le site reconstruit une carte. Si la structure n'est plus reconnue, la carte garde l'affichage du site. Les tailles sont relatives à la carte (unités `cqw`) : le même style sert en grille et dans la fenêtre d'une carte.
+
 ### Stockage
 
 Tout est dans `chrome.storage.local` (jamais dans le `localStorage` du site) : réglages, profils, familles, statistiques de tirage, cache des prix, collections d'amis lues. `persistentStore` synchronise un état entre les onglets ouverts sans écraser une valeur enregistrée par les valeurs par défaut.
@@ -175,6 +178,8 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `trade-prices-families.test.js` | Échanges, prix, familles, codes de partage, couleurs des raretés |
 | `extension-http.test.js` | Couche réseau : réessais, écritures jamais rejouées, session renouvelée, pagination |
 | `extension-storage.test.js` | Stockage : valeurs enregistrées jamais écrasées, plusieurs onglets |
+| `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, homonymies, limite de requêtes, cache |
+| `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |
 
 Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
 
@@ -200,7 +205,7 @@ La publication sur le Chrome Web Store est décrite dans [store/README.md](../st
 
 ## Conventions
 
-- **Aucune écriture sans clic explicite** du joueur ; confirmation pour les ventes, enchères, retri complet et « Tout ouvrir ».
+- **Aucune écriture sans clic explicite** du joueur ; confirmation pour les ventes, enchères, défausses, retri complet et « Tout ouvrir ».
 - **Pas d'ouverture automatique de paquets**, ni de comportement qui imite un joueur ou contourne une vérification du site.
 - **Un changement du moteur se fait dans `core/`** et se vérifie avec `npm test` et `npm run eval`.
 - **Pagination stable** : toute lecture paginée est triée sur une clé unique et dédoublonnée, sinon une ligne peut apparaître sur deux pages et une autre disparaître.

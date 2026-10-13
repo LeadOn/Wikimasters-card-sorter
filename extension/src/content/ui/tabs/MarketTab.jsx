@@ -1,11 +1,11 @@
 // Onglet « Marché » : mes enchères (surenchère en un clic, avec confirmation) et vente de mes doublons.
 import {useState, useEffect} from "preact/hooks";
 import {useStore} from "../../lib/store";
-import {bidsState, refreshBids, placeBid, nextBid, isLeading, msLeft, sellState, loadSpares, spareValue, sellCard} from "../../features/market";
+import {bidsState, refreshBids, placeBid, nextBid, isLeading, msLeft, sellState, loadSpares, spareValue} from "../../features/market";
 import {priceVersion, priceOf} from "../../state/prices";
-import {AUCTION_DURATIONS} from "../../api/site";
 import {CardRow, Notice, Progress, fmt, plural, duration, timeAgo} from "../components";
-import {confirmAction, toast, errorMessage} from "../feedback";
+import {confirmAction, toast} from "../feedback";
+import {askSell} from "../SellDialog";
 
 function useTick(ms = 1000) {
   const [, set] = useState(0);
@@ -60,62 +60,11 @@ function AuctionRow({a, bidding}) {
   );
 }
 
-function SellDialog({spare, onClose}) {
-  const avg = spareValue(spare);
-  const [amount, setAmount] = useState(String(avg || 10));
-  const [minutes, setMinutes] = useState(60);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const submit = async () => {
-    const baseAmount = Math.round(Number(amount));
-    if (!Number.isInteger(baseAmount) || baseAmount < 1) return setError("Mise de départ invalide (minimum 1).");
-    setBusy(true);
-    setError(null);
-    try {
-      await sellCard({cardId: spare.card_id, baseAmount, durationMinutes: minutes});
-      toast(`${spare.card.wikipedia_title} mise aux enchères à ${fmt(baseAmount)} ₩.`, {type: "ok"});
-      onClose();
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div class="modal">
-        <h3>Mettre aux enchères</h3>
-        <CardRow card={spare.card} rarity={spare.rarity} price={avg} badges={[{label: `${spare.copies} exemplaires`, type: "ok"}]} />
-        <p class="help">Un exemplaire est mis en réserve pendant l'enchère ; vous en gardez au moins un.</p>
-        <div class="row" style={{alignItems: "flex-end"}}>
-          <label class="field" style={{flex: 1}}>
-            <span>Mise de départ (₩)</span>
-            <input type="number" min="1" step="1" value={amount} onInput={(e) => setAmount(e.currentTarget.value)} />
-          </label>
-          <label class="field" style={{flex: 1}}>
-            <span>Durée</span>
-            <select value={minutes} onChange={(e) => setMinutes(Number(e.currentTarget.value))}>
-              {AUCTION_DURATIONS.map((d) => <option key={d.minutes} value={d.minutes}>{d.label}</option>)}
-            </select>
-          </label>
-        </div>
-        {avg != null && <p class="small muted">Prix moyen constaté pour cette rareté : {fmt(avg)} ₩.</p>}
-        {error && <Notice type="error">{error}</Notice>}
-        <div class="actions">
-          <button class="btn ghost" onClick={onClose}>Annuler</button>
-          <button class="btn primary" disabled={busy} onClick={submit}>{busy ? "Mise en vente…" : "Lancer l'enchère"}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function MarketTab() {
   useTick();
   useStore(priceVersion);
   const bids = useStore(bidsState);
   const sell = useStore(sellState);
-  const [selling, setSelling] = useState(null);
   useEffect(() => {
     if (!bids.at) refreshBids();
     if (!sell.spares && !sell.loading) loadSpares();
@@ -173,13 +122,29 @@ export function MarketTab() {
                 rarity={s.rarity}
                 price={s.value}
                 badges={[{label: plural(s.spare, "en trop", "en trop"), type: "ok"}, s.starred && {label: "favori", type: "warn", icon: "star"}]}
-                action={<button class="btn sm" disabled={quotaFull} onClick={() => setSelling(s)}>Vendre</button>}
+                action={
+                  <button
+                    class="btn sm"
+                    disabled={quotaFull || !s.sellCopyId}
+                    title={s.sellCopyId ? "" : "Tous vos exemplaires sont en favori : le site les verrouille"}
+                    onClick={() =>
+                      askSell({
+                        card: {...s.card, id: s.card_id},
+                        userCardId: s.sellCopyId,
+                        rarity: s.rarity,
+                        badges: [{label: `${s.copies} exemplaires`, type: "ok"}],
+                        note: "Un exemplaire est mis en réserve pendant l'enchère ; vous en gardez au moins un.",
+                      })
+                    }
+                  >
+                    Vendre
+                  </button>
+                }
               />
             ))}
           </div>
         )}
       </div>
-      {selling && <SellDialog spare={selling} onClose={() => setSelling(null)} />}
     </div>
   );
 }

@@ -50,6 +50,7 @@ const compact = (it) => ({
     category: it.card?.category,
     rarity: it.card?.rarity,
     image_url: it.card?.hide_image ? null : it.card?.image_url,
+    hide_image: Boolean(it.card?.hide_image),
     wikipedia_url: it.card?.wikipedia_url,
     pageviews: it.card?.pageviews,
   },

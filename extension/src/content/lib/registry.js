@@ -31,6 +31,9 @@ export function remember(card, extra = {}) {
     category: card.category ?? prev.category ?? "",
     summary: card.summary ?? prev.summary,
     image_url: card.hide_image ? null : card.image_url ?? prev.image_url ?? null,
+    // Image masquée par le site (signalée) : jamais remplacée par une image de Wikimedia.
+    // null : inconnu (réponse du site sans ce champ), la carte est alors relue avant tout remplacement
+    hide_image: card.hide_image ?? prev.hide_image ?? null,
     wikipedia_url: card.wikipedia_url || prev.wikipedia_url || null,
     ...extra,
   };

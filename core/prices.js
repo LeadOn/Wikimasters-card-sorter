@@ -43,10 +43,15 @@ function spareCards(copies) {
     entry.starred ||= Boolean(c.starred);
   }
   const spares = [];
+  const byRarity = (a, b) => rarityRank(a.rarity) - rarityRank(b.rarity);
   for (const e of byCard.values()) {
     if (e.copies < 2) continue;
-    const rarity = e.rows.map((r) => r.rarity).sort((a, b) => rarityRank(a) - rarityRank(b))[0] || null;
-    spares.push({...e, spare: e.copies - 1, rarity});
+    // Exemplaire à mettre en vente : le moins rare, jamais un favori (le site les verrouille : ni
+    // vente, ni défausse, ni échange), une carte shiny en dernier. sellCopyId est l'id de user_cards
+    // attendu par le site ; null si tous les exemplaires sont en favori.
+    const sellable = e.rows.filter((r) => !r.starred).sort((a, b) => byRarity(a, b) || Boolean(a.is_shiny) - Boolean(b.is_shiny));
+    const rarity = (sellable[0] || [...e.rows].sort(byRarity)[0])?.rarity || null;
+    spares.push({...e, spare: e.copies - 1, rarity, sellCopyId: sellable[0]?.id || null});
   }
   return spares;
 }

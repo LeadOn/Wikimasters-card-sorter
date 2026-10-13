@@ -15,10 +15,16 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 
 const SITE_MATCHES = ["https://www.wiki-masters.com/*", "https://wiki-masters.com/*"];
 // Chrome : les requêtes d'un script de contenu suivent les règles CORS de la page, et Supabase
-// (le site l'appelle lui-même) comme l'API de Wikipédia (origin=*) les autorisent. Aucune
+// (le site l'appelle lui-même) comme les API de Wikimedia (origin=*) les autorisent. Aucune
 // permission d'hôte n'est donc demandée pour eux (moins d'alertes, examen du Web Store plus simple).
 // Firefox : conservées, ses scripts de contenu n'appliquent pas les mêmes règles.
-const FIREFOX_EXTRA_HOSTS = ["https://cyrxjeppjqsxxjayfrur.supabase.co/*", "https://fr.wikipedia.org/*"];
+const FIREFOX_EXTRA_HOSTS = [
+  "https://cyrxjeppjqsxxjayfrur.supabase.co/*",
+  // Images manquantes (option) : API de Wikipédia et de Wikidata (les images viennent de Wikimedia Commons)
+  "https://fr.wikipedia.org/*",
+  "https://en.wikipedia.org/*",
+  "https://www.wikidata.org/*",
+];
 
 function manifest(target) {
   const m = {

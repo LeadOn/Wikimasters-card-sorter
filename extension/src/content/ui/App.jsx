@@ -1,4 +1,4 @@
-// Racine de l'interface : panneau Toolbox, dialogues, notifications, récapitulatif de paquet,
+// Racine de l'interface : panneau Toolbox, dialogues (confirmation, mise aux enchères), notifications,
 // encart de valeur des échanges et confirmation de « Tout ouvrir ».
 import {useState, useEffect} from "preact/hooks";
 import {useStore, createStore} from "../lib/store";
@@ -19,6 +19,7 @@ import {MarketTab} from "./tabs/MarketTab";
 import {PacksTab} from "./tabs/PacksTab";
 import {FamiliesTab} from "./tabs/FamiliesTab";
 import {SettingsTab} from "./tabs/SettingsTab";
+import {SellDialogHost} from "./SellDialog";
 
 // L'icône de chaque onglet porte le même nom dans shared/brand.mjs
 const TABS = [
@@ -220,6 +221,7 @@ export function App() {
     <>
       {open && <Panel />}
       <TradeValuesWidget path={path} />
+      <SellDialogHost />
       <Dialog />
       <Toasts />
     </>

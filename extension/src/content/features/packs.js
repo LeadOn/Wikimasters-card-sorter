@@ -7,7 +7,7 @@ import {persistentStore} from "../lib/storage";
 import {on, emit} from "../lib/bus";
 import {sleep, HumanCheckError} from "../lib/http";
 import {isOn} from "../state/settings";
-import {owned, addOwned, invalidateCollection} from "../state/collection";
+import {owned, addOwned, removeOwned, invalidateCollection} from "../state/collection";
 import {loadPrices} from "../state/prices";
 import {packNovelty} from "../../../../core/prices";
 import {sortPulledCards} from "./autosort";
@@ -19,6 +19,8 @@ export const packsStatus = createStore({remaining: null, at: 0});
 // source "reveal" : paquet ouvert sur le site (le récapitulatif disparaît au retour sur l'accueil) ;
 // source "openAll" : « Tout ouvrir », sans révélation (il reste sur l'accueil jusqu'au paquet suivant).
 // sort : tri automatique des cartes tirées (option) — {status: "running"|"done"|"error", byIndex, error}
+// cards[i].action : ce que le joueur en a fait depuis le récapitulatif — {kind: "discarded"},
+// {kind: "listed", baseAmount, durationMinutes}, ou {kind: "uncertain", what: "discard"|"sell"} (sans réponse du site)
 export const recapState = createStore({cards: [], packs: 0, at: 0, phase: null, source: null, pricesLoading: false, dismissed: false, sort: null});
 
 // Répartition des raretés de toute ma collection (/api/my-collection/stats), pour le graphique des taux
@@ -82,6 +84,44 @@ async function markNovelty(at, cards) {
     // Sans réponse, on garde l'estimation faite avec la collection en mémoire
   }
 }
+
+// --- Actions sur une carte du récapitulatif, déclenchées par un clic du joueur après confirmation.
+// at : identifiant du récapitulatif, pour ne pas modifier celui d'un paquet ouvert entre-temps.
+function setCardAction(at, index, action) {
+  if (recapState.get().at !== at) return;
+  recapState.set((s) => ({...s, cards: s.cards.map((c, i) => (i === index ? {...c, action} : c))}));
+}
+
+// Défausse l'exemplaire tiré contre 1 WikiBidou. Sous le verrou du tri : si le tri automatique des
+// cartes tirées est en cours, la défausse attend qu'il ait fini d'étiqueter cet exemplaire.
+export async function discardPulled(at, index) {
+  const card = recapState.get().cards[index];
+  if (!card?.user_card_id) throw new Error("Exemplaire introuvable : défaussez cette carte depuis votre collection.");
+  await withLock(
+    "sort",
+    async () => {
+      try {
+        await site.discard(card.user_card_id);
+      } catch (e) {
+        if (e.uncertain) {
+          invalidateCollection();
+          setCardAction(at, index, {kind: "uncertain", what: "discard"});
+        }
+        throw e;
+      }
+    },
+    {wait: true},
+  );
+  invalidateCollection();
+  setCardAction(at, index, {kind: "discarded"});
+  // Le site met à jour le solde de WikiBidous affiché quand il reçoit cet événement
+  window.dispatchEvent(new CustomEvent("wikimasters:wikibidous-balance-refresh"));
+  const otherCopy = recapState.get().cards.some((c, i) => i !== index && c.id === card.id && c.action?.kind !== "discarded");
+  if (card.isNew === true && !otherCopy) removeOwned([card.id]);
+}
+
+// Résultat de la fenêtre de mise aux enchères (ui/SellDialog.jsx)
+export const markListed = (at, index, sale) => sale && setCardAction(at, index, sale.uncertain ? {kind: "uncertain", what: "sell"} : {kind: "listed", ...sale});
 
 // Le site a fini de révéler les cartes (bouton « Continuer ») : le récapitulatif peut s'afficher
 export const markRevealed = () => recapState.get().phase === "revealing" && recapState.set({phase: "ready"});

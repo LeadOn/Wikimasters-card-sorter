@@ -72,3 +72,10 @@ export function addOwned(cardIds) {
   for (const id of cardIds) ids.add(id);
   owned.set({ids});
 }
+
+// Dernier exemplaire d'une carte défaussé
+export function removeOwned(cardIds) {
+  const ids = owned.get().ids;
+  for (const id of cardIds) ids.delete(id);
+  owned.set({ids});
+}

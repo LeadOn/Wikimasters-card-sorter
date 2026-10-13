@@ -8,7 +8,7 @@ import {lookupTitle, registryVersion, normTitle} from "../lib/registry";
 import {settings, isOn} from "../state/settings";
 import {owned} from "../state/collection";
 import {priceOf, summaryOf, requestPrice, priceVersion} from "../state/prices";
-import {wikiThumbnail} from "./wiki-images";
+import {wikiImage} from "./wiki-images";
 import {recapState, markRevealed, dismissRecap, pullStats, collectionRarity, refreshCollectionRarity} from "./packs";
 import {auctionById, auctionVersion, nextBid, msLeft} from "./market";
 import {resolveCard} from "./card-lookup";
@@ -30,6 +30,12 @@ const SEL = {
   navLink: 'a[href="/collection"]',
   tile: 'div[class*="glow-"][class*="rounded-2xl"]',
   tileTitle: "h3",
+  // Carte du site : texture de rareté (img enfant direct), zone image, badge de rareté, zone texte
+  // (titre, description, étiquettes, attaque / défense) ; image remplacée par le logo du site si absente
+  tileTexture: ":scope > img",
+  tileTag: "span[style]",
+  statAttack: "svg.lucide-swords",
+  statDefense: "svg.lucide-shield",
   placeholderImg: 'img[alt="WikiMasters"]',
   pullsOpenButton: "main button",
   // Bouton du bas de la révélation des cartes : « Encore 3 cartes », puis « Continuer »
@@ -150,6 +156,115 @@ function chip(className, text, title, icon) {
   return el;
 }
 
+// --- Nouvel affichage des cartes (réglage « cardStyle ») : image sur toute la carte, la texture de
+// rareté du site devient son cadre, titre et statistiques en surimpression. Chaque partie reçoit un
+// repère data-wmt-* et la mise en forme est dans site.css : React ne touche pas à ces attributs, et
+// cette boucle les repose si le site reconstruit la carte. Structure non reconnue (le site a changé) :
+// la carte garde l'affichage du site.
+const MARKS = ["wmtCard", "wmtR", "wmtArt", "wmtFit", "wmtInitial", "wmtBody", "wmtTexture", "wmtRarity", "wmtPlaceholder", "wmtTag", "wmtStats", "wmtStat"];
+// Au-delà de ce rapport largeur / hauteur (logo, bandeau, panorama), l'image est montrée
+// en entier en haut de la carte, sur un fond fait de sa propre copie floutée
+const WIDE = 1.8;
+const MARKED = "[data-wmt-art],[data-wmt-body],[data-wmt-texture],[data-wmt-rarity],[data-wmt-placeholder],[data-wmt-tag],[data-wmt-stats],[data-wmt-stat]";
+
+// Enfant direct de la carte qui contient el
+function partOf(tile, el) {
+  while (el && el.parentElement !== tile) el = el.parentElement;
+  return el;
+}
+
+function tileParts(tile, titleEl) {
+  const body = partOf(tile, titleEl);
+  const art = [...tile.children].find((c) => c.tagName === "DIV" && c !== body && c.querySelector("img"));
+  return {body, art, texture: tile.querySelector(SEL.tileTexture), placeholder: art?.querySelector(SEL.placeholderImg) || null};
+}
+
+function unstyleTile(tile) {
+  for (const el of [tile, ...tile.querySelectorAll(MARKED)]) for (const k of MARKS) delete el.dataset[k];
+  for (const el of tile.querySelectorAll(".wmt-art-backdrop")) el.remove();
+}
+
+// Image large : affichée en entier, sur sa copie floutée ; sinon elle couvre toute la carte
+function fitArt(art) {
+  const img = art.querySelector("img.wmt-fallback-img") || art.querySelector("img:not([data-wmt-placeholder]):not(.wmt-art-backdrop)");
+  if (!img || img.closest("[data-wmt-placeholder]")) return;
+  if (!img.complete || !img.naturalWidth) {
+    img.addEventListener("load", () => art.isConnected && "wmtArt" in art.dataset && fitArt(art), {once: true});
+    return;
+  }
+  const wide = img.naturalWidth / img.naturalHeight > WIDE;
+  const src = img.currentSrc || img.src;
+  let backdrop = art.querySelector(":scope > .wmt-art-backdrop");
+  if (wide) {
+    art.dataset.wmtFit = "wide";
+    if (!backdrop) {
+      backdrop = document.createElement("img");
+      backdrop.className = "wmt-art-backdrop";
+      backdrop.alt = "";
+      backdrop.referrerPolicy = "no-referrer";
+      art.prepend(backdrop);
+    }
+    if (backdrop.getAttribute("src") !== src) backdrop.src = src;
+  } else {
+    delete art.dataset.wmtFit;
+    backdrop?.remove();
+  }
+}
+
+function styleTile(tile, {body, art, texture, placeholder}, rarity, title) {
+  if (!isOn("cardStyle") || !body || !art || !texture) {
+    if ("wmtCard" in tile.dataset) unstyleTile(tile);
+    return;
+  }
+  tile.dataset.wmtCard = "";
+  tile.dataset.wmtR = rarity || "";
+  texture.dataset.wmtTexture = "";
+  body.dataset.wmtBody = "";
+  art.dataset.wmtArt = !placeholder ? "image" : art.querySelector(".wmt-fallback-img") ? "filled" : "empty";
+  // Sans image : l'initiale du titre, dans la couleur de la rareté
+  art.dataset.wmtInitial = (title.match(/[\p{L}\p{N}]/u)?.[0] || "W").toUpperCase();
+  if (placeholder) placeholder.dataset.wmtPlaceholder = "";
+  if (art.dataset.wmtArt !== "empty") fitArt(art);
+  const badge = [...tile.children].find((c) => c !== body && c !== art && rarity && c.textContent.trim().toUpperCase() === rarity);
+  if (badge) badge.dataset.wmtRarity = "";
+  for (const tag of body.querySelectorAll(SEL.tileTag)) tag.dataset.wmtTag = "";
+  for (const [sel, kind] of [[SEL.statAttack, "atk"], [SEL.statDefense, "def"]]) {
+    const stat = body.querySelector(sel)?.parentElement;
+    if (!stat) continue;
+    stat.dataset.wmtStat = kind;
+    stat.parentElement.dataset.wmtStats = "";
+  }
+}
+
+// Carte sans image : image cherchée sur Wikimedia (réglage « missingImages »), jamais pour une image
+// que le site a masquée. Si l'on ne sait pas encore si elle l'a été, la carte est d'abord relue.
+function fillMissingImage(tile, info, {art, placeholder}, title) {
+  if (!isOn("missingImages") || !visible.has(tile) || !art || !placeholder || info.image_url) return;
+  if (art.querySelector(".wmt-fallback-img") || info.hide_image === true) return;
+  if (info.hide_image !== false) {
+    resolveCard(title);
+    return;
+  }
+  wikiImage(title, info.category || "").then((src) => {
+    if (!src || !art.isConnected || art.querySelector(".wmt-fallback-img")) return;
+    const img = document.createElement("img");
+    img.className = "wmt-fallback-img";
+    img.alt = "";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.addEventListener("error", () => {
+      img.remove();
+      if (art.dataset.wmtArt === "filled") art.dataset.wmtArt = "empty";
+    });
+    img.src = src;
+    art.append(img);
+    if ("wmtArt" in art.dataset) {
+      art.dataset.wmtArt = "filled";
+      fitArt(art);
+    }
+  });
+}
+
 function decorateTile(tile, version) {
   const titleEl = tile.querySelector(SEL.tileTitle);
   if (!titleEl) return;
@@ -166,6 +281,9 @@ function decorateTile(tile, version) {
   // affichés suffisent pour le thème et le lien Wikipédia.
   const info = lookupTitle(title) || {title, category: titleEl.parentElement?.querySelector("p")?.textContent.trim() || "", dom: true};
   const rarity = (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase() || info?.rarity;
+  const parts = tileParts(tile, titleEl);
+  styleTile(tile, parts, rarity, title);
+  fillMissingImage(tile, info, parts, title);
   const path = currentPath();
   const onMyCollection = path.startsWith("/collection");
   let box = tile.querySelector(":scope > .wmt-tile-badges");
@@ -232,22 +350,6 @@ function decorateTile(tile, version) {
     a.addEventListener("click", (e) => e.stopPropagation());
     box.append(a);
   }
-
-  if (isOn("missingImages") && visible.has(tile)) {
-    const placeholder = tile.querySelector(SEL.placeholderImg);
-    const area = placeholder?.closest("div[class*='h-[45%]']") || placeholder?.parentElement?.parentElement;
-    if (placeholder && area && !area.querySelector(".wmt-fallback-img") && !info.image_url) {
-      wikiThumbnail(title).then((src) => {
-        if (!src || !area.isConnected || area.querySelector(".wmt-fallback-img")) return;
-        const img = document.createElement("img");
-        img.className = "wmt-fallback-img";
-        img.src = src;
-        img.alt = "";
-        img.referrerPolicy = "no-referrer";
-        area.append(img);
-      });
-    }
-  }
 }
 
 // --- Bouton « Tout ouvrir » à côté du bouton « Ouvrir » de la page Paquets
@@ -287,6 +389,15 @@ function place(host, anchor) {
   return host;
 }
 
+// Pendant la révélation, « Continuer » est dans un bloc qui prend la largeur de la carte (≈ 290 px) :
+// le récapitulatif se place après ce bloc, dans la colonne de la page, où il a toute sa largeur.
+const RECAP_MIN_WIDTH = 560;
+function revealBlock(button) {
+  let block = button;
+  while (block.parentElement && block.parentElement.tagName !== "MAIN" && block.parentElement.getBoundingClientRect().width < RECAP_MIN_WIDTH) block = block.parentElement;
+  return block;
+}
+
 // Élément de l'écran d'accueil sous lequel on s'insère : le compteur de paquets qui suit « Ouvrir »
 function homeAnchor() {
   const open = findButton((t) => t === "Ouvrir" || t.startsWith("Ouverture"));
@@ -309,7 +420,7 @@ function ensurePullsWidgets() {
       if (reveal) revealSeenFor = r.at;
       if (reveal?.textContent.trim() === "Continuer") {
         markRevealed();
-        recapAnchor = reveal;
+        recapAnchor = revealBlock(reveal);
       } else if (!reveal && revealSeenFor === r.at && home) {
         // « Continuer » cliqué : retour à l'accueil, on n'y laisse pas l'ancien récapitulatif
         dismissRecap();
@@ -400,6 +511,7 @@ function ensureCardInsight() {
     category: info.category || titleEl.parentElement?.parentElement?.querySelector("p")?.textContent.trim() || "",
     summary: info.summary || "",
     image_url: info.image_url || null,
+    hide_image: info.hide_image ?? null,
     owned: info.owned ?? null,
     onMyCollection: currentPath().startsWith("/collection"),
   };

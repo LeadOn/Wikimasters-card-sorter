@@ -24,7 +24,8 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `GET /api/my-collection/stats?sort=rarity` | `{total, totalUnique, rarityCounts, tagOptions: [{id, name, color, cardCount}]}` |
 | Supabase `user_cards?select=*,cards(*)` | exemplaires du joueur avec la carte complète (résumé compris) |
 | Supabase `tags`, `user_card_tags`, `wishlist_items` | étiquettes, associations, liste de souhaits |
-| `POST /api/user-cards/{id}/discard`, `POST /api/user-cards/bulk-discard {card_ids}` | défausse (non utilisé) |
+| `POST /api/user-cards/{id}/discard` (sans corps, `id` d'un exemplaire `user_cards`) | défausse contre 1 WikiBidou ; réponse JSON, `{error}` si refusée (favori verrouillé, carte engagée dans un échange…). Utilisée par le récapitulatif de paquet |
+| `POST /api/user-cards/bulk-discard {card_ids}` | défausse groupée : `{discarded_count, failed}` (non utilisé) |
 
 ## Catalogue
 
@@ -47,7 +48,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `GET /api/marketplace?page=1&limit=50&sort=…[&q=…][&rarity=…][&mine=1]` | `{auctions, hasMore}` ; avec `mine=1` : `selling`, `bidding`, `won`, `history` |
 | `GET /api/marketplace/mine` | `{sellingCount, maxConcurrentAuctions}` |
 | `GET /api/marketplace/{id}` | `{auction, bids}` |
-| `POST /api/marketplace {card_id, base_amount, duration_minutes}` | `{auction_id}` — durées : 10, 30, 60, 180, 360, 720 |
+| `POST /api/marketplace {card_id, base_amount, duration_minutes}` | `{auction_id}` — **`card_id` est l'id de l'exemplaire (`user_cards.id`)**, pas celui de la carte (relevé dans le formulaire du site : `userCardId` → `card_id`) ; avec un id de carte, le site répond que la carte n'est pas possédée. Un favori ne peut pas être mis en vente. Durées : 10, 30, 60, 180, 360, 720 |
 | `POST /api/marketplace/{id}/bid {amount}` | erreurs : `bid_too_low` (+ `min`), `insufficient_balance`, `human_verification_required` |
 | `GET /api/marketplace/cards/{card_id}/sales?scope=summary` | `{summary: {RARETÉ: {average, count, latest}}, isPro}` — **~12 s par carte**, souvent en 500 : dernier recours seulement |
 | Supabase `auctions?status=eq.settled_sold&card_id=in.(…)&select=card_id,snapshot_rarity,final_price,settled_at&order=card_id,settled_at.desc` | ventes conclues, lisibles directement, **par lots de cartes** (pagination 1 000 lignes). Le résumé du site = par rareté, moyenne arrondie des 200 dernières ventes, nombre, dernière vente (`core/prices.js` → `summarizeSales`). Lots pondérés par rareté (`priceBatches`) : un lot de cartes rares trop gros dépasse le délai du serveur (`57014`). |
@@ -75,3 +76,6 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
   `rounded-2xl`, avec le titre dans un `h3`. Pas d'identifiant dans le DOM : la carte est retrouvée
   par son titre dans les réponses observées.
 - Menu : `nav a[href="/collection"]`, `/trades`, `/marketplace`, `/pulls`, `/global-collection`, …
+- Solde de WikiBidous affiché : le site le relit quand `window` reçoit l'événement
+  `wikimasters:wikibidous-balance-refresh` (`window.dispatchEvent(new CustomEvent(…))`, ce qu'il fait
+  lui-même après une défausse). L'extension l'émet après chaque défausse.

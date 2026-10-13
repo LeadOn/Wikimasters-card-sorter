@@ -19,7 +19,7 @@ export function CardInsight({card}) {
   const add = (familyId) => {
     const family = list.find((f) => f.id === familyId);
     if (!family) return;
-    addCard(family.id, {id: card.id, wikipedia_title: card.title, rarity: card.rarity, category: card.category, image_url: card.image_url});
+    addCard(family.id, {id: card.id, wikipedia_title: card.title, rarity: card.rarity, category: card.category, image_url: card.image_url, hide_image: card.hide_image});
     toast(`« ${card.title} » ajoutée à la famille « ${family.name} ».`, {type: "ok"});
   };
   return (

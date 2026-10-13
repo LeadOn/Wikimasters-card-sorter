@@ -47,7 +47,7 @@ function sessionCookie({userId = "user-1", token, expiresAt}) {
 // Réponse HTTP minimale pour un faux fetch
 function response(status, body, headers = {}) {
   const text = body == null ? "" : typeof body === "string" ? body : JSON.stringify(body);
-  return {ok: status >= 200 && status < 300, status, headers: new Headers(headers), text: async () => text};
+  return {ok: status >= 200 && status < 300, status, headers: new Headers(headers), text: async () => text, json: async () => JSON.parse(text)};
 }
 
 module.exports = {loadExtensionModule, fakeJwt, sessionCookie, response};

@@ -154,10 +154,12 @@ export const spareValue = (s) => priceOf(s.card_id, s.rarity);
 // Mise en vente d'un exemplaire (le site choisit l'exemplaire). Après confirmation du joueur.
 // Sans réponse du site, la vente a peut-être eu lieu : la liste est relue avant toute nouvelle
 // tentative, pour ne pas mettre en vente un deuxième exemplaire par erreur.
-export async function sellCard({cardId, baseAmount, durationMinutes}) {
+// userCardId : l'exemplaire mis en vente (user_cards.id) ; cardId : la carte, pour la liste des doublons
+export async function sellCard({userCardId, cardId, baseAmount, durationMinutes}) {
+  if (!userCardId) throw new Error("Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection.");
   let res;
   try {
-    res = await site.createAuction({cardId, baseAmount, durationMinutes});
+    res = await site.createAuction({userCardId, baseAmount, durationMinutes});
   } catch (e) {
     if (e.uncertain) {
       invalidateCollection();

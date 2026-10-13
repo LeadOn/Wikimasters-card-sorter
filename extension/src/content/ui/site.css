@@ -47,6 +47,109 @@
   object-fit: cover;
   z-index: 1;
 }
+
+/* --- Nouvel affichage des cartes. Les parties de la carte sont repérées par site-dom.js
+   (data-wmt-*) : aucun sélecteur du site ici. La texture de rareté du site, en fond, devient le cadre ;
+   l'image occupe tout l'intérieur ; titre, description, étiquettes et statistiques passent dessus,
+   sur un voile sombre en bas. Tailles relatives à la carte (unités cqw) : même rendu en grille et en grand. */
+[data-wmt-card] {
+  container-type: inline-size;
+  --wmt-frame: clamp(3px, 2.4cqw, 7px);
+  --wmt-ink: #121211;
+  --wmt-bone: #eeece5;
+}
+[data-wmt-card][data-wmt-r="L"] { --wmt-rc: #ffe144; }
+[data-wmt-card][data-wmt-r="UR"] { --wmt-rc: #fa9931; }
+[data-wmt-card][data-wmt-r="SR"] { --wmt-rc: #ed6fa3; }
+[data-wmt-card][data-wmt-r="R"] { --wmt-rc: #c6a7f2; }
+[data-wmt-card][data-wmt-r="PC"] { --wmt-rc: #b1cff2; }
+[data-wmt-card][data-wmt-r="C"] { --wmt-rc: #b8f2d5; }
+[data-wmt-card] > [data-wmt-art] {
+  inset: var(--wmt-frame);
+  height: auto;
+  border-radius: calc(1rem - var(--wmt-frame));
+  overflow: hidden;
+  background: #191917;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+/* Voile du bas, sous le texte */
+[data-wmt-card] > [data-wmt-art]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(18, 18, 17, 0) 36%, rgba(18, 18, 17, 0.55) 56%, rgba(18, 18, 17, 0.93) 78%, rgba(18, 18, 17, 0.97) 100%);
+}
+[data-wmt-card] [data-wmt-placeholder] { visibility: hidden; }
+/* Image large : en entier en haut de la carte, sur sa propre copie floutée et assombrie */
+[data-wmt-art][data-wmt-fit="wide"] img:not(.wmt-art-backdrop) {
+  object-fit: contain !important;
+  object-position: center 22% !important;
+}
+.wmt-art-backdrop {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(14px) brightness(0.5) saturate(1.15);
+  z-index: 0;
+  pointer-events: none;
+}
+/* Sans image : l'initiale du titre, en grand, dans la couleur de la rareté */
+[data-wmt-card] > [data-wmt-art="empty"]::before {
+  content: attr(data-wmt-initial);
+  position: absolute;
+  inset: 0 0 40% 0;
+  display: grid;
+  place-items: center;
+  font: 400 clamp(44px, 36cqw, 120px)/1 Georgia, "Times New Roman", serif;
+  color: color-mix(in srgb, var(--wmt-rc, var(--wmt-bone)) 60%, transparent);
+}
+[data-wmt-card] > [data-wmt-body] {
+  top: auto;
+  left: var(--wmt-frame);
+  right: var(--wmt-frame);
+  bottom: var(--wmt-frame);
+  z-index: 25;
+  padding: 0 calc(5px + 2cqw) calc(2px + 1.5cqw);
+  font-family: "WMT Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--wmt-bone);
+}
+[data-wmt-card] > [data-wmt-body] > h3 {
+  font-family: inherit !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+[data-wmt-card] > [data-wmt-body] > p {
+  margin-top: 2px;
+  color: rgba(238, 236, 229, 0.72);
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+/* Étiquettes du joueur : leur couleur de fond est gardée, le texte passe en clair */
+[data-wmt-card] [data-wmt-tag] {
+  color: #fff !important;
+  font-family: inherit;
+}
+[data-wmt-card] [data-wmt-stats] { border-top-color: rgba(238, 236, 229, 0.16); }
+[data-wmt-card] [data-wmt-stat] > span {
+  color: var(--wmt-bone);
+  font-variant-numeric: tabular-nums;
+}
+[data-wmt-card] [data-wmt-stat="atk"] > svg { color: #ff8a78; }
+[data-wmt-card] [data-wmt-stat="def"] > svg { color: #8fb3ff; }
+[data-wmt-card] > [data-wmt-rarity] {
+  font-family: "WMT Mono", ui-monospace, Menlo, monospace;
+  font-weight: 600;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45) !important;
+}
+[data-wmt-card] > .wmt-tile-badges { top: calc(var(--wmt-frame) + 5px); right: calc(var(--wmt-frame) + 5px); }
+[data-wmt-card] > .wmt-tile-badges.wmt-below-controls { top: calc(var(--wmt-frame) + 36px); }
 .wmt-open-all {
   display: inline-flex;
   align-items: center;

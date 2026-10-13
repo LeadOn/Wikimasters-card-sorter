@@ -21,12 +21,17 @@ function matchesFamilyRule(card, rule) {
 }
 
 // Carte réduite à ce qu'une famille conserve
+// hide_image : image masquée par le site (true), visible (false) ou inconnu (null). Une carte sans
+// image n'est complétée par une image de Wikimedia que si l'on sait qu'elle n'a pas été masquée.
+const hidden = (v) => (v == null ? null : Boolean(v));
+
 const compactCard = (c) => ({
   id: c.id || c.card_id,
   title: c.wikipedia_title || c.title,
   rarity: c.rarity || null,
   category: c.category || "",
   image_url: c.image_url || null,
+  hide_image: hidden(c.hide_image),
 });
 
 function familyProgress(family, ownedCardIds) {
@@ -42,7 +47,8 @@ function familyToShare(family) {
     name: family.name,
     kind: family.kind,
     rule: family.kind === "smart" ? family.rule : undefined,
-    cards: family.cards.map((c) => [c.id, c.title, c.rarity || "", c.category || "", c.image_url || ""]),
+    // 6e valeur : image masquée (1), visible (0), inconnue (absente) ; ignorée par les anciennes versions
+    cards: family.cards.map((c) => [c.id, c.title, c.rarity || "", c.category || "", c.image_url || "", ...(c.hide_image == null ? [] : [c.hide_image ? 1 : 0])]),
     cover: family.cover || null,
   };
 }
@@ -59,10 +65,10 @@ function familyFromShare(payload) {
   const seen = new Set();
   for (const entry of payload.cards) {
     if (!Array.isArray(entry)) continue;
-    const [id, title, rarity, category, image_url] = entry;
+    const [id, title, rarity, category, image_url, hideImage] = entry;
     if (typeof id !== "string" || !id || seen.has(id)) continue;
     seen.add(id);
-    cards.push({id, title: text(title), rarity: RARITIES.includes(rarity) ? rarity : null, category: text(category), image_url: httpUrl(image_url)});
+    cards.push({id, title: text(title), rarity: RARITIES.includes(rarity) ? rarity : null, category: text(category), image_url: httpUrl(image_url), hide_image: hideImage === 1 ? true : hideImage === 0 ? false : null});
   }
   const smart = payload.kind === "smart";
   const rule = smart && payload.rule && typeof payload.rule === "object" ? payload.rule : null;

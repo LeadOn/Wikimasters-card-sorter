@@ -43,9 +43,12 @@ export const site = {
   wikibidous: () => siteGet("/api/wikibidous"),
   trades: () => siteGet("/api/trades"),
   // Écritures : chacune est déclenchée par un clic du joueur
-  createAuction: ({cardId, baseAmount, durationMinutes}) =>
-    sitePost("/api/marketplace", {card_id: cardId, base_amount: baseAmount, duration_minutes: durationMinutes}),
+  // Malgré son nom, card_id attend l'id de l'EXEMPLAIRE (user_cards.id), comme le formulaire du site
+  createAuction: ({userCardId, baseAmount, durationMinutes}) =>
+    sitePost("/api/marketplace", {card_id: userCardId, base_amount: baseAmount, duration_minutes: durationMinutes}),
   bid: (auctionId, amount) => sitePost(`/api/marketplace/${auctionId}/bid`, {amount}),
+  // Défausse d'un exemplaire (id de user_cards) contre 1 WikiBidou ; refusée pour un favori ou une carte en échange
+  discard: (userCardId) => sitePost(`/api/user-cards/${encodeURIComponent(userCardId)}/discard`),
   openPack: () => sitePost("/api/packs/open", undefined, {timeout: 60000}),
 };
 

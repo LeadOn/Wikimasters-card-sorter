@@ -45,10 +45,19 @@ test("prix : moyenne par rareté, valeur et doublons vendables", () => {
   assert.equal(core.averagePrice(summary, "L"), null);
   const prices = new Map([["a", summary]]);
   assert.deepEqual(core.collectionValue([{card_id: "a", rarity: "UR", count: 2}, {card_id: "b", rarity: "C"}], prices), {value: 638, priced: 2, total: 3});
-  const spares = core.spareCards([{card_id: "a", rarity: "SR"}, {card_id: "a", rarity: "UR", starred: true}, {card_id: "b"}]);
+  const spares = core.spareCards([{id: "u1", card_id: "a", rarity: "SR"}, {id: "u2", card_id: "a", rarity: "UR", starred: true}, {id: "u3", card_id: "b"}]);
   assert.equal(spares.length, 1);
   assert.equal(spares[0].spare, 1);
   assert.equal(spares[0].rarity, "SR", "on vend d'abord l'exemplaire le moins rare");
+  assert.equal(spares[0].sellCopyId, "u1", "le site attend l'id de l'exemplaire");
+  // Jamais un favori, même moins rare ; une shiny en dernier ; plusieurs exemplaires sur une ligne (count)
+  const [a] = core.spareCards([{id: "u1", card_id: "a", rarity: "C", starred: true}, {id: "u2", card_id: "a", rarity: "R", is_shiny: true}, {id: "u3", card_id: "a", rarity: "R"}]);
+  assert.deepEqual([a.sellCopyId, a.rarity], ["u3", "R"]);
+  const [b] = core.spareCards([{id: "u1", card_id: "a", rarity: "C", count: 3}]);
+  assert.deepEqual([b.sellCopyId, b.spare], ["u1", 2]);
+  // Tous en favori : rien à mettre en vente
+  const [c] = core.spareCards([{id: "u1", card_id: "a", rarity: "C", starred: true}, {id: "u2", card_id: "a", rarity: "R", starred: true}]);
+  assert.deepEqual([c.sellCopyId, c.rarity], [null, "C"]);
 });
 
 test("familles : règle, progression, partage", async () => {
@@ -106,14 +115,25 @@ test("import d'une famille : champs vérifiés un à un", () => {
     name: "  Mix  ",
     kind: "smart",
     rule: {query: 42, keywords: "a", themes: ["Sports", 3], rarities: ["UR", "ZZ"]},
-    cards: [["1", "Yoda", "UR", "personnage", "javascript:alert(1)"], "pas une carte", [null, "sans id"], ["1", "Yoda bis"], ["2", "Vador", "XX", 5, "https://x/y.png"]],
+    cards: [
+      ["1", "Yoda", "UR", "personnage", "javascript:alert(1)", 1],
+      "pas une carte",
+      [null, "sans id"],
+      ["1", "Yoda bis"],
+      ["2", "Vador", "XX", 5, "https://x/y.png"],
+      ["3", "Leia", "R", "", "", 0],
+      ["4", "Han", "R", "", "", "oui"],
+    ],
     cover: "inconnue",
   });
   assert.equal(back.name, "Mix");
   assert.deepEqual(back.rule, {query: "", keywords: "a", exclude: "", themes: ["Sports"], rarities: ["UR"]});
+  // 6e valeur : image masquée (1) ou visible (0) ; absente (ancien code) ou invalide → inconnue
   assert.deepEqual(back.cards, [
-    {id: "1", title: "Yoda", rarity: "UR", category: "personnage", image_url: null},
-    {id: "2", title: "Vador", rarity: null, category: "", image_url: "https://x/y.png"},
+    {id: "1", title: "Yoda", rarity: "UR", category: "personnage", image_url: null, hide_image: true},
+    {id: "2", title: "Vador", rarity: null, category: "", image_url: "https://x/y.png", hide_image: null},
+    {id: "3", title: "Leia", rarity: "R", category: "", image_url: null, hide_image: false},
+    {id: "4", title: "Han", rarity: "R", category: "", image_url: null, hide_image: null},
   ]);
   assert.equal(back.cover, null);
   assert.throws(() => core.familyFromShare({name: "", cards: []}), /illisible/);

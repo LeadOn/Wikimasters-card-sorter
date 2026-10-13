@@ -1,13 +1,16 @@
 // Récapitulatif du dernier paquet : bloc intégré à la page Paquets (et à l'onglet Paquets de la
 // Toolbox), jamais une fenêtre. Les prix arrivent pendant la révélation des cartes ; tant qu'ils
-// ne sont pas là, un indicateur de chargement les remplace.
+// ne sont pas là, un indicateur de chargement les remplace. Chaque carte peut être mise aux
+// enchères ou défaussée sur place, toujours après confirmation.
+import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
-import {recapState, dismissRecap} from "../features/packs";
+import {recapState, dismissRecap, discardPulled, markListed} from "../features/packs";
 import {planSort} from "../features/sorter";
 import {priceOf, priceStatus, priceVersion} from "../state/prices";
 import {isOn} from "../state/settings";
-import {Icon, Mark, Money, Rarity, ThemeChip, plural} from "./components";
-import {toast, errorMessage} from "./feedback";
+import {Icon, Mark, Money, Rarity, ThemeChip, fmt, plural, useWikiImage} from "./components";
+import {toast, errorMessage, confirmAction} from "./feedback";
+import {askSell} from "./SellDialog";
 import {emit} from "../lib/bus";
 import {categorize, isThemeTag, DOUBLON} from "../../../../core";
 import {mountIsland} from "./islands/mount";
@@ -18,6 +21,90 @@ function Price({card, loading}) {
   if (loading || status === "unknown") return <span class="spinner" aria-label="Chargement du prix" />;
   if (status === "error") return <span class="recap-price none" title="Le serveur n'a pas répondu ; nouvel essai dans quelques minutes">?</span>;
   return <span class="recap-price none" title="Cette carte n'a jamais été vendue dans cette rareté">aucune vente</span>;
+}
+
+// Vignette : image de la carte, sinon image de Wikimedia (jamais pour une image masquée par le site)
+function Thumb({card}) {
+  const own = card.hide_image ? null : card.image_url;
+  const fallback = useWikiImage({...card, image_url: own});
+  const src = own || fallback;
+  return src ? <img class="recap-thumb" src={src} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="recap-thumb" />;
+}
+
+// Mettre aux enchères ou défausser l'exemplaire tiré ; une fois fait, ce qu'il en est advenu
+function CardActions({card, index, at}) {
+  const [busy, setBusy] = useState(false);
+  const done = card.action;
+  if (done?.kind === "discarded") return <span class="chip">Défaussée · +1 ₩</span>;
+  if (done?.kind === "listed") return <span class="chip accent">En vente · {fmt(done.baseAmount)} ₩</span>;
+  if (done?.kind === "uncertain")
+    return (
+      <span class="chip warn" title="Le site n'a pas répondu : vérifiez sur WikiMasters avant de recommencer">
+        {done.what === "discard" ? "Défausse" : "Vente"} à vérifier
+      </span>
+    );
+
+  const sell = async () => {
+    const sale = await askSell({
+      card,
+      userCardId: card.user_card_id,
+      rarity: card.rarity,
+      badges: [card.isNew === true && {label: "Nouvelle", type: "ok"}, card.is_shiny && {label: "Shiny", type: "warn", icon: "shine"}],
+      note: card.isNew === true ? "C'est votre seul exemplaire : il est mis en réserve pendant l'enchère." : "Un exemplaire est mis en réserve pendant l'enchère.",
+    });
+    markListed(at, index, sale);
+  };
+
+  const discard = async () => {
+    const price = priceOf(card.id, card.rarity);
+    const ok = await confirmAction({
+      title: `Défausser « ${card.wikipedia_title} » ?`,
+      body: [
+        "La carte quitte votre collection contre 1 WikiBidou. C'est définitif.",
+        card.isNew === true ? "C'est votre seul exemplaire." : card.isNew === false ? "Il vous en reste au moins un autre exemplaire." : "",
+        card.is_shiny ? "Attention : c'est une carte shiny." : "",
+        price > 1 ? `Elle se vend en moyenne ${fmt(price)} ₩ dans cette rareté : la mettre aux enchères rapporterait sans doute plus.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      confirm: "Défausser (+1 ₩)",
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await discardPulled(at, index);
+      toast(`${card.wikipedia_title} défaussée : +1 WikiBidou.`, {type: "ok"});
+    } catch (e) {
+      toast(errorMessage(e), {type: "error", duration: 10000});
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div class="recap-actions">
+      <button
+        class="btn sm ghost"
+        disabled={busy || !card.user_card_id}
+        title={card.user_card_id ? "Mettre aux enchères" : "Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection"}
+        onClick={sell}
+      >
+        <Icon name="market" size={14} />
+        <span class="label">Vendre</span>
+      </button>
+      <button
+        class="btn sm ghost"
+        disabled={busy || !card.user_card_id}
+        title={card.user_card_id ? "Défausser contre 1 WikiBidou" : "Exemplaire introuvable : défaussez cette carte depuis votre collection"}
+        onClick={discard}
+      >
+        {busy ? <span class="spinner" aria-label="Défausse en cours" /> : <Icon name="discard" size={14} />}
+        <span class="label">Défausser</span>
+        <span class="gain">+1</span>
+      </button>
+    </div>
+  );
 }
 
 // Étiquettes posées par le tri automatique (ou thème calculé si l'option est désactivée)
@@ -58,7 +145,7 @@ export function PackRecapView({onClose, compact = false}) {
     <section class="recap" aria-label="Récapitulatif du paquet">
       <header class="recap-head">
         <Mark size={22} />
-        <div style={{flex: 1, minWidth: 0}}>
+        <div class="recap-heading">
           <div class="recap-title">{recap.packs > 1 ? `${recap.packs} paquets ouverts` : "Récapitulatif du paquet"}</div>
           <div class="recap-sub">
             {plural(recap.cards.length, "carte")}
@@ -77,8 +164,8 @@ export function PackRecapView({onClose, compact = false}) {
       </header>
       <ul class={`recap-list${compact ? " compact" : ""}`}>
         {recap.cards.map((c, i) => (
-          <li key={`${c.id}-${i}`} class="recap-row" style={{"--rc": `var(--r-${c.rarity || "C"})`}}>
-            {c.image_url && !c.hide_image ? <img class="recap-thumb" src={c.image_url} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="recap-thumb" />}
+          <li key={`${c.id}-${i}`} class={`recap-row${c.action?.kind === "discarded" ? " gone" : ""}`} style={{"--rc": `var(--r-${c.rarity || "C"})`}}>
+            <Thumb card={c} />
             <div class="recap-card">
               <div class="recap-name" title={c.wikipedia_title}>{c.wikipedia_title}</div>
               <div class="recap-meta">
@@ -93,7 +180,12 @@ export function PackRecapView({onClose, compact = false}) {
                 <SortTags card={c} sort={recap.sort} index={i} />
               </div>
             </div>
-            <Price card={c} loading={loading} />
+            <div class="recap-value">
+              <Price card={c} loading={loading} />
+            </div>
+            <div class="recap-do">
+              <CardActions card={c} index={i} at={recap.at} />
+            </div>
           </li>
         ))}
       </ul>

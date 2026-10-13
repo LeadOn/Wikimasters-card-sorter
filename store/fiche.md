@@ -41,7 +41,7 @@ PRIX ET MARCHÉ
 • Valeur de chaque côté des échanges en cours.
 
 PAQUETS
-• Récapitulatif après un paquet : nouveautés, doublons, prix moyen de chaque carte, valeur totale.
+• Récapitulatif après un paquet : nouveautés, doublons, prix moyen de chaque carte, valeur totale ; chaque carte se met aux enchères ou se défausse sur place.
 • Taux de drop par rareté.
 • « Tout ouvrir » : seulement sur votre clic, après confirmation. Aucune ouverture automatique.
 
