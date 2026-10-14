@@ -9,7 +9,7 @@ import {recapState, dismissRecap, discardPulledMany, markListed, packsStatus} fr
 import {planSort} from "../features/sorter";
 import {priceOf, priceInfo, priceStatus, priceVersion, uncertainNote} from "../state/prices";
 import {isOn} from "../state/settings";
-import {Icon, Mark, Money, Rarity, ThemeChip, fmt, plural, useWikiImage} from "./components";
+import {CardArt, Icon, Mark, Money, Rarity, ThemeChip, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {confirmDiscardMany} from "./discard";
 import {askSell} from "./SellDialog";
@@ -31,13 +31,9 @@ function Price({card, loading}) {
   return <span class="recap-price none" title={`Cette carte n'a jamais été vendue${card.is_shiny ? " en shiny" : ""} dans cette rareté`}>aucune vente</span>;
 }
 
-// Vignette : image de la carte, sinon image de Wikimedia (jamais pour une image masquée par le site)
-function Thumb({card}) {
-  const own = card.hide_image ? null : card.image_url;
-  const fallback = useWikiImage({...card, image_url: own});
-  const src = own || fallback;
-  return src ? <img class="recap-thumb" src={src} alt="" loading="lazy" referrerpolicy="no-referrer" /> : <div class="recap-thumb" />;
-}
+// Vignette : image de la carte, sinon image de Wikimedia (jamais pour une image masquée par le site),
+// sinon la carte sans image du site
+const Thumb = ({card}) => <CardArt card={{...card, image_url: card.hide_image ? null : card.image_url}} rarity={card.rarity} class="recap-thumb" />;
 
 // Exemplaire encore entre les mains du joueur : il peut être défaussé ou mis aux enchères
 const available = (c) => Boolean(c.user_card_id) && !c.action;

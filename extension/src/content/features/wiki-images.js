@@ -7,7 +7,12 @@
 //   5. affiche, logo, blason ou drapeau de l'élément Wikidata ;
 //   6. image principale de l'article dans une autre langue, trouvé par les liens de l'élément
 //      Wikidata (quelques Wikipédias au plus, des plus suivies aux plus petites) ;
-//   7. carte de localisation (lieux).
+//   7. toute autre image de l'élément Wikidata (« image apparentée », vue aérienne, sceau, structure
+//      chimique…, la signature en dernier) ;
+//   8. carte de localisation (lieux) ;
+//   9. en dernier recours, l'image d'un élément Wikidata lié qui représente le sujet : son éponyme
+//      (« nommé d'après »), l'œuvre adaptée, la série ou la franchise, l'interprète, l'auteur ou le
+//      créateur, le sujet traité, l'organisation mère.
 // (Les photos d'une catégorie Commons, trop souvent sans rapport avec le sujet, ne sont pas utilisées.)
 // Une page d'homonymie n'a pas d'image.
 // Prudence : seules les images principales des articles de Wikipédia (1, 3 et 6) sont choisies et
@@ -27,17 +32,27 @@ const KEY = "wikiImages";
 const WIDTH = 640;
 const MISS_TTL = 7 * 24 * 3600 * 1000;
 // Version des sources : à augmenter quand une source est ajoutée, pour refaire les recherches vaines
-const SOURCES = 2;
+const SOURCES = 3;
 // Propriétés Wikidata essayées après l'article anglais, dans cet ordre
 const FALLBACK_PROPS = ["P3383", "P154", "P94", "P41"]; // affiche, logo, blason, drapeau
 const MAP_PROP = "P242"; // carte de localisation
-const MAX_MEMBERS = 4;
+// Autres fichiers de l'élément (7) : toute propriété de type fichier, « image apparentée » d'abord et
+// signature en dernier, sauf l'image principale, celles déjà essayées, les cartes et la tombe
+const RELATED_IMAGE = "P6802";
+const SIGNATURE = "P109";
+const NOT_OTHER = new Set(["P18", ...FALLBACK_PROPS, MAP_PROP, "P1943", "P1621", "P15", "P181", "P1846", "P491", "P207", "P1442"]);
+// Éléments liés : membres d'un duo ou d'un groupe (« composé de », 4) ; en dernier recours (9),
+// éponyme, œuvre adaptée, série, franchise, interprète, auteur, créateur, compositeur, sujet
+// principal, organisation mère
+const MEMBER_PROPS = ["P527"];
+const LINKED_PROPS = ["P138", "P144", "P179", "P8345", "P175", "P50", "P170", "P86", "P921", "P749"];
+const MAX_LINKED = 4;
 // Autres Wikipédias, par ordre de préférence : les éditions les plus suivies (pas celles qu'un robot
 // remplit d'articles de lieux illustrés par une carte vierge). Avec l'anglais, 50 au plus (sitefilter).
 const OTHER_WIKIS = ["de", "es", "it", "nl", "pt", "ru", "pl", "sv", "ja", "zh", "uk", "cs", "ca", "fi", "no", "da", "hu", "ro", "ar", "fa", "he", "tr", "ko", "vi", "id", "el", "sr", "bg", "ka", "hy", "eu", "gl", "et", "lt", "lv", "sk", "sl", "hr", "be", "kk", "th", "hi", "bn"];
 const MAX_WIKIS = 5;
 // Fichier sans rapport avec le sujet : carte, image « manquante », fichier qui n'est pas une image
-const GENERIC = /(^|[^a-z])(maps?|locator)([^a-z]|$)|missing|falta[\W_]imag|ne[\W_]havas|no[\W_]?image|sin[\W_]imagen|kein[\W_]bild|replace[\W_]this|image[\W_]manquante|placeholder|silhouette|silueta|\.(pdf|djvu|ogv|webm|ogg|oga|mp3|wav|flac|midi?|opus)$/i;
+const GENERIC = /(^|[^a-z])(maps?|locator)([^a-z]|$)|missing|falta[\W_]imag|ne[\W_]havas|no[\W_]?image|sin[\W_]imagen|kein[\W_]bild|replace[\W_]this|image[\W_]manquante|placeholder|silhouette|silueta|\.(pdf|djvu|ogv|webm|ogg|oga|mp3|wav|flac|midi?|opus|stl)$/i;
 // Sujet sensible, d'après le titre et la description courte de la carte
 const SENSITIVE = /\bsex|porno|érot|nudit|\bnue?s?\b|génit|pénis|vagin|vulv|clitor|\banus\b|\banal\b|mammaire|prostitu|fétich|bdsm|masturb|orgasm|chirurg|opératoire|amputa|plastie\b|ectomie\b|maladie|syndrome|infection|tumeur|cancer|lésion|blessure|cadavre|autopsie|décapit|exécution|torture|massacre|génocide|suicide|meurtre|assassinat|tuerie|mutila|accouchement|fœtus|foetus|avortement|nécro|charnier/iu;
 const AGENT = `WikiMastersToolbox/${__VERSION__} (https://github.com/LeadOn/Wikimasters-card-sorter)`;
@@ -113,12 +128,32 @@ async function allowed(name) {
 
 const fileImage = async (name) => (name && (await allowed(name)) ? fileUrl(name) : null);
 
-// Photos des membres d'un duo ou d'un groupe (« composé de », P527)
-async function memberImages(entity) {
-  const ids = (entity?.claims?.P527 || []).map((c) => c.mainsnak?.datavalue?.value?.id).filter(Boolean).slice(0, MAX_MEMBERS);
-  if (!ids.length) return [];
-  const data = await entities(ids, "claims");
-  return ids.map((id) => claimValue(data?.entities?.[id], "P18")).filter(Boolean);
+// Premier fichier autorisé de la liste (noms de fichiers, null ignorés)
+async function firstImage(names) {
+  for (const name of names) {
+    const image = await fileImage(name);
+    if (image) return image;
+  }
+  return null;
+}
+
+// Autres fichiers de l'élément (voir NOT_OTHER), sans les cartes, sons et vidéos (GENERIC)
+function otherFiles(entity) {
+  const order = (p) => (p === RELATED_IMAGE ? 0 : p === SIGNATURE ? 2 : 1);
+  return Object.keys(entity?.claims || {})
+    .filter((p) => !NOT_OTHER.has(p) && entity.claims[p].some((c) => c.mainsnak?.datatype === "commonsMedia"))
+    .sort((a, b) => order(a) - order(b))
+    .map((p) => claimValue(entity, p))
+    .filter((name) => name && !GENERIC.test(name));
+}
+
+// Photo, sinon logo, des éléments liés par ces propriétés (MAX_LINKED éléments au plus)
+async function linkedImages(entity, props) {
+  const ids = props.flatMap((p) => (entity?.claims?.[p] || []).filter((c) => c.rank !== "deprecated").map((c) => c.mainsnak?.datavalue?.value?.id));
+  const unique = [...new Set(ids.filter(Boolean))].slice(0, MAX_LINKED);
+  if (!unique.length) return [];
+  const data = await entities(unique, "claims");
+  return unique.flatMap((id) => [claimValue(data?.entities?.[id], "P18"), claimValue(data?.entities?.[id], "P154")]);
 }
 
 // Image principale de l'article dans d'autres langues (liens de l'élément Wikidata)
@@ -153,15 +188,13 @@ export async function findWikiImage(title, context = "") {
       if (en.src) return en.src;
     }
     if (cautious) return null;
-    for (const name of await memberImages(entity)) {
-      const image = await fileImage(name);
-      if (image) return image;
-    }
-    for (const prop of FALLBACK_PROPS) {
-      const image = await fileImage(claimValue(entity, prop));
-      if (image) return image;
-    }
-    return (await otherWikiImage(entity)) || (await fileImage(claimValue(entity, MAP_PROP)));
+    return (
+      (await firstImage(await linkedImages(entity, MEMBER_PROPS))) ||
+      (await firstImage(FALLBACK_PROPS.map((p) => claimValue(entity, p)))) ||
+      (await otherWikiImage(entity)) ||
+      (await firstImage([...otherFiles(entity), claimValue(entity, MAP_PROP)])) ||
+      (await firstImage(await linkedImages(entity, LINKED_PROPS)))
+    );
   } catch (e) {
     if (e instanceof NetworkError) return undefined;
     return null;

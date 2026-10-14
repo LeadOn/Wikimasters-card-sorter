@@ -47,6 +47,9 @@ function fakeWikimedia({fr = {}, en = {}, wikis = {}, wikidata = {}, bad = [], s
 }
 
 const claim = (value, rank = "normal") => ({rank, mainsnak: {datavalue: {value}}});
+// Fichier (type commonsMedia) et élément lié (type wikibase-item), comme les renvoie wbgetentities
+const media = (value, rank = "normal") => ({rank, mainsnak: {datatype: "commonsMedia", datavalue: {value}}});
+const item = (id, rank = "normal") => ({rank, mainsnak: {datatype: "wikibase-item", datavalue: {value: {id}}}});
 const thumb = (name) => ({source: `https://upload.wikimedia.org/wikipedia/commons/thumb/${name}`});
 const filePath = (name) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(name)}?width=640`;
 // Page d'une autre Wikipédia, avec son image principale
@@ -154,6 +157,77 @@ test("images : puis l'article dans une autre langue, trouvé par les liens de l'
   assert.deepEqual(asked, ["fr", ...langs.slice(0, 5)].map((l) => `${l}.wikipedia.org`));
 });
 
+test("images : puis les autres fichiers de l'élément Wikidata, avant sa carte de localisation", async () => {
+  const m = load();
+  // « Image apparentée » d'abord, signature en dernier ; tombe, son, vidéo et cartes écartés
+  const claims = {
+    P109: [media("Signature.svg")],
+    P1442: [media("Tombe.jpg")],
+    P51: [media("Hymne.ogg")],
+    P1943: [media("Situation.png")],
+    P8592: [media("Vue aérienne.jpg")],
+    P6802: [media("Apparentée.jpg")],
+    P242: [media("Carte.svg")],
+  };
+  fakeWikimedia({fr: {Lieu: {pageprops: {wikibase_item: "Q1"}}}, wikidata: {Q1: {claims}}});
+  assert.equal(await m.findWikiImage("Lieu"), filePath("Apparentée.jpg"));
+  fakeWikimedia({fr: {Lieu: {pageprops: {wikibase_item: "Q1"}}}, wikidata: {Q1: {claims}}, bad: ["Apparentée.jpg"]});
+  assert.equal(await m.findWikiImage("Lieu"), filePath("Vue aérienne.jpg"));
+  const {P109, P1442, P51, P1943, P242} = claims;
+  fakeWikimedia({fr: {Lieu: {pageprops: {wikibase_item: "Q1"}}}, wikidata: {Q1: {claims: {P109, P1442, P51, P1943, P242}}}});
+  assert.equal(await m.findWikiImage("Lieu"), filePath("Signature.svg"));
+  fakeWikimedia({fr: {Lieu: {pageprops: {wikibase_item: "Q1"}}}, wikidata: {Q1: {claims: {P1442, P51, P1943, P242}}}});
+  assert.equal(await m.findWikiImage("Lieu"), filePath("Carte.svg"));
+  // Après les autres Wikipédias, dont les images principales sont choisies par leurs éditeurs
+  fakeWikimedia({
+    fr: {Lieu: {pageprops: {wikibase_item: "Q1"}}},
+    wikis: {de: {"Lieu (de)": illustrated("Photo.jpg")}},
+    wikidata: {Q1: {claims: {P6802: [media("Apparentée.jpg")]}, sitelinks: links({dewiki: "Lieu (de)"})}},
+  });
+  assert.match(await m.findWikiImage("Lieu"), /Photo\.jpg$/);
+});
+
+test("images : en dernier recours, l'image d'un élément lié (éponyme, série, auteur…)", async () => {
+  const m = load();
+  // Conjecture nommée d'après un mathématicien : son portrait ; jamais avant la carte de localisation
+  let calls = fakeWikimedia({
+    fr: {"Conjecture jacobienne": {pageprops: {wikibase_item: "Q1"}}},
+    wikidata: {Q1: {claims: {P138: [item("Q2")], P31: [item("Q3")]}}, Q2: {claims: {P18: [claim("Jacobi.jpg")]}}, Q3: {claims: {P18: [claim("Conjecture.jpg")]}}},
+  });
+  assert.equal(await m.findWikiImage("Conjecture jacobienne"), filePath("Jacobi.jpg"));
+  assert.equal(calls.at(-2).params.ids, "Q2", "« nature de l'élément » n'est pas un élément lié");
+  fakeWikimedia({
+    fr: {Rue: {pageprops: {wikibase_item: "Q1"}}},
+    wikidata: {Q1: {claims: {P138: [item("Q2")], P242: [media("Plan.svg")]}}, Q2: {claims: {P18: [claim("Portrait.jpg")]}}},
+  });
+  assert.equal(await m.findWikiImage("Rue"), filePath("Plan.svg"));
+  // Série sans photo : son logo ; élément obsolète ignoré, quatre éléments au plus en une requête
+  calls = fakeWikimedia({
+    fr: {Épisode: {pageprops: {wikibase_item: "Q1"}}},
+    wikidata: {
+      Q1: {claims: {P179: [item("Q9", "deprecated"), item("Q2")], P50: [item("Q3"), item("Q4"), item("Q5"), item("Q6")]}},
+      Q2: {claims: {P154: [claim("Série.svg")]}},
+      Q9: {claims: {P18: [claim("Ancienne.jpg")]}},
+    },
+  });
+  assert.equal(await m.findWikiImage("Épisode"), filePath("Série.svg"));
+  assert.equal(calls.find((c) => c.params.ids?.startsWith("Q2")).params.ids, "Q2|Q3|Q4|Q5");
+  // Fichier de la liste des images à ne pas afficher : le suivant
+  fakeWikimedia({
+    fr: {Chanson: {pageprops: {wikibase_item: "Q1"}}},
+    wikidata: {Q1: {claims: {P175: [item("Q2"), item("Q3")]}}, Q2: {claims: {P18: [claim("Interdite.jpg")]}}, Q3: {claims: {P18: [claim("Chanteur.jpg")]}}},
+    bad: ["Interdite.jpg"],
+  });
+  assert.equal(await m.findWikiImage("Chanson"), filePath("Chanteur.jpg"));
+  // Sujet sensible : aucun élément lié
+  calls = fakeWikimedia({
+    fr: {"Maladie de X": {pageprops: {wikibase_item: "Q1"}}},
+    wikidata: {Q1: {claims: {P138: [item("Q2")]}}, Q2: {claims: {P18: [claim("Médecin.jpg")]}}},
+  });
+  assert.equal(await m.findWikiImage("Maladie de X", "maladie neurologique"), null);
+  assert.ok(!calls.some((c) => c.params.ids === "Q2"));
+});
+
 test("images : sujet sensible → seulement les images principales des articles de Wikipédia", async () => {
   const m = load();
   const wikidata = {Q1: {claims: {P18: [claim("Photo opératoire.jpg")], P373: [claim("Vaginoplastie")]}, sitelinks: links({enwiki: "Vaginoplasty", dewiki: "Vaginoplastik"})}};
@@ -215,7 +289,7 @@ test("images : trop de requêtes → pause, rien n'est mémorisé ; le cache év
 test("images : une recherche vaine faite avant l'ajout d'une source est refaite", async () => {
   const t = Date.now();
   // v : version des sources (SOURCES) lors de la recherche ; absente avant les autres Wikipédias
-  const m = load({wikiImages: {Ancienne: {u: null, t}, Récente: {u: null, t, v: 2}, Trouvée: {u: "https://upload.wikimedia.org/x.jpg", t: 0}}});
+  const m = load({wikiImages: {Ancienne: {u: null, t}, Récente: {u: null, t, v: 3}, Trouvée: {u: "https://upload.wikimedia.org/x.jpg", t: 0}}});
   const calls = fakeWikimedia({fr: {Ancienne: {thumbnail: thumb("a.jpg")}, Récente: {thumbnail: thumb("r.jpg")}}});
   assert.match(await m.wikiImage("Ancienne"), /a\.jpg$/);
   assert.equal(await m.wikiImage("Récente"), null);

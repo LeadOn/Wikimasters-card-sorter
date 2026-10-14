@@ -79,14 +79,15 @@ extension/
         packs.js               récapitulatif, statistiques de tirage, « Tout ouvrir »
         families.js            familles : catalogue, cartes manquantes en vente, étiquettes
         card-lookup.js         carte affichée par le site mais jamais vue dans ses réponses
-        wiki-images.js         images Wikimedia pour les cartes sans image (option) : Wikipédia, Wikidata
+        wiki-images.js         images Wikimedia pour les cartes sans image (option) : Wikipédia, Wikidata, éléments liés
         card-images.js         cartes sans image ou en GIF sur toute la collection (onglet Images)
         collection-view.js     collection filtrée (critères cumulables, prix de vente, mots-clés) : mise en vente et défausse, une à une ou par lot
         notify.js              sons de notification et d'alerte
         site-dom.js            intégration aux pages : tous les sélecteurs du site sont ici
+        site-assets.js         fichiers du site repris pour la carte sans image : logo, textures de rareté
       ui/                      interface (Preact, dans un Shadow DOM)
         App.jsx                racine : panneau, dialogues, toasts, encart des échanges
-        components.jsx         composants communs (carte, montant, progression, message…)
+        components.jsx         composants communs (carte en ligne ou en grand, carte sans image, montant, progression, message…)
         feedback.js            toasts et confirmations
         panel.css              styles du panneau et des blocs intégrés
         site.css               styles injectés dans les pages du site : badges, nouvel affichage des cartes

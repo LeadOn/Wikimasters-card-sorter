@@ -329,11 +329,17 @@ button.chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .card.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 4%, var(--surface)); }
 /* Vignette cerclée de la couleur de rareté, comme le liseré des cartes du jeu */
 .card .thumb { width: 44px; height: 58px; border-radius: 4px; object-fit: cover; background: var(--surface-3); flex: none; outline: 1.5px solid var(--rc, var(--line-2)); outline-offset: 1.5px; margin: 1px; }
-/* Sans image : l'initiale du titre dans la couleur de la rareté (même serif que les cartes du site) ;
-   elle pulse tant que l'image de Wikimedia est cherchée */
-.card .thumb.initial { display: grid; place-items: center; font: 400 26px/1 Georgia, "Times New Roman", serif; color: color-mix(in srgb, var(--rc, var(--fg)) 65%, transparent); user-select: none; }
-.card .thumb.initial.searching { animation: pulse 1.2s ease-in-out infinite alternate; }
-@keyframes pulse { to { opacity: 0.45; } }
+/* Image large (logo, bandeau) : en entier */
+.card .thumb.wide, .tile .art.wide, .recap-thumb.wide { object-fit: contain; }
+/* Carte sans image, comme sur le site : le centre de la texture de la rareté (agrandie, sans son
+   bord) sous un voile, le logo du site au milieu ; il pulse tant que l'image de Wikimedia est cherchée */
+.ph { position: relative; overflow: hidden; }
+.ph::before, .ph::after { content: ""; position: absolute; inset: 0; }
+.ph::before { background: var(--tx) center / 180% auto no-repeat, color-mix(in srgb, var(--rc, var(--r-C)) 70%, var(--bg)); }
+.ph::after { background: rgba(0, 0, 0, 0.2); }
+.ph img { position: absolute; z-index: 1; left: 50%; top: 50%; width: 40%; max-width: 108px; height: auto; transform: translate(-50%, -50%); opacity: 0.7; user-select: none; }
+.ph.searching img { animation: pulse 1.2s ease-in-out infinite alternate; }
+@keyframes pulse { to { opacity: 0.3; } }
 .card .body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .card .head { display: flex; align-items: flex-start; gap: 6px; }
 .card .t { flex: 1; min-width: 0; font-weight: 600; font-size: 13px; line-height: 1.35; overflow: hidden; overflow-wrap: anywhere; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -350,6 +356,22 @@ button.chip:disabled { opacity: 0.5; cursor: not-allowed; }
 .card .price { margin-left: auto; font-size: 12.5px; font-weight: 600; }
 /* Actions en haut à droite, à côté du titre (qui passe à la ligne avant elles) */
 .card .act { flex: none; margin: -2px -4px 0 0; }
+/* Cartes en grand (CardTile), en grille comme celle du site : image en haut, cerclée de la couleur
+   de rareté, rareté et coche par-dessus ; texte dessous, prix et actions en bas */
+.cards.tiles { grid-template-columns: repeat(auto-fill, minmax(min(176px, calc(50% - 5px)), 1fr)); gap: 10px; }
+.card.tile { flex-direction: column; gap: 0; padding: 6px; }
+.tile-art { position: relative; margin: 2px; }
+.tile .art { display: block; width: 100%; aspect-ratio: 4 / 3; border-radius: 5px; object-fit: cover; object-position: center 25%; background: var(--surface-2); outline: 1.5px solid var(--rc, var(--line-2)); outline-offset: 1.5px; }
+.tile .art.wide { padding: 8px; }
+.tile-art > .rarity { position: absolute; top: 6px; left: 6px; z-index: 2; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }
+.tile .picked { top: 6px; left: auto; right: 6px; z-index: 2; }
+.tile .body { gap: 2px; padding: 9px 3px 1px; }
+.tile .t { flex: none; }
+.tile .d { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
+.tile .meta { margin-top: 4px; padding-top: 0; }
+.tile .foot { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; }
+.tile .foot .price { margin-left: 0; font-size: 13.5px; }
+.tile .foot .act { margin: 0 -3px 0 auto; }
 table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.list th { text-align: left; color: var(--faint); font: 500 10.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
 table.list td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }

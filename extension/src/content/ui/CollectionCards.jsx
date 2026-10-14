@@ -8,7 +8,7 @@ import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {KINDS, cardsState, loadCards, viewGroups, filterGroups, matchKeywords, parseKeyword, normText, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED} from "../features/collection-view";
 import {pricing, summaryOf, priceVersion, loadPrices, hasFreshPrice} from "../state/prices";
-import {CardRow, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./components";
+import {CardTile, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {askSell, askSellMany} from "./SellDialog";
 import {confirmDiscardMany} from "./discard";
@@ -438,14 +438,14 @@ export function CollectionCards({filter, onOpen, mini = false}) {
       <Paged
         items={shown}
         pageSize={mini ? 24 : 30}
-        class={mini ? "mini" : ""}
+        class="tiles"
         empty={empty}
         render={(g) => {
           const key = keyOf(g);
           const free = freeCopy(g.rows);
           const soldInRarities = sale === "never" ? RARITIES.filter((r) => soldIn(summaryOf(g.card_id), r)) : [];
           return (
-            <CardRow
+            <CardTile
               key={key}
               card={g.card}
               rarity={g.rarity}

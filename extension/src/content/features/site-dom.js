@@ -165,15 +165,15 @@ function chip(className, text, title, icon) {
 // repère data-wmt-* et la mise en forme est dans site.css : React ne touche pas à ces attributs, et
 // cette boucle les repose si le site reconstruit la carte. Structure non reconnue (le site a changé) :
 // la carte garde l'affichage du site.
-const MARKS = ["wmtCard", "wmtR", "wmtArt", "wmtFit", "wmtInitial", "wmtBody", "wmtTexture", "wmtRarity", "wmtPlaceholder", "wmtTag", "wmtStats", "wmtStat"];
+const MARKS = ["wmtCard", "wmtR", "wmtArt", "wmtFit", "wmtBody", "wmtTexture", "wmtRarity", "wmtPlaceholder", "wmtLogo", "wmtTag", "wmtStats", "wmtStat"];
 // Au-delà de ce rapport largeur / hauteur (logo, bandeau, panorama), l'image est montrée
 // en entier en haut de la carte, sur un fond fait de sa propre copie floutée
 const WIDE = 1.8;
-const MARKED = "[data-wmt-art],[data-wmt-body],[data-wmt-texture],[data-wmt-rarity],[data-wmt-placeholder],[data-wmt-tag],[data-wmt-stats],[data-wmt-stat]";
+const MARKED = "[data-wmt-art],[data-wmt-body],[data-wmt-texture],[data-wmt-rarity],[data-wmt-placeholder],[data-wmt-logo],[data-wmt-tag],[data-wmt-stats],[data-wmt-stat]";
 
-// Enfant direct de la carte qui contient el
-function partOf(tile, el) {
-  while (el && el.parentElement !== tile) el = el.parentElement;
+// Enfant direct de parent (la carte, sa zone image) qui contient el
+function partOf(parent, el) {
+  while (el && el.parentElement !== parent) el = el.parentElement;
   return el;
 }
 
@@ -215,7 +215,7 @@ function fitArt(art) {
   }
 }
 
-function styleTile(tile, {body, art, texture, placeholder}, rarity, title) {
+function styleTile(tile, {body, art, texture, placeholder}, rarity) {
   if (!isOn("cardStyle") || !body || !art || !texture) {
     if ("wmtCard" in tile.dataset) unstyleTile(tile);
     return;
@@ -225,9 +225,12 @@ function styleTile(tile, {body, art, texture, placeholder}, rarity, title) {
   texture.dataset.wmtTexture = "";
   body.dataset.wmtBody = "";
   art.dataset.wmtArt = !placeholder ? "image" : art.querySelector(".wmt-fallback-img") ? "filled" : "empty";
-  // Sans image : l'initiale du titre, dans la couleur de la rareté
-  art.dataset.wmtInitial = (title.match(/[\p{L}\p{N}]/u)?.[0] || "W").toUpperCase();
-  if (placeholder) placeholder.dataset.wmtPlaceholder = "";
+  // Sans image : la carte sans image du site (son logo sur la texture de la rareté), le logo
+  // remonté au-dessus du texte
+  if (placeholder) {
+    placeholder.dataset.wmtPlaceholder = "";
+    partOf(art, placeholder).dataset.wmtLogo = "";
+  }
   if (art.dataset.wmtArt !== "empty") fitArt(art);
   const badge = [...tile.children].find((c) => c !== body && c !== art && rarity && c.textContent.trim().toUpperCase() === rarity);
   if (badge) badge.dataset.wmtRarity = "";
@@ -286,7 +289,7 @@ function decorateTile(tile, version) {
   const info = lookupTitle(title) || {title, category: titleEl.parentElement?.querySelector("p")?.textContent.trim() || "", dom: true};
   const rarity = (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase() || info?.rarity;
   const parts = tileParts(tile, titleEl);
-  styleTile(tile, parts, rarity, title);
+  styleTile(tile, parts, rarity);
   fillMissingImage(tile, info, parts, title);
   const path = currentPath();
   const onMyCollection = path.startsWith("/collection");

@@ -59,7 +59,7 @@ export function ImagesTab() {
               <p class="help">
                 Le site n'a pas d'image pour ces cartes, ou l'a masquée (image signalée).{" "}
                 {isOn("missingImages")
-                  ? "Les vignettes montrent l'image trouvée sur Wikimedia par l'option Images manquantes ; une initiale signale un article qu'aucune image n'illustre, sur Wikipédia comme sur Wikidata. Une image masquée par le site n'est jamais remplacée."
+                  ? "Les vignettes montrent l'image trouvée sur Wikimedia par l'option Images manquantes ; le logo du site signale un article qu'aucune image n'illustre, sur Wikipédia comme sur Wikidata. Une image masquée par le site n'est jamais remplacée."
                   : "Activez Images manquantes dans les réglages pour leur chercher une image sur Wikimedia."}
               </p>
             ) : (

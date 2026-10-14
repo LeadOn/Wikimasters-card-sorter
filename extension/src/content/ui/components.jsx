@@ -3,6 +3,7 @@ import {useState, useEffect} from "preact/hooks";
 import {RARITY_LABEL, THEME_COLORS} from "../../../../core";
 import {settings, isOn} from "../state/settings";
 import {wikiImage, knownWikiImage} from "../features/wiki-images";
+import {siteLogo, rarityTexture} from "../features/site-assets";
 import {Icon, Mark} from "../../shared/Brand";
 
 export {Icon, Mark};
@@ -112,76 +113,146 @@ export const Badge = ({label, type, icon}) => (
   </span>
 );
 
-// Mini-carte : image, titre, description, rareté, thème, prix, badges.
-// selected (avec onClick) : carte à cocher d'un clic, ou par Espace / Entrée au clavier ; onTitle : clic
-// sur le titre (ouvre la carte ailleurs) ; wiki : sinon, titre lié à l'article Wikipédia
-// price : prix du marché ; uncertain : explication quand ce prix n'est qu'indicatif (state/prices.js → pricing)
-export function CardRow({card, rarity, theme, price, uncertain, badges = [], selected, onClick, onTitle, action, wiki = true}) {
-  const r = rarity || card?.rarity;
+// Carte sans image, comme sur le site : son logo sur la texture de la rareté (si ces fichiers du site
+// manquent, la couleur de la rareté). searching : image de Wikimedia en cours de recherche.
+export const CardPlaceholder = ({rarity, searching, class: cls = ""}) => (
+  <div class={`ph ${cls}${searching ? " searching" : ""}`} style={{"--tx": `url("${rarityTexture(rarity)}")`}} aria-hidden="true">
+    <img src={siteLogo()} alt="" onError={(e) => (e.currentTarget.hidden = true)} />
+  </div>
+);
+
+// Au-delà de ce rapport largeur / hauteur (logo, bandeau), l'image est montrée en entier
+const WIDE = 1.8;
+
+// Image d'une carte : la sienne, sinon celle de Wikimedia, sinon la carte sans image du site (aussi
+// quand l'image ne se charge pas)
+export function CardArt({card, rarity, class: cls = ""}) {
   const fallback = useWikiImage(card);
   const image = card?.image_url || fallback;
+  const [loaded, setLoaded] = useState({}); // {src, wide, broken}
+  const mine = loaded.src === image;
+  if (!image || (mine && loaded.broken)) return <CardPlaceholder rarity={rarity} class={cls} searching={!image && fallback === undefined} />;
+  return (
+    <img
+      class={`${cls}${mine && loaded.wide ? " wide" : ""}`}
+      src={image}
+      alt=""
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      onLoad={(e) => setLoaded({src: image, wide: e.currentTarget.naturalWidth / e.currentTarget.naturalHeight > WIDE})}
+      onError={() => setLoaded({src: image, broken: true})}
+    />
+  );
+}
+
+// Titre d'une carte : onTitle (bouton, ouvre la carte ailleurs), sinon lien vers l'article Wikipédia (wiki)
+function CardTitle({card, onTitle, wiki}) {
   const name = card?.wikipedia_title || card?.title;
   const href = wiki && !onTitle ? card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null) : null;
-  const pickable = selected !== undefined && Boolean(onClick);
+  return (
+    <div class="t" title={card?.wikipedia_title}>
+      {onTitle ? (
+        <button
+          type="button"
+          class="t-link"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTitle();
+          }}
+        >
+          {name}
+        </button>
+      ) : href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" style={{color: "inherit", textDecoration: "none"}} onClick={(e) => e.stopPropagation()}>
+          {name}
+        </a>
+      ) : (
+        name
+      )}
+    </div>
+  );
+}
+
+// Attributs communs aux cartes : couleur de rareté, clic, et carte à cocher (selected avec onClick)
+// d'un clic, ou par Espace / Entrée au clavier
+function cardProps({card, rarity, selected, onClick}) {
   const keys = (e) => {
     if (e.target !== e.currentTarget || (e.key !== " " && e.key !== "Enter")) return;
     e.preventDefault();
     onClick();
   };
+  return {
+    style: {"--rc": `var(--r-${rarity || "C"})`, cursor: onClick ? "pointer" : "default"},
+    onClick,
+    ...(selected !== undefined && onClick && {role: "checkbox", "aria-checked": Boolean(selected), "aria-label": card?.wikipedia_title || card?.title, tabIndex: 0, onKeyDown: keys}),
+  };
+}
+
+const Picked = () => (
+  <span class="picked" aria-hidden="true">
+    <Icon name="check" size={12} />
+  </span>
+);
+
+const Badges = ({badges}) =>
+  badges.filter(Boolean).map((b) => <Badge key={b.label} {...b} />);
+
+// Mini-carte : image, titre, description, rareté, thème, prix, badges.
+// selected (avec onClick) : carte à cocher ; onTitle : clic sur le titre (ouvre la carte ailleurs) ;
+// wiki : sinon, titre lié à l'article Wikipédia
+// price : prix du marché ; uncertain : explication quand ce prix n'est qu'indicatif (state/prices.js → pricing)
+export function CardRow({card, rarity, theme, price, uncertain, badges = [], selected, onClick, onTitle, action, wiki = true}) {
+  const r = rarity || card?.rarity;
   return (
-    <div
-      class={`card${selected ? " sel" : ""}`}
-      style={{"--rc": `var(--r-${r || "C"})`, cursor: onClick ? "pointer" : "default"}}
-      onClick={onClick}
-      {...(pickable && {role: "checkbox", "aria-checked": Boolean(selected), "aria-label": name, tabIndex: 0, onKeyDown: keys})}
-    >
-      {selected && (
-        <span class="picked" aria-hidden="true">
-          <Icon name="check" size={12} />
-        </span>
-      )}
-      {image ? (
-        <img class="thumb" src={image} alt="" loading="lazy" referrerpolicy="no-referrer" />
-      ) : (
-        // Sans image (ou en attendant celle de Wikimedia) : l'initiale du titre, comme sur les cartes du site
-        <div class={`thumb initial${fallback === undefined ? " searching" : ""}`} aria-hidden="true">
-          {((card?.wikipedia_title || card?.title || "").match(/[\p{L}\p{N}]/u)?.[0] || "W").toUpperCase()}
-        </div>
-      )}
+    <div class={`card${selected ? " sel" : ""}`} {...cardProps({card, rarity: r, selected, onClick})}>
+      {selected && <Picked />}
+      <CardArt card={card} rarity={r} class="thumb" />
       <div class="body">
         {/* Le titre s'arrête avant les boutons d'action, en haut à droite */}
         <div class="head">
-          <div class="t" title={card?.wikipedia_title}>
-            {onTitle ? (
-              <button
-                type="button"
-                class="t-link"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTitle();
-                }}
-              >
-                {name}
-              </button>
-            ) : href ? (
-              <a href={href} target="_blank" rel="noopener noreferrer" style={{color: "inherit", textDecoration: "none"}} onClick={(e) => e.stopPropagation()}>
-                {name}
-              </a>
-            ) : (
-              name
-            )}
-          </div>
+          <CardTitle card={card} onTitle={onTitle} wiki={wiki} />
           {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}
         </div>
         {card?.category && <div class="d" title={card.category}>{card.category}</div>}
         <div class="meta">
           <Rarity r={r} />
           {theme && <ThemeChip theme={theme} />}
-          {badges.filter(Boolean).map((b) => (
-            <Badge key={b.label} {...b} />
-          ))}
+          <Badges badges={badges} />
           {price != null && <Money v={price} class="price" approx={Boolean(uncertain)} title={uncertain || undefined} />}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Carte en grand, comme dans la grille du site : image en haut (rareté et coche par-dessus), titre,
+// description, thème et badges, puis prix et actions en bas. Mêmes propriétés que CardRow ;
+// à afficher dans une liste Paged de classe « tiles ».
+export function CardTile({card, rarity, theme, price, uncertain, badges = [], selected, onClick, onTitle, action, wiki = true}) {
+  const r = rarity || card?.rarity;
+  const meta = theme || badges.some(Boolean);
+  return (
+    <div class={`card tile${selected ? " sel" : ""}`} {...cardProps({card, rarity: r, selected, onClick})}>
+      <div class="tile-art">
+        <CardArt card={card} rarity={r} class="art" />
+        <Rarity r={r} />
+        {selected && <Picked />}
+      </div>
+      <div class="body">
+        <CardTitle card={card} onTitle={onTitle} wiki={wiki} />
+        {card?.category && <div class="d" title={card.category}>{card.category}</div>}
+        {meta && (
+          <div class="meta">
+            {theme && <ThemeChip theme={theme} />}
+            <Badges badges={badges} />
+          </div>
+        )}
+        {(price != null || action) && (
+          <div class="foot">
+            {price != null && <Money v={price} class="price" approx={Boolean(uncertain)} title={uncertain || undefined} />}
+            {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}
+          </div>
+        )}
       </div>
     </div>
   );

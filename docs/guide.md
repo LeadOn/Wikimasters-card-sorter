@@ -38,14 +38,14 @@ Partout où le site affiche des cartes (collection, catalogue, marché, profils,
 - la texture de rareté du site devient le **cadre** de la carte (doré pour une légendaire, orange pour une ultra rare…) ;
 - le titre, la description, vos étiquettes et les points d'attaque et de défense passent **sur l'image**, sur un voile sombre qui les garde lisibles ;
 - une image très large (logo, bandeau, panorama) est montrée **en entier** en haut de la carte, sur une copie floutée d'elle-même ;
-- une carte sans image affiche l'**initiale de son titre** dans la couleur de sa rareté.
+- une carte sans image garde la **carte sans image du site** : son logo sur la texture de la rareté, placé au-dessus du titre.
 
-Avec l'option **Images manquantes**, les cartes sans image en reçoivent une, cherchée sur Wikimedia : l'image de l'article sur Wikipédia en français, puis celle de l'élément Wikidata, celle de l'article en anglais (affiches de films, pochettes d'albums), la photo d'un membre pour un duo ou un groupe, un logo, un blason ou un drapeau, puis l'image de l'article dans une autre langue (allemand, espagnol, italien, russe…, trouvé grâce à Wikidata : cinq langues au plus), et enfin sa carte de localisation pour un lieu. Les mêmes images complètent les vignettes du panneau Toolbox.
+Avec l'option **Images manquantes**, les cartes sans image en reçoivent une, cherchée sur Wikimedia : l'image de l'article sur Wikipédia en français, puis celle de l'élément Wikidata, celle de l'article en anglais (affiches de films, pochettes d'albums), la photo d'un membre pour un duo ou un groupe, un logo, un blason ou un drapeau, puis l'image de l'article dans une autre langue (allemand, espagnol, italien, russe…, trouvé grâce à Wikidata : cinq langues au plus), toute autre image de l'élément Wikidata (image apparentée, vue aérienne, sceau, structure chimique…, la signature en dernier), sa carte de localisation pour un lieu, et en dernier recours l'image d'un élément Wikidata lié qui représente le sujet : la personne dont il porte le nom (le portrait de Jacobi pour la *Conjecture jacobienne*), l'œuvre adaptée, la série ou la franchise, l'interprète, l'auteur ou le créateur, le sujet traité, l'organisation mère. Les mêmes images complètent les cartes du panneau Toolbox. Une carte qu'aucune de ces sources n'illustre garde la carte sans image du site.
 
 La recherche reste prudente :
 
 - une image **masquée par le site** (signalée) n'est jamais remplacée ;
-- pour un **sujet sensible** (sexualité, chirurgie, maladie, violence, mort…), seules les images principales des articles de Wikipédia en français et en anglais, choisies par ses éditeurs, sont utilisées ;
+- pour un **sujet sensible** (sexualité, chirurgie, maladie, violence, mort…), seules les images principales des articles de Wikipédia en français et en anglais, choisies par ses éditeurs, sont utilisées (ni Wikidata, ni éléments liés) ;
 - toute autre image est vérifiée contre la liste des images que Wikipédia refuse d'afficher hors contexte ;
 - dans les autres langues, la carte vierge d'un pays et les images « image manquante » sont écartées ;
 - une page d'homonymie ne reçoit pas d'image.
@@ -82,7 +82,7 @@ Une barre **Toolbox** apparaît sous la recherche et les filtres :
 
   Les filtres de vente ne comptent que les cartes dont les prix ont été chargés : si certaines n'en ont pas, un bouton charge ceux des cartes concernées.
 
-  Dans la liste, **un clic sur une carte la coche** (ou *Espace* au clavier), et **un clic sur son nom l'ouvre** dans la fenêtre habituelle du site. Chaque carte se met aux enchères ou se défausse sur place, une à une ou en lot (voir l'onglet [Prix](#prix), qui propose les mêmes filtres).
+  La liste montre les cartes en grand, en grille comme celle du site : image, rareté, titre, description, thème, prix et boutons. **Un clic sur une carte la coche** (ou *Espace* au clavier), et **un clic sur son nom l'ouvre** dans la fenêtre habituelle du site. Chaque carte se met aux enchères ou se défausse sur place, une à une ou en lot (voir l'onglet [Prix](#prix), qui propose les mêmes filtres).
 - **Prix et valeur** ouvre l'onglet [Prix](#prix) de la Toolbox. Les doublons se trouvent avec le filtre *Doublons* ci-dessus (l'onglet *Marché* garde sa liste *Mes doublons*).
 
 Le site garde ses étiquettes en cache : après un tri, cliquez sur *Actualiser* pour les voir apparaître.
@@ -228,7 +228,7 @@ Pour chaque famille : progression (possédées / total), filtre *Toutes / Possé
 
 Les cartes de toute votre collection classées selon leur image :
 
-- **Sans image** : le site n'a pas d'image pour la carte, ou l'a masquée (image signalée, marquée « masquée par le site »). Avec l'option *Images manquantes*, la vignette montre l'image trouvée sur Wikimedia ; une image masquée par le site n'est jamais remplacée. Une vignette qui ne montre que l'initiale du titre, dans la couleur de la rareté, signale un article qu'aucune image n'illustre, ni sur Wikipédia ni sur Wikidata (l'initiale pulse tant que la recherche est en cours).
+- **Sans image** : le site n'a pas d'image pour la carte, ou l'a masquée (image signalée, marquée « masquée par le site »). Avec l'option *Images manquantes*, la carte montre l'image trouvée sur Wikimedia ; une image masquée par le site n'est jamais remplacée. Une carte qui ne montre que le logo du site sur la texture de sa rareté, comme la carte sans image du site, signale un article qu'aucune image n'illustre, ni sur Wikipédia ni sur Wikidata (le logo pulse tant que la recherche est en cours).
 - **GIF** : l'image est au format GIF, le plus souvent animée (quelques logos anciens sont des GIF fixes).
 
 Chaque carte apparaît une fois par rareté, avec le nombre d'exemplaires. La liste se filtre par rareté et par titre ou description. La collection lue est gardée quelques minutes, comme pour les autres onglets.

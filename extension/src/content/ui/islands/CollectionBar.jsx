@@ -88,7 +88,7 @@ function CollectionViews({onOpen}) {
     <>
       <CollectionFilters filter={filter} active={filter.open} onChange={setCollectionView} aside={aside} />
       {filter.open && filter.kinds.includes("none") && isOn("missingImages") && (
-        <p class="small muted">Une vignette ne montrant qu'une initiale : aucune image, même sur Wikimedia.</p>
+        <p class="small muted">Une carte qui ne montre que le logo du site : aucune image, même sur Wikimedia.</p>
       )}
       {filter.open && <CollectionCards filter={filter} onOpen={onOpen} mini />}
     </>

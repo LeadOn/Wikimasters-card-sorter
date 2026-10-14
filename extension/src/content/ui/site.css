@@ -82,7 +82,6 @@
   pointer-events: none;
   background: linear-gradient(180deg, rgba(18, 18, 17, 0) 36%, rgba(18, 18, 17, 0.55) 56%, rgba(18, 18, 17, 0.93) 78%, rgba(18, 18, 17, 0.97) 100%);
 }
-[data-wmt-card] [data-wmt-placeholder] { visibility: hidden; }
 /* Image large : en entier en haut de la carte, sur sa propre copie floutée et assombrie */
 [data-wmt-art][data-wmt-fit="wide"] img:not(.wmt-art-backdrop) {
   object-fit: contain !important;
@@ -98,16 +97,11 @@
   z-index: 0;
   pointer-events: none;
 }
-/* Sans image : l'initiale du titre, en grand, dans la couleur de la rareté */
-[data-wmt-card] > [data-wmt-art="empty"]::before {
-  content: attr(data-wmt-initial);
-  position: absolute;
-  inset: 0 0 40% 0;
-  display: grid;
-  place-items: center;
-  font: 400 clamp(44px, 36cqw, 120px)/1 Georgia, "Times New Roman", serif;
-  color: color-mix(in srgb, var(--wmt-rc, var(--wmt-bone)) 60%, transparent);
-}
+/* Sans image : la carte sans image du site, son logo sur la texture de la rareté (le cadre, visible
+   sous un voile), remonté au-dessus du texte ; caché dès qu'une image de Wikimedia le remplace */
+[data-wmt-card] > [data-wmt-art="empty"] { background: rgba(0, 0, 0, 0.2); }
+[data-wmt-card] > [data-wmt-art="empty"] > [data-wmt-logo] { height: 60%; }
+[data-wmt-card] > [data-wmt-art="filled"] [data-wmt-placeholder] { visibility: hidden; }
 [data-wmt-card] > [data-wmt-body] {
   top: auto;
   left: var(--wmt-frame);

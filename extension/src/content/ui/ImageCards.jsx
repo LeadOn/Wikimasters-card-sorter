@@ -1,7 +1,7 @@
 // Filtre par image (sans image, GIF) et liste des cartes correspondantes : onglet « Images » du
 // panneau (sur la page Collection, ces vues sont celles de ui/CollectionCards.jsx).
 import {IMAGE_FILTERS} from "../features/card-images";
-import {CardRow, Paged, fmt} from "./components";
+import {CardTile, Paged, fmt} from "./components";
 
 // Choix du filtre, avec le nombre de cartes de chaque groupe une fois la collection lue
 export function ImageFilterSeg({value, onChange, groups}) {
@@ -24,8 +24,9 @@ export function ImageCards({items, filter, empty}) {
     <Paged
       items={items}
       empty={empty || EMPTY[filter]}
+      class="tiles"
       render={(c) => (
-        <CardRow
+        <CardTile
           key={`${c.card_id}|${c.rarity}`}
           card={c.card}
           rarity={c.rarity}
