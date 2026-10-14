@@ -2936,5 +2936,201 @@
       ]
     },
     "synthetic": true
+  },
+  {
+    "title": "Paul Bravo",
+    "category": "joueur américain de soccer",
+    "summary": "Paul Bravo, né le 19 juin 1968 à Campbell en Californie, est un joueur international américain de soccer, qui évoluait au poste de milieu offensif.",
+    "expected": "Sports",
+    "friends": {
+      "include": [
+        "Pour : Narutoto82",
+        "Pour : SuperMao"
+      ]
+    }
+  },
+  {
+    "title": "David Aebischer",
+    "category": "joueur de hockey sur glace suisse",
+    "summary": "David Aebischer, né le 7 février 1978 à Genève, est un gardien de but suisse de hockey sur glace.\nAprès avoir fait ses débuts dans la ligue nationale A de son pays en 1996, il participe au repêchage d'entrée dans la Ligue nationale de hockey de 1997 et est choisi lors de la sixième ronde, le 161e joueur au total, par l'Avalanche du Colorado.\nIl fait, peu de temps après, ses débuts en Amérique du Nord passant d'abord par les ligues mineures du Canada et des États-Unis avant de faire ses débuts dans la LNH avec l'Avalanche en 2000-2001. Gardien remplaçant de Patrick Roy, il joue une trentaine de rencontres dans la saison régulière et participe également à un match des séries éliminatoires. Il devient cette année-là le premier joueur suisse à remporter la Coupe Stanley, trophée récompensant l'équipe de la LNH qui remporte les séries.",
+    "expected": "Sports",
+    "friends": {
+      "exclude": [
+        "Pour : Narutoto82",
+        "Pour : SuperMao"
+      ]
+    }
+  },
+  {
+    "title": "Ligue des champions féminine de volley-ball 2016-2017",
+    "category": null,
+    "summary": "La 57e édition de la Ligue des champions de volley-ball féminin se déroule du 18 octobre 2016 jusqu'au 23 avril 2017.",
+    "expected": "Sports",
+    "friends": {
+      "exclude": [
+        "Pour : Narutoto82",
+        "Pour : SuperMao"
+      ]
+    }
+  },
+  {
+    "title": "Game Boy Color",
+    "category": "console portable de 8bits de Nintendo de 1998",
+    "summary": null,
+    "expected": [
+      "Technologie & Informatique",
+      "Pop-Culture & Divertissement"
+    ],
+    "friends": {
+      "include": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "MeetYourMakers",
+    "category": null,
+    "summary": "MeetYourMakers ( MYM ou mYm) était une organisation allemande professionnelle d'esports fondée au Danemark en 2001. Elle était active sur les jeux Warcraft III, Counter-Strike: Global Offensive, League of Legends, Dota 2, Hearthstone, Battlefield 4, StarCraft II et PlayerUnknown's Battlegrounds.",
+    "friends": {
+      "include": [
+        "Pour : Narutoto82"
+      ],
+      "exclude": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Centre d'Esports Arenys de Munt",
+    "category": null,
+    "summary": null,
+    "friends": {
+      "exclude": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Thomas Hornsby",
+    "category": "mathématicien anglais",
+    "summary": "Thomas Hornsby (1733-1810) est un astronome et mathématicien britannique.",
+    "expected": [
+      "Sciences",
+      "Astronomie & Espace"
+    ],
+    "friends": {
+      "include": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Républicains progressistes",
+    "category": "groupe parlementaire à la Chambre des députés de la Troisième République française",
+    "summary": "Les Républicains progressistes constituent, dans la première moitié de la Troisième République, l'aile la plus conservatrice de la nébuleuse républicaine.",
+    "friends": {
+      "exclude": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Jonathan T. Taplin",
+    "category": "producteur de cinéma américain",
+    "summary": "Jonathan Trumbull Taplin (né le 18 juillet 1947) est un écrivain, producteur de films et universitaire américain. Il est né à Cleveland, Ohio, et vit à Los Angeles depuis 1973. Taplin est diplômé de l'Université de Princeton en 1969 et est le directeur émérite du laboratoire d'innovation Annenberg à l' école Annenberg de communication et de journalisme de l'Université de Californie du Sud. Taplin est marié à la photographe Maggie Smith et a trois enfants : Daniela Lundberg, productrice de films ; Nicholas Taplin, un ingénieur du son et Blythe Taplin, une avocate des droits de l'homme.\nLes premières productions de Taplin concernait ded concerts pour Bob Dylan et The Band. En 1973, il produit le premier grand long métrage de Martin Scorsese, Mean Streets, qui est sélectionné au Festival de Cannes. Entre 1974 et 1996, Taplin a produit 26 heures de documentaires télévisés (dont The Prize et Cadillac Desert pour le Public Broadcasting Service ) et 12 longs métrages dont The Last Waltz, Jusqu'au bout du monde, Under Fire et To Die For . Ses films ont été nommés aux Oscars et aux Golden Globe Awards et sélectionnés six fois au Festival de Cannes. Taplin est l'auteur de Move Fast and Break Things: How Google, Facebook and Amazon Cornered Culture and Undermined Democracy, qui a été publié par Little, Brown and Company en avril 2017. Les nouveaux mémoires de Taplin, The Magic Years: Scenes from a Rock and Roll Life ont été publiés en mai 2021 par Heyday Books. Le journaliste primé Robert Scheer l'a qualifié de \"livre vraiment important. . . Les années magiques ne sont pas de la nostalgie. Cela vous place vraiment au premier plan, là où nous sommes.\"",
+    "expected": "Pop-Culture & Divertissement",
+    "friends": {
+      "include": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Jérôme K. Jérôme Bloche",
+    "category": "série de bande dessinée",
+    "summary": "Jérôme K. Jérôme Bloche est une série de bande dessinée policière française créée par le dessinateur Alain Dodier et les scénaristes Serge Le Tendre et Pierre Makyo. Elle est publiée depuis 1982 dans Spirou et éditée depuis 1985 chez Dupuis. À partir du tome 6, Alain Dodier réalise seul scénario et dessin. À partir du tome 10, il est rejoint par Cerise pour les couleurs.",
+    "expected": "Arts & Littérature",
+    "friends": {
+      "exclude": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Bonnie Blue",
+    "category": "actrice pornographique britanique",
+    "summary": "Bonnie Blue (née le 14 mai 1999) est une actrice de films pornographiques anglaise.\nEn 2025, elle affirme avoir eu des rapports sexuels avec 1 057 hommes en une seule journée dans le but d'établir un record mondial. Bonnie suscite la controverse pour avoir tourné des contenus sexuels avec des étudiants et pour ses commentaires sur les relations avec des hommes mariés. Elle apparaît dans plusieurs podcasts en 2024, ce qui entraîne un retour de flamme sur X ; une apparition suivante dans l'émission This Morning (TV programme) (en) provoque 188 plaintes auprès de l'Ofcom.\nEn juin 2025, Blue annonce un événement intitulé « zoo de caresses » durant lequel elle prévoit d'être attachée dans une boîte en verre avec pour objectif d'avoir des rapports sexuels avec 2 000 hommes. Elle est, en conséquence, bannie de la plateforme OnlyFans pour non-respect de sa politique sur les « défis extrêmes ».",
+    "expected": "Pop-Culture & Divertissement",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ],
+      "exclude": [
+        "Pour : Narutoto82"
+      ]
+    }
+  },
+  {
+    "title": "Léna Situations",
+    "category": "vidéaste web, influenceuse et mannequin franco-algérienne",
+    "summary": "Lena Mahfouf, dite Léna Situations (stylisé sans accent), est une vidéaste web, influenceuse et entrepreneuse franco-algérienne, née le 19 novembre 1997 dans le 17e arrondissement de Paris.\nLe 2 mai 2022, elle devient la première influenceuse française à être invitée au Met Gala. Figure reconnue dans le secteur de la mode, elle assiste régulièrement aux défilés de grandes maisons à Paris, New York ou Milan. Elle collabore avec Adidas pour la conception de plusieurs de ses produits. En janvier 2024, elle fait partie du classement Lefty 2023 des quinze influenceurs mode les plus influents du monde.\nAu-delà des réseaux sociaux, elle développe une présence croissante dans les médias traditionnels, étant décrite comme une des rares influenceuses à être sortie de la « prison dorée des réseaux sociaux ». En 2024 et 2025, Canal+ l’invite à présenter l'ouverture de la remise des César. En 2025, elle commente les Oscars pour Disney+. Sa visibilité médiatique s’accompagne toutefois de nombreuses critiques et attaques, notamment à caractère sexistes, islamophobes ou racistes, visant son apparence, ses tenues ou ses prises de parole.\nEn 2022, elle fonde la marque de vêtements et d'accessoires Hôtel Mahfouf.\nDepuis 2024, son effigie est présente au musée Grévin au côté de celle de Squeezie.",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Nasdas",
+    "category": "influenceur franco-algérien",
+    "summary": "Nasdas, de son vrai nom Nasser Sari, né le 3 juin 1996 à Perpignan, est un influenceur franco-algérien. Il est connu pour ses publications sur Snapchat, où il est « l'influenceur numéro 1 en France » en 2023.\nIl fait notamment parler de lui par ses vidéos tournées à Perpignan et en dévoilant ses coordonnées bancaires sur les réseaux sociaux.\nIl est connu pour redistribuer ses revenus à son quartier, ce qui lui vaut en 2022 le surnom honorifique de « Robin des bois digital ». Des regards plus critiques sur son activité évoqueront au contraire une marchandisation de la détresse.",
+    "expected": "Personnalités",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Squeezie",
+    "category": "vidéaste web français",
+    "summary": "Squeezie [skwi.zi], né le 27 janvier 1996 à Vitry-sur-Seine (Val-de-Marne), est un vidéaste, streameur, influenceur et entrepreneur français.\nComptant 19 millions d'abonnés en août 2024, il est le second vidéaste web francophone le plus suivi derrière Tibo InShape, après s'être maintenu en première position du classement pendant cinq ans.\nDepuis les années 2010, il propose sur YouTube un contenu divertissant et est présent sur Twitch où il compte plus de 5 millions d'abonnés à l'été 2024. Il publie son contenu let's play ainsi que diverses vidéos sur des chaînes secondaires.\nAvec des moyens financiers et techniques de plus en plus importants au sein de ses productions, mais également à travers l'accroissement de la reconnaissance et de la notoriété des influenceurs au fil de sa carrière, Squeezie devient une personnalité française notoire. Il lance avec son frère, en 2019, sa marque de vêtements Yoko, et en 2022, avec la collaboration de Gotaga et Brawks, une structure esport baptisée Gentle Mates. Il est aussi actif dans le monde de la musique, avec la publication de son premier album Oxyz (2020) puis de plusieurs singles et EP. En 2022, il devient ainsi le premier influenceur web à disposer d'une statue à son effigie au musée Grévin.",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Stella Hudgens",
+    "category": "actrice américaine",
+    "summary": "Stella Hudgens, née le 13 novembre 1995 à San Diego (Californie), est une influenceuse et modèle OnlyFans américaine.",
+    "expected": "Pop-Culture & Divertissement",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Mym",
+    "category": "réseau social au service d'abonnement",
+    "summary": "Mym est un réseau social créé en 2019 à Lyon.\nLa plate-forme permet à des créateurs de contenus de proposer à leurs abonnés des contenus exclusifs et payants. Bien qu'elle puisse accueillir tout type de contenu, Mym est principalement connue et critiquée pour la diffusion privée de photographies et vidéos à caractère érotique voire pornographique.\nDepuis sa création en 2019, la plate-forme revendique 14 millions d'utilisateurs qui suivent 400 000 créateurs de contenu et 3 millions de visites quotidiennes en 2023.",
+    "friends": {
+      "include": [
+        "Pour : LeadOn"
+      ]
+    }
+  },
+  {
+    "title": "Créateur Exemple",
+    "category": "créateur de contenu français",
+    "summary": "Créateur Exemple, né le 1er janvier 1995 à Lyon, est un créateur de contenu français actif sur OnlyFans et MYM.",
+    "friends": {
+      "exclude": [
+        "Pour : LeadOn"
+      ]
+    },
+    "synthetic": true
   }
 ]

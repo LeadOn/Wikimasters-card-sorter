@@ -7,6 +7,11 @@
 // (ex: 'haltérophil[a-zà-ÿ]*').
 "use strict";
 
+// Football (association), commun à SuperMao et Narutoto82. Les gardiens de but et la « Ligue des
+// champions » existent aussi au hockey, au handball, au volley… : seulement le football.
+const FOOTBALL =
+  "football(?! américain| canadien| australien| gaélique)|footballeu(?:r|se)s?|soccer|futsal|ballon d'or|fifa|uefa|ligue des champions(?! (?:féminine )?de (?:volley|basket|handball|hockey|rink|water-polo|futsal|rugby|l'ehf|la fiba|la cev))|coupe du monde de football|championnat d'europe de football|ligue 1|ligue 2|premier league|la liga(?! asobal| acb| endesa)|serie a|bundesliga|psg|paris saint-germain|olympique de marseille|olympique lyonnais|as saint-étienne|real madrid|fc barcelone|bayern munich|juventus|manchester united|manchester city|liverpool fc|chelsea fc|arsenal fc|ac milan|inter milan|lionel messi|messi|cristiano ronaldo|ronaldo|ronaldinho|mbappé|maradona|pelé|zinédine zidane|zidane|michel platini|johan cruyff|club de football|stade de football";
+
 const BUILTIN_PROFILES = [
   {
     name: "JulienPct",
@@ -28,9 +33,21 @@ const BUILTIN_PROFILES = [
   {
     name: "LeadOn",
     color: "#ec4899",
-    about: "Technologie & science, actrices X, politique française, atomique",
+    about: "Technologie & science, actrices X, influenceurs & influenceuses, OnlyFans / MYM, politique française, atomique",
     rules: [
       {theme: "Politique Française"},
+      // Influenceuses, y compris celles du contenu pour adultes
+      {kw: "influenceuses?|youtubeuses?|tiktokeuses?|instagram+euses?|streameuses?|twitcheuses?|vlogueuses?|créatrices? de contenus?|camgirls?"},
+      // Influenceurs des deux sexes (YouTube, Instagram, LinkedIn…), hors contenu pour adultes
+      {
+        kw:
+          "influenceu(?:r|se)s?|youtubeu(?:r|se)s?|youtubers?|vidéastes? web|web-vidéastes?|vlogueu(?:r|se)s?|instagram+eu(?:r|se)s?|tiktokeu(?:r|se)s?|streameu(?:r|se)s?|streamers?|twitcheu(?:r|se)s?|créat(?:eur|rice)s? de contenus?" +
+          "|personnalités? (?:[a-zà-ÿ-]+ )?(?:d'internet|de l'internet|internet|sur internet|du web|des réseaux sociaux|des médias sociaux)|célébrités? (?:d'internet|de l'internet|du web|des réseaux sociaux)|stars? (?:d'internet|du web|des réseaux sociaux|de tiktok|d'instagram|de youtube|de vine)",
+        unless: "onlyfans|only fans|mym|pornographi[a-zà-ÿ]*|acteurs? x|films? x|camboys?",
+      },
+      // OnlyFans et MYM : les plateformes et leurs créatrices ("né" écarte les créateurs).
+      // MYM est aussi une équipe d'e-sport (MeetYourMakers).
+      {kw: "onlyfans|only fans|mym", unless: "né|sports? électroniques?|e-sports?|esports?|meetyourmakers"},
       {
         kw:
           "technologies?|technologiques?|informatique|ordinateurs?|logiciels?|algorithmes?|cybersécurité|intelligence artificielle|robotique|électronique|processeurs?|internet|smartphones?|sciences?|scientifiques?|physique (?:quantique|nucléaire|des particules|théorique|fondamentale)|physicien(?:ne)?s?|chimie|chimiste|biologie|biologiste|mathématiques?|mathématicien(?:ne)?|laboratoire|astronomie|astrophysique|astrophysicien(?:ne)?|génétique|théorème|équation|quantique|ingénieur|inventeur|inventrice|chercheur|chercheuse|prix nobel de (?:physique|chimie|médecine)" +
@@ -115,8 +132,8 @@ const BUILTIN_PROFILES = [
         kw:
           // "russe" seul exclu des translittérations "(en russe : …)" et des expressions figées
           "russie|(?<!(?:en|roulette|salade|montagnes?|poupées?) )russes?(?!\\s*:)|moscou|poutine|kremlin|staline|lénine|trotski|urss|union soviétique|soviétiques?|tsars?|tsarine|romanov|sibérie|sibérien(?:ne)?|saint-pétersbourg|leningrad|stalingrad|volgograd|oural|volga|kamtchatka|tchétchénie|bolcheviks?|révolution d'octobre|gorbatchev|eltsine|khrouchtchev|brejnev|raspoutine" +
-          "|bosnie|bosnie-herzégovine|herzégovine|bosniaques?|bosniens?|sarajevo|srebrenica|mostar|banja luka|tuzla|republika srpska|guerre de bosnie|accords de dayton|izetbegović|karadžić|karadzic|mladić|mladic" +
-          "|football(?! américain| canadien| australien| gaélique)|footballeur|footballeuse|ballon d'or|fifa|uefa|ligue des champions|coupe du monde de football|championnat d'europe de football|ligue 1|ligue 2|premier league|la liga|serie a|bundesliga|psg|paris saint-germain|olympique de marseille|olympique lyonnais|as saint-étienne|real madrid|fc barcelone|bayern munich|juventus|manchester united|manchester city|liverpool fc|chelsea fc|arsenal fc|ac milan|inter milan|lionel messi|messi|cristiano ronaldo|ronaldo|ronaldinho|mbappé|maradona|pelé|zinédine zidane|zidane|michel platini|johan cruyff|gardien de but|club de football|stade de football",
+          "|bosnie|bosnie-herzégovine|herzégovine|bosniaques?|bosniens?|sarajevo|srebrenica|mostar|banja luka|tuzla|republika srpska|guerre de bosnie|accords de dayton|izetbegović|karadžić|karadzic|mladić|mladic|" +
+          FOOTBALL,
       },
     ],
   },
@@ -192,6 +209,39 @@ const BUILTIN_PROFILES = [
           "chanteu(?:r|se)s?|chansons?|singles?|albums?|ep|mini-albums?|boys? band|boysband|girl group|girls? band|groupe (?:de musique|musical|vocal|pop)|rappeu(?:r|se)s?|idoles?|clips?",
         unless: "opéra|lyriques?|soprano|mezzo-soprano|ténor|baryton|pansori|trot|musique classique",
       },
+    ],
+  },
+  {
+    name: "Narutoto82",
+    color: "#f97316",
+    about: "Football, jeux vidéo, astronomie, cinéma",
+    rules: [
+      {theme: "Astronomie & Espace"},
+      {kw: FOOTBALL},
+      // "Esports" est aussi le mot catalan pour « sports » (Centre d'Esports Sabadell)
+      {
+        kw:
+          "jeux? vidéos?|vidéoludiques?|consoles? de jeux?(?: vidéos?)?|consoles? portables?|jeux? d'arcade|bornes? d'arcade|salles? d'arcade|sports? électroniques?|e-sports?|(?<!centre d')esports?|speedrun[a-zà-ÿ]*|mmorpg" +
+          "|nintendo|playstation|xbox|game boy|gamecube|wii|sega|mega drive|dreamcast|atari|ubisoft|electronic arts|activision|blizzard entertainment|square enix|squaresoft|capcom|konami|bandai namco|namco|bethesda softworks|bethesda game studios|rockstar games|valve corporation|epic games|riot games|mojang" +
+          "|minecraft|fortnite|league of legends|pokémon|super mario|mario bros|mario kart|legend of zelda|sonic the hedgehog|pac-man|tetris|donkey kong|final fantasy|call of duty|grand theft auto|street fighter|mortal kombat|resident evil|metal gear|elder scrolls|skyrim|world of warcraft|warcraft|starcraft|counter-strike|half-life|overwatch|assassin's creed|les sims|the sims|kingdom hearts|dragon quest|metroid|castlevania|god of war|dark souls|elden ring" +
+          "|hideo kojima|shigeru miyamoto|satoru iwata|game designer|concepteu(?:r|se)s? de jeux|développeu(?:r|se)s? de jeux|studios? de jeux|éditeurs? de jeux",
+      },
+      // Astronomes et objets célestes classés dans un autre thème ("astronomique" et "nébuleuse"
+      // s'emploient aussi au sens figuré)
+      {
+        kw:
+          "astronomie|astronomes?|astrophysi(?:que|cien|cienne)s?|cosmolog(?:ie|iste|istes|ique|iques)|planétolog(?:ie|ue|ues)|exoplanètes?|galaxies?|galactiques?|supernovas?|pulsars?|quasars?|trous? noirs?|télescopes?|radiotélescopes?|planétariums?|observatoires? astronomiques?|éclipses? (?:solaires?|lunaires?|totales?|annulaires?|partielles?)|comètes?|astéroïdes?|météorites?|étoiles? filantes?|pluies? de météores|système solaire|voie lactée|constellations?|étoiles? (?:binaires?|doubles?|variables?|à neutrons|naines?|géantes?)|naines? (?:blanches?|brunes?|rouges?)|géantes? (?:rouges?|bleues?)|amas (?:stellaires?|globulaires?|ouverts?|de galaxies)|ceinture de kuiper|nuage d'oort|planètes? naines?" +
+          "|astronautes?|cosmonautes?|spationautes?|conquête spatiale|exploration spatiale|programme apollo|nasa",
+      },
+      // Films, cinéastes et acteurs, pas le cinéma X ("acteur majeur du secteur" n'est pas un comédien)
+      {
+        kw:
+          "cinéma(?! x)|cinémas|cinématographi(?:e|que|ques)|cinéastes?|films?(?! x)|longs?-métrages?|courts?-métrages?|moyens?-métrages?|réalisat(?:eur|rice)s?(?! (?:de télévision|de clips?|d'émissions?|radio))|product(?:eur|rice)s? de (?:cinéma|films?)|box-office|oscars? (?:du |de la |d')(?:meilleure?|honneur)|cérémonie des oscars|academy awards?|césars? (?:du |de la )meilleure?|festival de cannes|palme d'or|mostra de venise|berlinale|golden globes?|hollywood|cascadeu(?:r|se)s?" +
+          "|acteurs?(?! (?:de théâtre|de doublage|majeurs?|clés?|économiques?|politiques?|sociaux|importants?|incontournables?|principa(?:l|ux)|du secteur))|actrices?(?! (?:de théâtre|de doublage))",
+        unless: "pornographi[a-zà-ÿ]*|actrices? x|acteurs? x|films? x|cinéma x",
+      },
+      // Un scénariste seul est souvent un auteur de bande dessinée
+      {kw: "scénaristes?", unless: "bandes? dessinées?|bédéistes?|dessinat(?:eur|rice)s?|mangas?|comics"},
     ],
   },
 ];
