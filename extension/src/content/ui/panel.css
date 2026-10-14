@@ -172,6 +172,7 @@ code { font: 500 0.9em var(--mono); background: var(--surface-2); padding: 1px 4
 .mono { font-family: var(--mono); font-size: 12px; }
 .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .money .cur { color: var(--faint); font-weight: 500; font-size: 0.85em; margin-left: 0.25em; }
+.money.approx { color: var(--muted); font-weight: 500; cursor: help; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c, var(--faint)); flex: none; }
 
 /* --- Boutons */

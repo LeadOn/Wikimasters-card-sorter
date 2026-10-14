@@ -1,21 +1,24 @@
-// Prix moyens de vente : résumé du marché par carte et par rareté, mis en cache.
+// Prix du marché : résumé des ventes par carte et par rareté, mis en cache.
 //
 // Source principale : les ventes conclues de la table Supabase `auctions`, lues par lots de cartes
-// (une requête pour des dizaines de cartes) et résumées comme le fait le site (moyenne des
-// 200 dernières ventes par rareté). La route du site (/api/marketplace/cards/<id>/sales?scope=summary)
-// met ~12 s par carte : elle ne sert qu'en dernier recours, pour une carte isolée.
-// Les résumés que le site charge lui-même sont aussi récupérés au passage.
+// (une requête pour des dizaines de cartes) et résumées par core/prices.js (médiane des dernières
+// ventes, hors shiny ; prix shiny à part). La route du site (/api/marketplace/cards/<id>/sales?scope=summary)
+// met ~12 s par carte et ne donne qu'une moyenne : elle ne sert qu'en dernier recours, pour une carte isolée.
+// Les résumés que le site charge lui-même servent aussi, pour une carte sans prix récent.
+// Un prix n'est retenu qu'à partir du nombre de ventes réglé (réglages minSales et skipFirstSales).
 import {site} from "../api/site";
 import {rest} from "../api/supabase";
 import {createStore} from "../lib/store";
 import {createLimiter} from "../lib/http";
-import {load, save, update} from "../lib/storage";
+import {load, save, update, remove} from "../lib/storage";
 import {on} from "../lib/bus";
 import {lookupId} from "../lib/registry";
 import {settings} from "./settings";
-import {averagePrice, summarizeSales, priceBatches} from "../../../../core/prices";
+import {priceInfo as computePriceInfo, summarizeSales, priceBatches} from "../../../../core/prices";
 
-const KEY = "prices";
+// Format des résumés changé (prix shiny à part, dernières ventes) : les anciens sont abandonnés
+const KEY = "prices-v2";
+remove("prices");
 // Le serveur renvoie souvent des erreurs passagères : un prix en échec est redemandé après 5 min
 const ERROR_RETRY = 5 * 60 * 1000;
 // Au-delà, une entrée est oubliée (le cache ne grossit pas indéfiniment)
@@ -69,15 +72,51 @@ export const ready = load(KEY, {}).then((saved) => {
 const maxAge = () => settings.get().priceMaxAgeHours * 3600 * 1000;
 const isFresh = (entry) => entry && Date.now() - entry.t < (entry.err ? ERROR_RETRY : maxAge());
 
+// Réglages de fiabilité des prix, à passer aux fonctions de core/prices.js
+export const priceOptions = () => {
+  const s = settings.get();
+  return {minSales: s.minSales, skipFirst: s.skipFirstSales};
+};
+// Réglages modifiés : les prix affichés sont recalculés
+let rule = JSON.stringify(priceOptions());
+settings.subscribe(() => {
+  const next = JSON.stringify(priceOptions());
+  if (next !== rule) {
+    rule = next;
+    priceVersion.set((s) => ({...s, v: s.v + 1}));
+  }
+});
+
 export const summaryOf = (cardId) => cache.get(cardId)?.s || null;
-export const priceOf = (cardId, rarity) => averagePrice(summaryOf(cardId), rarity);
+// {price, sales, total, reliable, average, latest} (core/prices.js → priceInfo), null si jamais vendue
+// ou pas encore lue. shiny : prix d'un exemplaire shiny.
+export const priceInfo = (cardId, rarity, {shiny = false} = {}) => computePriceInfo(summaryOf(cardId), rarity, {...priceOptions(), shiny: Boolean(shiny)});
+// Prix fiable (assez de ventes), ou null : le seul qui entre dans les totaux et les décisions
+export function priceOf(cardId, rarity, options) {
+  const info = priceInfo(cardId, rarity, options);
+  return info?.reliable ? info.price : null;
+}
 export const hasFreshPrice = (cardId) => isFresh(cache.get(cardId));
-// "ok" (prix connu), "none" (aucune vente pour cette rareté), "error" (lecture impossible), "unknown" (pas encore lu)
-export function priceStatus(cardId, rarity) {
+// "ok" (prix fiable), "few" (vendue, mais trop peu de ventes prises en compte), "none" (aucune vente
+// pour cette rareté), "error" (lecture impossible), "unknown" (pas encore lu)
+export function priceStatus(cardId, rarity, options) {
   const entry = cache.get(cardId);
   if (!entry) return "unknown";
-  if (averagePrice(entry.s, rarity) != null) return "ok";
+  const info = priceInfo(cardId, rarity, options);
+  if (info) return info.reliable ? "ok" : "few";
   return entry.err ? "error" : "none";
+}
+// Prix à afficher sur une carte (props de CardRow) : le prix fiable, sinon le prix indicatif signalé
+// comme tel (uncertain : explication), sinon rien
+export function pricing(cardId, rarity, options) {
+  const info = priceInfo(cardId, rarity, options);
+  if (!info || info.price == null) return {price: null};
+  if (info.reliable) return {price: info.price};
+  return {price: info.price, uncertain: uncertainNote(info)};
+}
+export function uncertainNote(info) {
+  const ignored = info.total - info.sales;
+  return `Prix indicatif : ${info.sales} vente${info.sales > 1 ? "s" : ""} prise${info.sales > 1 ? "s" : ""} en compte${ignored ? ` (${ignored} première${ignored > 1 ? "s" : ""} ignorée${ignored > 1 ? "s" : ""})` : ""}, il en faut ${priceOptions().minSales} pour un prix fiable.`;
 }
 export const priceMap = () => new Map([...cache].map(([id, v]) => [id, v.s]));
 
@@ -90,8 +129,12 @@ function markError(cardId) {
   touch(cardId);
 }
 
-// Résumés que le site charge lui-même (fiche de mise en vente) : gratuits
-on("sales-summary", ({data, match}) => data?.summary && store(match[1], data.summary));
+// Résumés que le site charge lui-même (fiche de mise en vente) : gratuits, mais réduits à une moyenne
+// qui compte les toutes premières ventes. Ils ne remplacent jamais un prix récent.
+on("sales-summary", ({data, match}) => {
+  const entry = cache.get(match[1]);
+  if (data?.summary && !(entry && !entry.err && isFresh(entry))) store(match[1], data.summary);
+});
 
 // --- Lecture groupée
 const inflight = new Set();
@@ -103,7 +146,7 @@ async function readSales(ids, signal) {
   const rows = [];
   for (let offset = 0; ; offset += PAGE) {
     const page = await rest(
-      `auctions?select=card_id,snapshot_rarity,final_price,settled_at&status=eq.settled_sold&card_id=in.(${ids.join(",")})&order=card_id,settled_at.desc&limit=${PAGE}&offset=${offset}`,
+      `auctions?select=id,card_id,snapshot_rarity,final_price,settled_at,is_shiny&status=eq.settled_sold&card_id=in.(${ids.join(",")})&order=card_id,settled_at.desc,id&limit=${PAGE}&offset=${offset}`,
       {signal, retries: 2},
     );
     rows.push(...page);

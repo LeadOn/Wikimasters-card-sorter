@@ -1,4 +1,10 @@
-// Prix moyens de vente (résumé du marché par rareté) et valeurs dérivées.
+// Prix de marché (résumé des ventes conclues par rareté) et valeurs dérivées.
+//
+// Le site affiche la moyenne des 200 dernières ventes de la rareté, hors cartes shiny. Une seule vente
+// aberrante suffit à fausser une moyenne (une Commune vendue 15 000 ₩) : le prix retenu ici est la
+// médiane des 30 dernières ventes, la moyenne du site restant disponible pour l'affichage. Un prix
+// n'est fiable qu'à partir d'un nombre minimum de ventes, sans compter les toutes premières ventes de
+// la carte dans cette rareté (réglages `minSales` et `skipFirst`).
 "use strict";
 
 const RARITIES = ["L", "UR", "SR", "R", "PC", "C"];
@@ -9,21 +15,65 @@ const RARITY_LABEL = {L: "Légendaire", UR: "Ultra Rare", SR: "Super Rare", R: "
 const RARITY_COLORS = {L: "#ffe144", UR: "#fa9931", SR: "#ed6fa3", R: "#c6a7f2", PC: "#b1cff2", C: "#b8f2d5"};
 const rarityRank = (r) => RARITY_RANK[r] ?? -1;
 
-// summary : {RARETÉ: {average, count, latest}} (réponse du site) → prix moyen pour cette rareté, ou null
-function averagePrice(summary, rarity) {
-  const s = summary?.[rarity];
-  return s && Number.isFinite(Number(s.average)) ? Math.round(Number(s.average)) : null;
+// Ventes prises en compte : la médiane des RECENT_SALES dernières ; le site, lui, fait la moyenne des SITE_WINDOW dernières
+const RECENT_SALES = 30;
+const SITE_WINDOW = 200;
+// Réglages par défaut (modifiables dans l'extension) : ventes nécessaires pour un prix fiable, premières ventes ignorées
+const PRICE_DEFAULTS = {minSales: 3, skipFirst: 1};
+
+const amount = (v) => (v != null && Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+
+function median(values) {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return Math.round(s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2);
 }
 
-// Valeur d'une liste d'exemplaires : [{card_id, rarity, count?}] ; prices : Map(card_id → summary)
-function collectionValue(copies, prices) {
+// Prix d'une carte dans une rareté. summary : {RARETÉ: {average, count, latest, recent?, shiny?}}, celui de
+// summarizeSales ou celui du site (moyenne seule, sans `recent` : les premières ventes ne peuvent alors pas
+// être écartées). shiny : prix d'un exemplaire shiny (ventes shiny seulement).
+// → null si jamais vendue (dans cette rareté et cette version), sinon
+//   {price, sales, total, reliable, average, latest} : sales = ventes prises en compte, total = toutes
+//   (au plus SITE_WINDOW), reliable = au moins minSales ventes prises en compte.
+function priceInfo(summary, rarity, {shiny = false, minSales = PRICE_DEFAULTS.minSales, skipFirst = PRICE_DEFAULTS.skipFirst} = {}) {
+  const entry = summary?.[rarity];
+  const s = shiny ? entry?.shiny : entry;
+  const total = Number(s?.count) || 0;
+  if (!total) return null;
+  let sales;
+  let price;
+  if (Array.isArray(s.recent)) {
+    // Les ventes ignorées sont les plus anciennes ; `recent` contient les plus récentes
+    sales = Math.max(0, total - Math.max(0, skipFirst));
+    price = median(s.recent.slice(0, sales));
+  } else {
+    sales = total;
+    price = amount(s.average);
+  }
+  return {price, sales, total, reliable: price != null && sales >= Math.max(1, minSales), average: amount(s.average), latest: amount(s.latest)};
+}
+
+// Prix fiable, ou null (jamais vendue, ou trop peu de ventes prises en compte). Seul ce prix entre dans
+// les totaux, les comparaisons et les mises de départ proposées.
+function marketPrice(summary, rarity, options) {
+  const info = priceInfo(summary, rarity, options);
+  return info?.reliable ? info.price : null;
+}
+
+// Au moins une vente conclue dans cette rareté (shiny ou non), quels que soient les réglages
+const soldIn = (summary, rarity) => Boolean(Number(summary?.[rarity]?.count) || Number(summary?.[rarity]?.shiny?.count));
+
+// Valeur d'une liste d'exemplaires : [{card_id, rarity, count?, is_shiny?}] ; prices : Map(card_id → summary) ;
+// options : réglages de priceInfo. Seuls les prix fiables comptent.
+function collectionValue(copies, prices, options = {}) {
   let value = 0;
   let priced = 0;
   let total = 0;
   for (const c of copies) {
     const n = Math.max(1, Number(c.count) || 1);
     total += n;
-    const p = averagePrice(prices.get(c.card_id), c.rarity);
+    const p = marketPrice(prices.get(c.card_id), c.rarity, {...options, shiny: Boolean(c.is_shiny)});
     if (p == null) continue;
     value += p * n;
     priced += n;
@@ -40,7 +90,7 @@ function unsoldCopies(copies, prices, {anyRarity = false} = {}) {
   for (const c of copies) {
     const summary = prices.get(c.card_id);
     if (!summary) unknown.push(c);
-    else if (anyRarity ? !Object.keys(summary).some((r) => averagePrice(summary, r) != null) : averagePrice(summary, c.rarity) == null) unsold.push(c);
+    else if (anyRarity ? !Object.keys(summary).some((r) => soldIn(summary, r)) : !soldIn(summary, c.rarity)) unsold.push(c);
   }
   return {unsold, unknown};
 }
@@ -88,25 +138,35 @@ function spareCards(copies) {
   return spares;
 }
 
-// Résumé du marché calculé à partir des ventes conclues (table `auctions`, statut settled_sold),
-// identique à celui du site : par rareté, moyenne des `window` dernières ventes, nombre et dernière.
-// rows : [{card_id, snapshot_rarity, final_price, settled_at}] dans n'importe quel ordre
-// Renvoie Map(card_id → {RARETÉ: {average, count, latest}})
-function summarizeSales(rows, {window = 200} = {}) {
+// Résumé du marché calculé à partir des ventes conclues (table `auctions`, statut settled_sold).
+// rows : [{card_id, snapshot_rarity, final_price, settled_at, is_shiny}] dans n'importe quel ordre
+// Renvoie Map(card_id → {RARETÉ: {average, count, latest, recent, shiny?}}) : average, count, latest
+// comme le site (moyenne, nombre et dernière des `window` dernières ventes non shiny), recent : les
+// `recent` derniers prix non shiny, du plus récent au plus ancien ; shiny : {count, latest, recent}
+// pour les ventes shiny, quand il y en a.
+function summarizeSales(rows, {window = SITE_WINDOW, recent = RECENT_SALES} = {}) {
   const groups = new Map();
   for (const r of rows) {
     if (r.final_price == null || !r.snapshot_rarity) continue;
     const key = `${r.card_id}|${r.snapshot_rarity}`;
     (groups.get(key) || groups.set(key, []).get(key)).push(r);
   }
+  const prices = (list) => list.slice(0, recent).map((r) => Number(r.final_price));
   const out = new Map();
   for (const [key, list] of groups) {
     const [cardId, rarity] = key.split("|");
     list.sort((a, b) => (a.settled_at < b.settled_at ? 1 : a.settled_at > b.settled_at ? -1 : 0));
-    const recent = list.slice(0, window);
-    const average = Math.round(recent.reduce((n, r) => n + Number(r.final_price), 0) / recent.length);
+    const normal = list.filter((r) => !r.is_shiny).slice(0, window);
+    const shiny = list.filter((r) => r.is_shiny).slice(0, window);
+    const entry = {
+      average: normal.length ? Math.round(normal.reduce((n, r) => n + Number(r.final_price), 0) / normal.length) : null,
+      count: normal.length,
+      latest: normal.length ? Number(normal[0].final_price) : null,
+      recent: prices(normal),
+    };
+    if (shiny.length) entry.shiny = {count: shiny.length, latest: Number(shiny[0].final_price), recent: prices(shiny)};
     if (!out.has(cardId)) out.set(cardId, {});
-    out.get(cardId)[rarity] = {average, count: recent.length, latest: Number(recent[0].final_price)};
+    out.get(cardId)[rarity] = entry;
   }
   return out;
 }
@@ -148,4 +208,4 @@ function packNovelty(cards, copies) {
   });
 }
 
-module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, RARITY_COLORS, rarityRank, averagePrice, collectionValue, unsoldCopies, groupCopies, freeCopy, spareCards, summarizeSales, priceBatches, packNovelty};
+module.exports = {RARITIES, RARITY_RANK, RARITY_LABEL, RARITY_COLORS, rarityRank, RECENT_SALES, PRICE_DEFAULTS, priceInfo, marketPrice, soldIn, collectionValue, unsoldCopies, groupCopies, freeCopy, spareCards, summarizeSales, priceBatches, packNovelty};

@@ -1,4 +1,4 @@
-// Bloc de la Toolbox sur la page d'une enchère : prix moyen, écart entre la mise et ce prix,
+// Bloc de la Toolbox sur la page d'une enchère : prix du marché, écart entre la mise et ce prix,
 // carte déjà possédée ou non, amis intéressés. Lecture seule : la mise se fait avec le formulaire du site.
 import {useEffect, useState} from "preact/hooks";
 import {useStore} from "../../lib/store";
@@ -8,14 +8,14 @@ import {auctionById, auctionVersion, loadAuction, nextBid, isLeading} from "../.
 import {Icon, Mark, Money, fmt} from "../components";
 import {PriceLine, Interest} from "./shared";
 
-// Écart d'une mise au prix moyen, en %
+// Écart d'une mise au prix du marché (fiable seulement), en %
 const gapOf = (amount, avg) => (avg ? Math.round((100 * (amount - avg)) / avg) : null);
 
 function Gap({gap}) {
   if (gap == null) return null;
-  if (gap <= -20) return <span class="chip ok">{-gap} % sous la moyenne</span>;
-  if (gap >= 20) return <span class="chip warn">{gap} % au-dessus de la moyenne</span>;
-  return <span class="chip">proche de la moyenne ({gap > 0 ? "+" : ""}{gap} %)</span>;
+  if (gap <= -20) return <span class="chip ok">{-gap} % sous le prix du marché</span>;
+  if (gap >= 20) return <span class="chip warn">{gap} % au-dessus du prix du marché</span>;
+  return <span class="chip">proche du prix du marché ({gap > 0 ? "+" : ""}{gap} %)</span>;
 }
 
 export function AuctionInsight({auctionId}) {
@@ -42,7 +42,7 @@ export function AuctionInsight({auctionId}) {
   const rarity = a.snapshot_rarity || a.card.rarity;
   const current = a.current_bid ?? a.base_amount;
   const next = nextBid(a);
-  const avg = priceOf(cardId, rarity);
+  const avg = priceOf(cardId, rarity, {shiny: a.is_shiny});
   const ownedCard = loadedAt ? ids.has(cardId) : null;
   return (
     <section class="island compact" aria-label="Analyse WikiMasters Toolbox">
@@ -51,7 +51,7 @@ export function AuctionInsight({auctionId}) {
         <span class="island-title">Analyse Toolbox</span>
         {isLeading(a) && <span class="chip ok">Vous êtes en tête</span>}
       </div>
-      <PriceLine cardId={cardId} rarity={rarity} />
+      <PriceLine cardId={cardId} rarity={rarity} shiny={Boolean(a.is_shiny)} />
       {avg != null && current != null && (
         <div class="kv">
           <span class="k">{a.current_bid != null ? "Enchère actuelle" : "Mise de départ"}</span>

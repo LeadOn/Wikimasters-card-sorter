@@ -23,7 +23,7 @@ function Column({title, items, empty, badges}) {
       {items.length ? (
         <div class="cards mini">
           {items.slice(0, SHOWN).map((c) => (
-            <CardRow key={c.id || c.card_id} card={c.card} theme={c.theme} price={c.price ?? priceOf(c.card_id, c.card.rarity)} badges={badges(c)} />
+            <CardRow key={c.id || c.card_id} card={c.card} theme={c.theme} price={priceOf(c.card_id, c.card.rarity, {shiny: c.is_shiny})} badges={badges(c)} />
           ))}
         </div>
       ) : (

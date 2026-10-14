@@ -80,7 +80,7 @@ Remplacent les règles codées en dur pour chaque ami.
 |---|---|---|
 | E1 | **Trouver des échanges avec un ami** : ses cartes que je n'ai pas et qui correspondent à mon profil ou à ma liste de souhaits ; mes cartes qui correspondent à son profil (ou mes doublons) ; filtres thème / rareté / recherche | P1 |
 | E2 | Collection de l'ami en cache (12 h), téléchargement reprenable, filtre de rareté côté serveur | P1 |
-| E3 | Valeur d'un échange en cours : prix moyen de chaque carte et total de chaque côté (WikiBidous compris) | P2 |
+| E3 | Valeur d'un échange en cours : prix du marché de chaque carte et total de chaque côté (WikiBidous compris) | P2 |
 | E4 | Proposition équilibrée : sélection de cartes à proposer pour une valeur proche de celle demandée | P2 |
 | E5 | Cartes engagées dans un échange en cours signalées | P2 |
 
@@ -88,7 +88,7 @@ Remplacent les règles codées en dur pour chaque ami.
 
 | # | Fonctionnalité | Prio |
 |---|---|---|
-| P1 | Prix moyen de vente par carte (par rareté), en badge sur les cartes, mis en cache | P1 |
+| P1 | Prix du marché par carte (par rareté), en badge sur les cartes, mis en cache. Robuste aux ventes aberrantes (médiane des 30 dernières ventes), prix à part pour les shiny, fiable seulement à partir d'un nombre de ventes réglable (3 par défaut), sans les toutes premières ventes de la carte (1 par défaut, réglable) ; un prix non fiable reste affiché « ≈ » mais n'entre dans aucun calcul | P1 |
 | P2 | Chargement des prix en masse, par rareté (« seulement les cartes sans prix » possible) | P1 |
 | P3 | Valeur estimée de ma collection | P2 |
 | P4 | Classement de mes cartes les plus chères, filtrable par tag | P2 |
@@ -99,7 +99,7 @@ Remplacent les règles codées en dur pour chaque ami.
 
 | # | Fonctionnalité | Prio |
 |---|---|---|
-| K1 | Récapitulatif après un paquet : cartes, nouveautés, doublons, prix moyen, valeur totale | P1 |
+| K1 | Récapitulatif après un paquet : cartes, nouveautés, doublons, prix du marché, valeur totale | P1 |
 | K2 | Statistiques de tirage : répartition des raretés, réinitialisables | P2 |
 | K3 | « Tout ouvrir » : ouvre tous les paquets disponibles sans animation, sur clic + confirmation, en respectant le délai du site entre deux paquets (429 « trop rapide » : attente puis même paquet redemandé) ; s'arrête à toute autre erreur et à la vérification anti-robot, laissée au joueur | P2 |
 
@@ -131,9 +131,9 @@ partage son état avec l'onglet correspondant du panneau.
 | # | Fonctionnalité | Prio |
 |---|---|---|
 | D1 | **Collection** : barre sous les filtres — « Trier les nouvelles cartes » (aperçu sur place : cartes à classer, étiquettes, doublons ; « Appliquer » sur clic), raccourcis Doublons et Prix | P2 |
-| D2 | **Fiche d'une carte** (fenêtre ouverte au clic, sur toutes les pages) : prix moyen de la rareté (instantané si en cache), thème, amis intéressés (« Pour : … »), possession, ajout à une famille | P2 |
-| D3 | **Page d'une enchère** : prix moyen, écart entre la mise et ce prix, carte déjà possédée ou nouvelle, amis intéressés | P2 |
-| D4 | **Marché** : pastille « −X % » sur une enchère qui se termine dans moins de 15 min sous le prix moyen, « +X % » quand la mise minimale dépasse nettement le prix moyen (moyenne sur 3 ventes au moins) | P3 |
+| D2 | **Fiche d'une carte** (fenêtre ouverte au clic, sur toutes les pages) : prix du marché de la rareté (instantané si en cache), thème, amis intéressés (« Pour : … »), possession, ajout à une famille | P2 |
+| D3 | **Page d'une enchère** : prix du marché, écart entre la mise et ce prix, carte déjà possédée ou nouvelle, amis intéressés | P2 |
+| D4 | **Marché** : pastille « −X % » sur une enchère qui se termine dans moins de 15 min sous le prix du marché, « +X % » quand la mise minimale dépasse nettement ce prix (prix fiable seulement) | P3 |
 | D5 | **Profil d'un ami** : recherche d'échanges sur place (raretés au choix), aperçu des cartes à demander et à proposer, profil de la bande en un clic | P2 |
 
 ## 4. Hors périmètre (pour l'instant)
@@ -167,7 +167,7 @@ Toutes les fonctionnalités des sections 3.1 à 3.9 sont implémentées. Écarts
 | K2 | Graphique des taux de drop par rareté sur l'écran « Ouvrir un paquet » : mes tirages comptés par l'extension, ou la répartition de toute ma collection tant qu'il y a moins de 50 cartes tirées. Barres aux couleurs de rareté du site, rareté aussi portée par le libellé. |
 | T5 | Option « Trier automatiquement les cartes tirées » (désactivée par défaut) : dès l'ouverture d'un paquet, les exemplaires tirés (identifiés par `user_card_id` dans la réponse du site) reçoivent thème, « Pour : … » et Doublon, en quelques requêtes ; un exemplaire qui a déjà un thème n'est pas modifié, rien n'est supprimé. Le récapitulatif affiche les étiquettes posées. Sans l'option, il propose « Trier les nouvelles cartes ». |
 | T6 | Non implémenté (P3) : la correction passe par les profils ou par l'ajout de la carte au jeu de test. |
-| P1-P2 | Prix calculés à partir des ventes conclues (table `auctions`), lues par lots : toute une collection (~7 600 cartes) en ~5 min, au lieu de ~12 s par carte avec la route du site, gardée en dernier recours. |
+| P1-P2 | Prix calculés à partir des ventes conclues (table `auctions`), lues par lots : toute une collection (~7 600 cartes) en ~5 min, au lieu de ~12 s par carte avec la route du site, gardée en dernier recours. Médiane plutôt que moyenne : sur 75 000 ventes (600 cartes, octobre 2026), elle prédit mieux la vente suivante (écart typique ×1,56 contre ×1,72, 1 cas sur 10 au-delà de ×4,1 contre ×5,7). Le site exclut les ventes shiny de sa moyenne : la Toolbox aussi, avec un prix shiny à part. Remplacer un prix peu fiable par celui de la rareté a été écarté : il prédit plus mal, la carte comptant bien plus que sa rareté. |
 | P4 | Classement filtrable par thème calculé (lire les étiquettes de 7 000 cartes à chaque affichage serait trop lent). |
 | P6 | Alerte par message et son ; vérification toutes les 60 s (20 s dans les 5 dernières minutes) tant qu'une enchère est en cours et l'onglet visible. |
 | E3 | Valeur des échanges : encart flottant sur la page Échanges + détail dans l'onglet Échanges (le rendu des échanges du site varie trop pour y greffer des badges). |

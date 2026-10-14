@@ -149,7 +149,9 @@ export async function loadSpares() {
   }
 }
 
-export const spareValue = (s) => priceOf(s.card_id, s.rarity);
+// Exemplaire en trop qui serait vendu ou défaussé, et son prix du marché (fiable seulement)
+export const spareCopy = (s) => s.rows.find((r) => r.id === s.sellCopyId) || null;
+export const spareValue = (s) => priceOf(s.card_id, s.rarity, {shiny: spareCopy(s)?.is_shiny});
 
 // Un exemplaire a quitté la liste des doublons (mis en vente ou défaussé) : la carte est recalculée
 // sans lui, pour que l'action suivante vise un autre exemplaire ; elle disparaît s'il n'en reste qu'un.

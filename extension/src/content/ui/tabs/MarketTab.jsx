@@ -2,8 +2,8 @@
 // (mise en vente ou défausse d'un exemplaire, avec confirmation).
 import {useState, useEffect} from "preact/hooks";
 import {useStore} from "../../lib/store";
-import {bidsState, refreshBids, placeBid, nextBid, isLeading, msLeft, sellState, loadSpares, spareValue, discardSpare} from "../../features/market";
-import {priceVersion, priceOf} from "../../state/prices";
+import {bidsState, refreshBids, placeBid, nextBid, isLeading, msLeft, sellState, loadSpares, spareValue, spareCopy, discardSpare} from "../../features/market";
+import {priceVersion, priceOf, pricing} from "../../state/prices";
 import {CardRow, Icon, Notice, Progress, fmt, plural, duration, timeAgo} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {askSell} from "../SellDialog";
@@ -21,11 +21,11 @@ function AuctionRow({a, bidding}) {
   const leading = isLeading(a);
   const left = msLeft(a);
   const current = a.current_bid ?? a.base_amount;
-  const avg = priceOf(a.card_id, a.snapshot_rarity || a.card?.rarity);
+  const avg = priceOf(a.card_id, a.snapshot_rarity || a.card?.rarity, {shiny: a.is_shiny});
   const bid = async (amount) => {
     const ok = await confirmAction({
       title: `Enchérir ${fmt(amount)} ₩ ?`,
-      body: `${a.card?.wikipedia_title} (${a.snapshot_rarity}) · enchère actuelle ${fmt(current)} ₩${avg ? ` · prix moyen ${fmt(avg)} ₩` : ""}. Les WikiBidous sont réservés jusqu'à la fin de l'enchère.`,
+      body: `${a.card?.wikipedia_title} (${a.snapshot_rarity}) · enchère actuelle ${fmt(current)} ₩${avg ? ` · prix du marché ${fmt(avg)} ₩` : ""}. Les WikiBidous sont réservés jusqu'à la fin de l'enchère.`,
       confirm: `Enchérir ${fmt(amount)} ₩`,
     });
     if (!ok) return;
@@ -43,7 +43,7 @@ function AuctionRow({a, bidding}) {
     <CardRow
       card={a.card}
       rarity={a.snapshot_rarity}
-      price={avg}
+      {...pricing(a.card_id, a.snapshot_rarity || a.card?.rarity, {shiny: a.is_shiny})}
       badges={[
         {label: `${a.current_bid != null ? "enchère" : "mise de départ"} ${fmt(current)} ₩`, type: "accent"},
         {label: duration(left), type: left < 120000 ? "danger" : ""},
@@ -68,12 +68,13 @@ function SpareRow({s, quotaFull, loading}) {
   const [busy, setBusy] = useState(false);
   const card = {...s.card, id: s.card_id};
   const locked = s.sellCopyId ? "" : "Tous vos exemplaires sont en favori : le site les verrouille";
+  const shiny = Boolean(spareCopy(s)?.is_shiny);
 
   const discard = async () => {
     const ok = await confirmDiscard({
       card,
       rarity: s.rarity,
-      shiny: s.rows.find((r) => r.id === s.sellCopyId)?.is_shiny,
+      shiny,
       copies: `Il vous en restera ${plural(s.copies - 1, "exemplaire")}.`,
     });
     if (!ok) return;
@@ -92,7 +93,7 @@ function SpareRow({s, quotaFull, loading}) {
     <CardRow
       card={s.card}
       rarity={s.rarity}
-      price={s.value}
+      {...pricing(s.card_id, s.rarity, {shiny})}
       badges={[{label: plural(s.spare, "en trop", "en trop"), type: "ok"}, s.starred && {label: "favori", type: "warn", icon: "star"}]}
       action={
         <span class="row" style={{gap: "2px"}}>
@@ -105,6 +106,7 @@ function SpareRow({s, quotaFull, loading}) {
                 card,
                 userCardId: s.sellCopyId,
                 rarity: s.rarity,
+                shiny,
                 badges: [{label: `${s.copies} exemplaires`, type: "ok"}],
                 note: "Un exemplaire est mis en réserve pendant l'enchère ; vous en gardez au moins un.",
               })

@@ -4,7 +4,7 @@
 // quitte la liste.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const {loadExtensionModule, response} = require("./helpers/extension");
+const {loadExtensionModule, response, fakeJwt, sessionCookie} = require("./helpers/extension");
 const core = require("../core");
 
 function fakeBrowser() {
@@ -130,7 +130,12 @@ test("collection filtrée : mise aux enchères refusée → arrêt, rien n'est r
 
 test("filtre : critères cumulés, jamais vendues dans aucune rareté ou dans la sienne, intervalle de prix", () => {
   fakeBrowser();
-  const m = loadExtensionModule({view: "extension/src/content/features/collection-view.js", bus: "extension/src/content/lib/bus.js", prices: "extension/src/content/state/prices.js"});
+  const m = loadExtensionModule({
+    view: "extension/src/content/features/collection-view.js",
+    bus: "extension/src/content/lib/bus.js",
+    prices: "extension/src/content/state/prices.js",
+    settings: "extension/src/content/state/settings.js",
+  });
   const copy = (id, card_id, rarity, title, image_url, count = 1) => ({id, card_id, rarity, count, card: {id: card_id, wikipedia_title: title, image_url, hide_image: false}});
   const owned = [
     copy("u1", "a", "C", "Abeille", null),
@@ -138,30 +143,66 @@ test("filtre : critères cumulés, jamais vendues dans aucune rareté ou dans la
     copy("u3", "b", "C", "Basion", "https://upload.wikimedia.org/b.gif"),
     copy("u4", "c", "PC", "Castor", "https://upload.wikimedia.org/c.jpg", 2),
     copy("u5", "d", "C", "Dune", "https://upload.wikimedia.org/d.jpg"),
+    copy("u6", "e", "C", "Écureuil", "https://upload.wikimedia.org/e.jpg"),
   ];
-  // Ventes lues : a vendue en C seulement, b jamais, c en PC ; d pas encore lue
+  // Ventes lues : a vendue en C seulement, b jamais, c en PC, e une seule fois (trop peu pour un
+  // prix fiable) ; d pas encore lue
   const sales = (id, summary) => m.bus.emit("sales-summary", {data: {summary}, match: [null, id]});
   sales("a", {C: {average: 3, count: 4}});
   sales("b", {});
-  sales("c", {PC: {average: 40, count: 1}});
-  const views = m.view.viewGroups(owned, m.prices.priceVersion.get().v);
+  sales("c", {PC: {average: 40, count: 5}});
+  sales("e", {C: {average: 2, count: 1}});
+  let views = m.view.viewGroups(owned, m.prices.priceVersion.get().v);
   const list = (filter) => m.view.filterGroups(views, filter).map((g) => `${g.card.wikipedia_title} ${g.rarity}`);
 
-  assert.deepEqual(list({}), ["Abeille R", "Castor PC", "Abeille C", "Basion C", "Dune C"], "toutes, les plus rares d'abord");
+  assert.deepEqual(list({}), ["Abeille R", "Castor PC", "Abeille C", "Basion C", "Dune C", "Écureuil C"], "toutes, les plus rares d'abord");
   assert.deepEqual(list({kinds: ["doubles"]}), ["Abeille R", "Castor PC", "Abeille C"]);
   assert.deepEqual(list({kinds: ["doubles", "none"]}), ["Abeille R", "Abeille C"], "critères cumulés");
   assert.deepEqual(list({kinds: ["none", "gif"]}), []);
-  assert.deepEqual(list({sale: "never"}), ["Basion C"], "aucune vente, dans aucune rareté ; prix non lu : écartée");
+  assert.deepEqual(list({sale: "never"}), ["Basion C"], "aucune vente, dans aucune rareté ; prix non lu : écartée ; une seule vente : vendue");
   assert.deepEqual(list({sale: "never", anyRarity: false}), ["Abeille R", "Basion C"], "jamais vendue dans la rareté de l'exemplaire");
   assert.deepEqual(list({kinds: ["none"], sale: "never", anyRarity: false}), ["Abeille R"]);
-  assert.deepEqual(list({sale: "range", max: 50}), ["Castor PC", "Abeille C"], "prix moyen dans la rareté de l'exemplaire, sans minimum");
+  assert.deepEqual(list({sale: "range", max: 50}), ["Castor PC", "Abeille C"], "prix du marché fiable dans la rareté de l'exemplaire, sans minimum");
   assert.deepEqual(list({sale: "range", min: 5, max: 50}), ["Castor PC"]);
   assert.deepEqual(list({sale: "range", min: 3, max: 3}), ["Abeille C"], "bornes incluses");
   assert.deepEqual(list({sale: "range", min: 50, max: 5}), ["Castor PC"], "bornes saisies à l'envers : échangées");
   assert.deepEqual(list({sale: "range", min: 41}), [], "sans maximum");
-  assert.deepEqual(list({sale: "range"}), ["Castor PC", "Abeille C"], "sans borne : toutes les cartes vendues dans leur rareté");
+  assert.deepEqual(list({sale: "range"}), ["Castor PC", "Abeille C"], "sans borne : toutes les cartes au prix fiable");
   assert.deepEqual(list({kinds: ["gif"], sale: "range", max: 50}), []);
   assert.deepEqual(views.unknown.map((g) => g.card.wikipedia_title), ["Dune"]);
+
+  // Réglage abaissé à une vente : le prix d'Écureuil compte, et les vues sont recalculées
+  const before = m.prices.priceVersion.get().v;
+  m.settings.settings.set({minSales: 1});
+  assert.ok(m.prices.priceVersion.get().v > before, "réglage modifié : prix recalculés");
+  views = m.view.viewGroups(owned, m.prices.priceVersion.get().v);
+  assert.deepEqual(list({sale: "range", max: 2}), ["Écureuil C"]);
+  assert.equal(m.prices.priceStatus("e", "C"), "ok");
+  m.settings.settings.set({minSales: 3});
+  assert.equal(m.prices.priceStatus("e", "C"), "few");
+  assert.deepEqual(m.prices.pricing("e", "C").price, 2, "prix indicatif affiché");
+  assert.match(m.prices.pricing("e", "C").uncertain, /1 vente prise en compte, il en faut 3/);
+  assert.deepEqual(m.prices.pricing("c", "PC"), {price: 40});
+});
+
+test("prix : un résumé du site (moyenne seule) ne remplace pas un prix récent", async () => {
+  fakeBrowser();
+  const m = loadExtensionModule({bus: "extension/src/content/lib/bus.js", prices: "extension/src/content/state/prices.js"});
+  await m.prices.ready;
+  // Ventes lues dans la table : la 1re vente (la plus ancienne, 15 000) est ignorée, médiane des autres
+  const sales = [15000, 12, 10, 11, 9].map((final_price, i) => ({id: `v${i}`, card_id: "k", snapshot_rarity: "C", final_price, settled_at: `2026-10-0${i + 1}T00:00:00Z`, is_shiny: false}));
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(String(url));
+    return response(200, sales);
+  };
+  globalThis.document.cookie = sessionCookie({token: fakeJwt({sub: "user-1", exp: Math.floor(Date.now() / 1000) + 3600}), expiresAt: Math.floor(Date.now() / 1000) + 3600});
+  await m.prices.loadPrices([{id: "k", rarity: "C"}]);
+  assert.match(urls[0], /is_shiny/);
+  assert.match(urls[0], /order=card_id,settled_at\.desc,id/, "ordre stable pour la pagination");
+  assert.deepEqual(m.prices.priceInfo("k", "C"), {price: 11, sales: 4, total: 5, reliable: true, average: 3008, latest: 9});
+  m.bus.emit("sales-summary", {data: {summary: {C: {average: 3008, count: 5, latest: 9}}}, match: [null, "k"]});
+  assert.equal(m.prices.priceOf("k", "C"), 11, "le résumé du site n'écrase pas le nôtre");
 });
 
 test("liste de la page Collection : un filtre l'ouvre depuis la grille du site, à partir du filtre par défaut", () => {

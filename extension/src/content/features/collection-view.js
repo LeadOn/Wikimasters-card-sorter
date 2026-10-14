@@ -7,10 +7,10 @@
 import {createStore} from "../lib/store";
 import {on} from "../lib/bus";
 import {loadMyCollection, discardCopy} from "../state/collection";
-import {priceMap} from "../state/prices";
+import {priceMap, priceOptions} from "../state/prices";
 import {sellCard} from "./market";
 import {imageKind} from "./card-images";
-import {averagePrice, freeCopy, groupCopies, unsoldCopies, rarityRank} from "../../../../core";
+import {marketPrice, freeCopy, groupCopies, unsoldCopies, rarityRank} from "../../../../core";
 
 // Critères cumulables (une carte doit les remplir tous) ; « Toutes » : aucun critère
 export const KINDS = [
@@ -20,7 +20,7 @@ export const KINDS = [
 ];
 
 // Filtre de la liste. kinds : critères cumulables (KINDS) ; sale : null (tous les prix), "never"
-// (jamais vendues) ou "range" (prix moyen de vente, dans la rareté de l'exemplaire, entre min et
+// (jamais vendues) ou "range" (prix du marché fiable, dans la rareté de l'exemplaire, entre min et
 // max WikiBidous inclus ; null : borne absente) ; anyRarity : « jamais vendues » dans aucune
 // rareté (sinon : dans sa rareté).
 export const DEFAULT_FILTER = {kinds: [], sale: null, min: null, max: 5, anyRarity: true};
@@ -78,8 +78,9 @@ export function viewGroups(copies, priceVersion) {
   return views;
 }
 
-// Prix moyen de vente d'un groupe dans sa rareté (null : jamais vendu dans cette rareté, ou prix non lu)
-export const groupPrice = (views, g) => averagePrice(views.prices.get(g.card_id), g.rarity);
+// Prix du marché d'un groupe dans sa rareté, celui de l'exemplaire qui serait vendu (shiny ou non).
+// null : jamais vendu, trop peu de ventes pour un prix fiable, ou prix non lu.
+export const groupPrice = (views, g) => marketPrice(views.prices.get(g.card_id), g.rarity, {...priceOptions(), shiny: Boolean(freeCopy(g.rows)?.is_shiny)});
 
 // Cartes qui remplissent tous les critères du filtre, dans l'ordre de views.all. Intervalle de prix
 // saisi à l'envers (min > max) : bornes échangées.

@@ -7,22 +7,28 @@ import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {recapState, dismissRecap, discardPulledMany, markListed, packsStatus} from "../features/packs";
 import {planSort} from "../features/sorter";
-import {priceOf, priceStatus, priceVersion} from "../state/prices";
+import {priceOf, priceInfo, priceStatus, priceVersion, uncertainNote} from "../state/prices";
 import {isOn} from "../state/settings";
 import {Icon, Mark, Money, Rarity, ThemeChip, fmt, plural, useWikiImage} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {confirmDiscardMany} from "./discard";
 import {askSell} from "./SellDialog";
 import {emit} from "../lib/bus";
-import {categorize, isThemeTag, DOUBLON} from "../../../../core";
+import {categorize, isThemeTag, DOUBLON, RECENT_SALES} from "../../../../core";
 import {mountIsland} from "./islands/mount";
 
 function Price({card, loading}) {
-  const status = priceStatus(card.id, card.rarity);
-  if (status === "ok") return <Money v={priceOf(card.id, card.rarity)} class="recap-price" />;
+  const shiny = {shiny: card.is_shiny};
+  const status = priceStatus(card.id, card.rarity, shiny);
+  if (status === "ok") return <Money v={priceOf(card.id, card.rarity, shiny)} class="recap-price" />;
   if (loading || status === "unknown") return <span class="spinner" aria-label="Chargement du prix" />;
+  if (status === "few") {
+    const info = priceInfo(card.id, card.rarity, shiny);
+    if (info.price != null) return <Money v={info.price} class="recap-price" approx title={uncertainNote(info)} />;
+    return <span class="recap-price none" title="Ses seules ventes sont ses toutes premières, ignorées">pas de prix</span>;
+  }
   if (status === "error") return <span class="recap-price none" title="Le serveur n'a pas répondu ; nouvel essai dans quelques minutes">?</span>;
-  return <span class="recap-price none" title="Cette carte n'a jamais été vendue dans cette rareté">aucune vente</span>;
+  return <span class="recap-price none" title={`Cette carte n'a jamais été vendue${card.is_shiny ? " en shiny" : ""} dans cette rareté`}>aucune vente</span>;
 }
 
 // Vignette : image de la carte, sinon image de Wikimedia (jamais pour une image masquée par le site)
@@ -53,6 +59,7 @@ function CardActions({card, index, at, locked}) {
       card,
       userCardId: card.user_card_id,
       rarity: card.rarity,
+      shiny: card.is_shiny,
       badges: [card.isNew === true && {label: "Nouvelle", type: "ok"}, card.is_shiny && {label: "Shiny", type: "warn", icon: "shine"}],
       note: card.isNew === true ? "C'est votre seul exemplaire : il est mis en réserve pendant l'enchère." : "Un exemplaire est mis en réserve pendant l'enchère.",
     });
@@ -128,10 +135,12 @@ export function PackRecapView({onClose, onNext, compact = false}) {
   const [discarding, setDiscarding] = useState(null); // {done, total} pendant la défausse
   if (!recap.cards.length) return null;
   const loading = recap.pricesLoading;
-  const prices = recap.cards.map((c) => priceOf(c.id, c.rarity));
+  const prices = recap.cards.map((c) => priceOf(c.id, c.rarity, {shiny: c.is_shiny}));
   const total = prices.reduce((n, p) => n + (p || 0), 0);
   const unpriced = prices.filter((p) => p == null).length;
-  const failed = recap.cards.filter((c) => priceStatus(c.id, c.rarity) === "error").length;
+  const statuses = recap.cards.map((c) => priceStatus(c.id, c.rarity, {shiny: c.is_shiny}));
+  const failed = statuses.filter((st) => st === "error").length;
+  const few = statuses.filter((st) => st === "few").length;
   const fresh = recap.cards.filter((c) => c.isNew === true).length;
   const known = recap.cards.some((c) => c.isNew != null);
 
@@ -254,12 +263,14 @@ export function PackRecapView({onClose, onNext, compact = false}) {
       <footer class="recap-foot">
         <span class="small muted">
           {loading
-            ? "Récupération des prix moyens du marché…"
+            ? "Récupération des prix du marché…"
             : failed
               ? `${plural(failed, "prix indisponible", "prix indisponibles")} (serveur WikiMasters), nouvel essai dans quelques minutes.`
-              : unpriced
-                ? `${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`
-                : "Prix moyens des 200 dernières ventes, par rareté."}
+              : few
+                ? `${plural(few, "carte vendue trop peu de fois", "cartes vendues trop peu de fois")} pour un prix fiable : hors du total.`
+                : unpriced
+                  ? `${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`
+                  : `Prix du marché : médiane des ${RECENT_SALES} dernières ventes, par rareté.`}
         </span>
         <div class="recap-foot-do">
           {recap.sort?.status === "done" && (

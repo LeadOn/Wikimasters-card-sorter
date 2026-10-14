@@ -39,7 +39,7 @@ core/                          moteur partagé (CommonJS, sans dépendance)
   tag-sync.js                  plan de synchronisation des étiquettes (fonctions pures)
   tag-writer.js                écriture d'un plan en base : ordre sûr, lots, reprise après panne
   trade.js                     recherche d'échanges et offre équilibrée
-  prices.js                    raretés, prix moyens, valeur d'une collection, doublons à vendre
+  prices.js                    raretés, prix du marché (médiane, ventes minimum, premières ventes ignorées, shiny à part), valeur d'une collection, doublons à vendre
   families.js                  familles de cartes (manuelles ou par règle), progression
   share-code.js                codes de partage WMT-P1… / WMT-F1… (JSON compressé, base64url)
 
@@ -70,7 +70,7 @@ extension/
         settings.js            réglages : interrupteurs, délais, couleurs
         profiles.js            mon profil et ceux de mes amis
         collection.js          ma collection, ids des cartes possédées, défausse d'un exemplaire
-        prices.js              cache des prix, chargement groupé
+        prices.js              cache des prix, chargement groupé, prix fiable ou indicatif selon les réglages
       features/                fonctionnalités, sans interface
         sorter.js              tri : aperçu (planSort) puis application (applySort)
         autosort.js            tri des cartes tirées à l'ouverture d'un paquet (option)
@@ -180,13 +180,13 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `profiles.test.js` | Règles, éditeur simple, validation des profils |
 | `tag-sync.test.js` | Plan de synchronisation, modes complet et incrémental |
 | `tag-writer.test.js` | Écriture des étiquettes : reprise après interruption, pas de doublon, erreurs |
-| `trade-prices-families.test.js` | Échanges, prix, cartes jamais vendues, familles, codes de partage, couleurs des raretés |
+| `trade-prices-families.test.js` | Échanges, prix (médiane, ventes minimum, premières ventes ignorées, shiny à part, résumé des ventes), cartes jamais vendues, familles, codes de partage, couleurs des raretés |
 | `extension-http.test.js` | Couche réseau : réessais, écritures jamais rejouées, session renouvelée, pagination |
 | `extension-storage.test.js` | Stockage : valeurs enregistrées jamais écrasées, plusieurs onglets |
 | `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |
 | `extension-card-images.test.js` | Filtre par image : GIF reconnu dans le chemin de l'URL (vignettes Wikimedia), image masquée comptée sans image, exemplaires cumulés par carte et rareté |
 | `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |
-| `extension-collection-view.test.js` | Collection filtrée : critères cumulés, jamais vendues (toute rareté ou la sienne), intervalle de prix (bornes incluses, facultatives, remises dans l'ordre), mots-clés inclus ou exclus, ouverture depuis la grille du site ; exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
+| `extension-collection-view.test.js` | Collection filtrée : critères cumulés, jamais vendues (toute rareté ou la sienne), intervalle de prix (prix fiables seulement, recalculés quand les réglages changent ; bornes incluses, facultatives, remises dans l'ordre), lecture des ventes (ordre stable, shiny) et résumé du site qui n'écrase pas un prix récent, mots-clés inclus ou exclus, ouverture depuis la grille du site ; exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
 
 Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
 

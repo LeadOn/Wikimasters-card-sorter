@@ -1,15 +1,15 @@
-// Onglet « Prix » : prix moyens de vente, valeur de ma collection, classement des plus chères et
+// Onglet « Prix » : prix du marché, valeur de ma collection, classement des plus chères et
 // collection filtrée par vente (jamais vendues, vendues entre X et Y ₩ : à mettre aux enchères ou
 // à défausser).
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {loadMyCollection} from "../../state/collection";
-import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../../state/prices";
+import {priceOf, priceStatus, priceOptions, priceVersion, loadPrices, hasFreshPrice} from "../../state/prices";
 import {CardRow, Money, Paged, Progress, Notice, fmt, plural} from "../components";
 import {CollectionFilters, CollectionCards} from "../CollectionCards";
 import {DEFAULT_FILTER} from "../../features/collection-view";
 import {toast, errorMessage} from "../feedback";
-import {RARITIES, RARITY_LABEL, categorize} from "../../../../../core";
+import {RARITIES, RARITY_LABEL, RECENT_SALES, categorize} from "../../../../../core";
 
 export function PricesTab() {
   useStore(priceVersion);
@@ -29,20 +29,23 @@ export function PricesTab() {
       .catch((e) => setError(errorMessage(e)));
   }, []);
 
+  // Exemplaires regroupés par carte, rareté et version (une shiny a son propre prix)
   const unique = useMemo(() => {
     if (!copies) return [];
     const m = new Map();
     for (const c of copies) {
-      const key = `${c.card_id}|${c.rarity}`;
+      const key = `${c.card_id}|${c.rarity}|${c.is_shiny ? 1 : 0}`;
       const prev = m.get(key);
       m.set(key, prev ? {...prev, count: prev.count + c.count} : {...c});
     }
     return [...m.values()];
   }, [copies]);
 
-  const valued = unique.map((c) => ({...c, price: priceOf(c.card_id, c.rarity)}));
+  const valued = unique.map((c) => ({...c, price: priceOf(c.card_id, c.rarity, {shiny: c.is_shiny})}));
   const total = valued.reduce((n, c) => n + (c.price || 0) * c.count, 0);
   const pricedCopies = valued.filter((c) => c.price != null).reduce((n, c) => n + c.count, 0);
+  // Vendus, mais trop peu de fois pour un prix fiable : hors de la valeur et du classement
+  const fewCopies = valued.filter((c) => priceStatus(c.card_id, c.rarity, {shiny: c.is_shiny}) === "few").reduce((n, c) => n + c.count, 0);
   const allCopies = valued.reduce((n, c) => n + c.count, 0);
   const byRarity = RARITIES.map((r) => {
     const list = valued.filter((c) => c.rarity === r);
@@ -84,7 +87,10 @@ export function PricesTab() {
       <div class="page-head">
         <div>
           <h2>Prix</h2>
-          <p>Prix moyen de vente sur le marché, pour la rareté de chaque exemplaire. Les prix sont gardés en cache 48 h et affichés sur les cartes du site.</p>
+          <p>
+            Prix du marché de chaque exemplaire dans sa rareté : médiane des {RECENT_SALES} dernières ventes, hors shiny (une carte shiny a son propre prix). Un prix n'est retenu qu'à partir de {plural(priceOptions().minSales, "vente")}
+            {priceOptions().skipFirst ? `, sans compter ${priceOptions().skipFirst > 1 ? `les ${priceOptions().skipFirst} premières` : "la première"} de chaque carte` : ""} (onglet Réglages). Les prix sont gardés en cache et affichés sur les cartes du site.
+          </p>
         </div>
       </div>
       {error && <Notice type="error">{error}</Notice>}
@@ -94,6 +100,12 @@ export function PricesTab() {
           <div class="grid-stats">
             <div class="stat"><div class="k">Valeur estimée</div><div class="v"><Money v={total} /></div></div>
             <div class="stat"><div class="k">Exemplaires avec un prix</div><div class="v">{fmt(pricedCopies)} / {fmt(allCopies)}</div></div>
+            {fewCopies > 0 && (
+              <div class="stat" title="Vendus trop peu de fois pour un prix fiable : ils ne comptent pas dans la valeur estimée">
+                <div class="k">Prix incertain</div>
+                <div class="v">{fmt(fewCopies)}</div>
+              </div>
+            )}
             {byRarity.filter((b) => b.copies).slice(0, 4).map((b) => (
               <div class="stat" key={b.r}><div class="k">{RARITY_LABEL[b.r]}</div><div class="v"><Money v={b.value} /></div></div>
             ))}
@@ -152,7 +164,16 @@ export function PricesTab() {
                   items={theme ? ranking.filter((c) => c.theme === theme) : ranking}
                   pageSize={30}
                   empty="Aucun prix chargé pour l'instant."
-                  render={(c) => <CardRow key={`${c.card_id}|${c.rarity}`} card={c.card} rarity={c.rarity} theme={c.theme} price={c.price} badges={[c.count > 1 && {label: `×${c.count}`, type: "ok"}]} />}
+                  render={(c) => (
+                    <CardRow
+                      key={`${c.card_id}|${c.rarity}|${c.is_shiny ? 1 : 0}`}
+                      card={c.card}
+                      rarity={c.rarity}
+                      theme={c.theme}
+                      price={c.price}
+                      badges={[c.count > 1 && {label: `×${c.count}`, type: "ok"}, c.is_shiny && {label: "shiny", type: "warn", icon: "shine"}]}
+                    />
+                  )}
                 />
               </>
             )}

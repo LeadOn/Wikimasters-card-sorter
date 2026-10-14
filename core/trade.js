@@ -2,7 +2,7 @@
 "use strict";
 
 const {categorize} = require("./categorize");
-const {rarityRank, averagePrice} = require("./prices");
+const {rarityRank, marketPrice} = require("./prices");
 
 // mine        : mes exemplaires [{id, card_id, count?, cards: {…carte avec résumé}}]
 // friendItems : collection de l'ami [{id, card_id, count, is_shiny, card: {…}}]
@@ -10,8 +10,8 @@ const {rarityRank, averagePrice} = require("./prices");
 // wanted      : tags recherchés pour moi (« Pour : <moi> », ou thèmes génériques)
 // friendTag   : tag « Pour : <ami> », ou null (on propose alors mes doublons qu'il n'a pas)
 // rarities    : si la collection de l'ami n'a été lue que pour certaines raretés, mes propositions s'y limitent
-// prices      : Map(card_id → résumé de prix), facultatif
-function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Set(), pending = new Set(), wanted, friendTag, profiles = [], rarities = [], prices = new Map()}) {
+// prices      : Map(card_id → résumé de prix), facultatif ; priceOptions : réglages des prix (core/prices.js)
+function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Set(), pending = new Set(), wanted, friendTag, profiles = [], rarities = [], prices = new Map(), priceOptions = {}}) {
   const myCopies = new Map();
   // Une ligne peut représenter plusieurs exemplaires (`count`), comme pour l'étiquette Doublon
   for (const uc of mine) myCopies.set(uc.card_id, (myCopies.get(uc.card_id) || 0) + Math.max(1, Number(uc.count) || 1));
@@ -35,7 +35,7 @@ function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Se
       wished,
       spare: (it.count || 1) > 1,
       pending: pending.has(it.card_id),
-      price: averagePrice(prices.get(it.card_id), it.card?.rarity),
+      price: marketPrice(prices.get(it.card_id), it.card?.rarity, {...priceOptions, shiny: Boolean(it.is_shiny)}),
     });
   }
   toAsk.sort(
@@ -58,11 +58,12 @@ function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Se
     toOffer.push({
       card_id: uc.card_id,
       user_card_id: uc.id,
+      is_shiny: Boolean(uc.is_shiny),
       card: uc.cards,
       theme,
       copies,
       spare: copies > 1,
-      price: averagePrice(prices.get(uc.card_id), uc.cards.rarity),
+      price: marketPrice(prices.get(uc.card_id), uc.cards.rarity, {...priceOptions, shiny: Boolean(uc.is_shiny)}),
     });
   }
   toOffer.sort(

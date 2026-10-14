@@ -27,9 +27,11 @@ export function duration(ms) {
   return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
 }
 
-// Montant en WikiBidous : chiffres alignés, symbole en retrait
-export const Money = ({v, class: cls = ""}) => (
-  <span class={`money${cls ? ` ${cls}` : ""}`}>
+// Montant en WikiBidous : chiffres alignés, symbole en retrait. approx : prix indicatif (trop peu de
+// ventes), précédé de « ≈ » et atténué ; title : son explication.
+export const Money = ({v, class: cls = "", approx = false, title}) => (
+  <span class={`money${approx ? " approx" : ""}${cls ? ` ${cls}` : ""}`} title={title}>
+    {approx && "≈ "}
     {fmt(v)}
     <span class="cur">₩</span>
   </span>
@@ -113,7 +115,8 @@ export const Badge = ({label, type, icon}) => (
 // Mini-carte : image, titre, description, rareté, thème, prix, badges.
 // selected (avec onClick) : carte à cocher d'un clic, ou par Espace / Entrée au clavier ; onTitle : clic
 // sur le titre (ouvre la carte ailleurs) ; wiki : sinon, titre lié à l'article Wikipédia
-export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, onTitle, action, wiki = true}) {
+// price : prix du marché ; uncertain : explication quand ce prix n'est qu'indicatif (state/prices.js → pricing)
+export function CardRow({card, rarity, theme, price, uncertain, badges = [], selected, onClick, onTitle, action, wiki = true}) {
   const r = rarity || card?.rarity;
   const fallback = useWikiImage(card);
   const image = card?.image_url || fallback;
@@ -177,7 +180,7 @@ export function CardRow({card, rarity, theme, price, badges = [], selected, onCl
           {badges.filter(Boolean).map((b) => (
             <Badge key={b.label} {...b} />
           ))}
-          {price != null && <Money v={price} class="price" />}
+          {price != null && <Money v={price} class="price" approx={Boolean(uncertain)} title={uncertain || undefined} />}
         </div>
       </div>
     </div>

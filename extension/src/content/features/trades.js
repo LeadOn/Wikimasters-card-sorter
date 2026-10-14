@@ -8,7 +8,7 @@ import {ensureSession} from "../lib/session";
 import {on} from "../lib/bus";
 import {loadMyCollection} from "../state/collection";
 import {activeProfiles, profileFor} from "../state/profiles";
-import {priceMap} from "../state/prices";
+import {priceOptions, priceMap} from "../state/prices";
 import {findTrades, tagForProfile} from "../../../../core";
 
 const MAX_AGE_H = 12;
@@ -154,7 +154,7 @@ export async function findTradesWith(friend, {themes = null, rarities = [], refr
 
     tradeState.set({step: "Lecture de ma collection et de ma liste de souhaits"});
     const [copies, wishlist] = await Promise.all([loadMyCollection({withSummary: true}), rest("wishlist_items?select=card_id").catch(() => [])]);
-    const mine = copies.map((c) => ({id: c.id, card_id: c.card_id, count: c.count, cards: c.card}));
+    const mine = copies.map((c) => ({id: c.id, card_id: c.card_id, count: c.count, is_shiny: c.is_shiny, cards: c.card}));
     const {cache, key, items} = await friendCollection(friend.username, {rarities, refresh, signal});
     const myIds = new Set(mine.map((m) => m.card_id));
     await loadSummaries(items.filter((it) => !myIds.has(it.card_id)).map((it) => it.card_id), cache, key, signal);
@@ -171,6 +171,7 @@ export async function findTradesWith(friend, {themes = null, rarities = [], refr
       profiles,
       rarities,
       prices: priceMap(),
+      priceOptions: priceOptions(),
     });
     const full = {...result, wanted, friendTag, friend: friend.username, fetchedAt: cache.fetched_at, total: cache.total, rarities};
     tradeState.set({result: full, step: "", progress: null});

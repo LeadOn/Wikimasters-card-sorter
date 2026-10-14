@@ -16,8 +16,9 @@ export function confirmDiscardMany(items) {
   const n = items.length;
   const only = items.filter((it) => it.only === true).length;
   const shiny = items.filter((it) => it.shiny).map((it) => `« ${it.card.wikipedia_title} »`);
-  const valued = items.filter((it) => priceOf(it.card.id, it.rarity) > 1);
-  const worth = valued.reduce((sum, it) => sum + priceOf(it.card.id, it.rarity), 0);
+  const price = (it) => priceOf(it.card.id, it.rarity, {shiny: it.shiny});
+  const valued = items.filter((it) => price(it) > 1);
+  const worth = valued.reduce((sum, it) => sum + price(it), 0);
   return confirmAction({
     title: `Défausser ${fmt(n)} cartes ?`,
     body: [
@@ -25,9 +26,9 @@ export function confirmDiscardMany(items) {
       only === n ? "Ce sont vos seuls exemplaires." : only === 1 ? "L'une d'elles est votre seul exemplaire." : only > 1 ? `${fmt(only)} d'entre elles sont vos seuls exemplaires.` : "",
       shiny.length === 1 ? `Attention : ${shiny[0]} est une carte shiny.` : shiny.length > 1 ? `Attention : ${plural(shiny.length, "carte shiny", "cartes shiny")} (${shiny.slice(0, 5).join(", ")}${shiny.length > 5 ? "…" : ""}).` : "",
       valued.length === 1
-        ? `« ${valued[0].card.wikipedia_title} » se vend en moyenne ${fmt(worth)} ₩ dans sa rareté : la mettre aux enchères rapporterait sans doute plus.`
+        ? `« ${valued[0].card.wikipedia_title} » se vend d'habitude ${fmt(worth)} ₩ dans sa rareté : la mettre aux enchères rapporterait sans doute plus.`
         : valued.length > 1
-          ? `${fmt(valued.length)} d'entre elles se vendent en moyenne ${fmt(worth)} ₩ au total : les mettre aux enchères rapporterait sans doute plus.`
+          ? `${fmt(valued.length)} d'entre elles se vendent d'habitude ${fmt(worth)} ₩ au total : les mettre aux enchères rapporterait sans doute plus.`
           : "",
     ]
       .filter(Boolean)
@@ -40,14 +41,14 @@ export function confirmDiscardMany(items) {
 // card : la carte ({id, wikipedia_title}) ; rarity, shiny : ceux de l'exemplaire défaussé ;
 // copies : phrase sur les exemplaires qui restent (omise si on ne sait pas). → Promise<boolean>
 export function confirmDiscard({card, rarity, shiny, copies}) {
-  const price = priceOf(card.id, rarity);
+  const price = priceOf(card.id, rarity, {shiny});
   return confirmAction({
     title: `Défausser « ${card.wikipedia_title} » ?`,
     body: [
       "L'exemplaire quitte votre collection contre 1 WikiBidou. C'est définitif.",
       copies,
       shiny ? "Attention : c'est une carte shiny." : "",
-      price > 1 ? `Elle se vend en moyenne ${fmt(price)} ₩ dans cette rareté : la mettre aux enchères rapporterait sans doute plus.` : "",
+      price > 1 ? `Elle se vend d'habitude ${fmt(price)} ₩ dans cette rareté : la mettre aux enchères rapporterait sans doute plus.` : "",
     ]
       .filter(Boolean)
       .join(" "),

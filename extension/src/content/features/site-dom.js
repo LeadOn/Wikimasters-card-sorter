@@ -8,7 +8,7 @@ import {ext} from "../lib/ext";
 import {lookupTitle, registryVersion, normTitle} from "../lib/registry";
 import {settings, isOn} from "../state/settings";
 import {owned} from "../state/collection";
-import {priceOf, summaryOf, requestPrice, priceVersion} from "../state/prices";
+import {priceOf, priceInfo, uncertainNote, requestPrice, priceVersion} from "../state/prices";
 import {wikiImage} from "./wiki-images";
 import {recapState, openAllState, markRevealed, dismissRecap, pullStats, collectionRarity, refreshCollectionRarity} from "./packs";
 import {auctionById, auctionVersion, nextBid, msLeft} from "./market";
@@ -305,28 +305,33 @@ function decorateTile(tile, version) {
   box.classList.toggle("wmt-below-controls", Boolean(tile.querySelector("button:not(.wmt-chip)")));
   box.replaceChildren();
 
+  // Marché : l'enchère est retrouvée par le lien de la carte ; une carte shiny a son propre prix
+  const auction = path.startsWith("/marketplace") ? auctionById(AUCTION_PATH.exec(tile.closest("a[href]")?.getAttribute("href") || "")?.[1]) : null;
+  const shiny = Boolean(auction?.is_shiny);
+  const fmt = (n) => n.toLocaleString("fr-FR");
   if (info.id && isOn("priceBadges")) {
-    const price = priceOf(info.id, rarity);
-    if (price != null) box.append(chip("wmt-chip-price", `${price.toLocaleString("fr-FR")} ₩`, "Prix moyen de vente pour cette rareté"));
+    const p = priceInfo(info.id, rarity, {shiny});
+    if (p?.price != null)
+      box.append(
+        p.reliable
+          ? chip("wmt-chip-price", `${fmt(p.price)} ₩`, `Prix du marché${shiny ? " shiny" : ""} pour cette rareté`)
+          : chip("wmt-chip-price wmt-chip-approx", `≈ ${fmt(p.price)} ₩`, uncertainNote(p)),
+      );
     else if (visible.has(tile)) requestPrice(info.id, {rarity});
   }
-  // Marché : mise comparée au prix moyen (l'enchère est retrouvée par le lien de la carte).
-  // Une mise de départ est presque toujours basse et l'enchère va monter : « bonne affaire »
-  // seulement pour une enchère qui se termine bientôt ; « trop cher » dès que la mise minimale
-  // dépasse nettement ce que la carte vaut d'habitude. Moyenne sur 3 ventes au moins.
-  if (isOn("dealBadges") && path.startsWith("/marketplace")) {
-    const auction = auctionById(AUCTION_PATH.exec(tile.closest("a[href]")?.getAttribute("href") || "")?.[1]);
-    const cardId = auction && (auction.card_id || info.id);
-    const auctionRarity = auction && (auction.snapshot_rarity || rarity);
-    const bid = auction ? nextBid(auction) : null;
-    const avg = auction && (summaryOf(cardId)?.[auctionRarity]?.count || 0) >= 3 ? priceOf(cardId, auctionRarity) : null;
+  // Mise comparée au prix du marché, s'il est fiable. Une mise de départ est presque toujours basse et
+  // l'enchère va monter : « bonne affaire » seulement pour une enchère qui se termine bientôt ;
+  // « trop cher » dès que la mise minimale dépasse nettement ce que la carte vaut d'habitude.
+  if (isOn("dealBadges") && auction) {
+    const cardId = auction.card_id || info.id;
+    const bid = nextBid(auction);
+    const avg = priceOf(cardId, auction.snapshot_rarity || rarity, {shiny});
     if (avg && bid) {
       const gap = Math.round((100 * (bid - avg)) / avg);
       const left = msLeft(auction);
-      const fmt = (n) => n.toLocaleString("fr-FR");
       if (gap <= -25 && left > 0 && left < DEAL_WINDOW)
-        box.append(chip("wmt-chip-deal", `−${-gap} %`, `Bonne affaire : se termine dans ${Math.ceil(left / 60000)} min, mise minimale ${fmt(bid)} ₩ pour un prix moyen de ${fmt(avg)} ₩`));
-      else if (gap >= 50) box.append(chip("wmt-chip-pricey", `+${gap} %`, `Mise minimale ${fmt(bid)} ₩ pour un prix moyen de ${fmt(avg)} ₩`));
+        box.append(chip("wmt-chip-deal", `−${-gap} %`, `Bonne affaire : se termine dans ${Math.ceil(left / 60000)} min, mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`));
+      else if (gap >= 50) box.append(chip("wmt-chip-pricey", `+${gap} %`, `Mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`));
     }
   }
   // La collection globale affiche déjà « Possédée » : badge inutile là-bas

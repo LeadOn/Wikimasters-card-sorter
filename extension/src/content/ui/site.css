@@ -30,6 +30,7 @@
 }
 .wmt-chip svg { display: block; flex: none; }
 .wmt-chip-price { font-variant-numeric: tabular-nums; }
+.wmt-chip-approx { color: #a8a59c; cursor: help; }
 .wmt-chip-owned { padding: 0 4px; }
 .wmt-chip-new { background: #c5ef55; color: #151a05; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
 .wmt-chip-theme { max-width: 96px; overflow: hidden; }

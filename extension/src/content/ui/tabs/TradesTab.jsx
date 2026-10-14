@@ -53,11 +53,13 @@ function ActiveTrades() {
     const items = pending.flatMap((t) => (t.items || []).map((i) => ({id: i.card_id, rarity: i.snapshot_rarity || i.card?.rarity})));
     if (items.length) loadPrices(items);
   }, [list]);
+  // Prix fiable de l'exemplaire échangé (shiny ou non), null sinon
+  const itemPrice = (i) => priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity, {shiny: i.is_shiny});
   const side = (t, userId) => {
     const items = (t.items || []).filter((i) => i.offered_by === userId);
-    const total = items.reduce((n, i) => n + (priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity) || 0), 0);
+    const total = items.reduce((n, i) => n + (itemPrice(i) || 0), 0);
     const bidous = userId === t.initiator_id ? t.initiator_wikibidous || 0 : t.recipient_wikibidous || 0;
-    return {items, total: total + bidous, bidous, unknown: items.filter((i) => priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity) == null).length};
+    return {items, total: total + bidous, bidous, unknown: items.filter((i) => itemPrice(i) == null).length};
   };
   return (
     <div class="box stack">
@@ -80,13 +82,13 @@ function ActiveTrades() {
             </div>
             <div class="grid-2" style={{gap: "8px"}}>
               <div class="small">
-                <div class="muted">Je donne · {fmt(mineSide.total)} ₩{mineSide.unknown ? ` (${mineSide.unknown} sans prix)` : ""}</div>
-                {mineSide.items.map((i) => <div key={i.id}>{i.card?.wikipedia_title || i.card_id} <span class="muted">{i.snapshot_rarity}</span> · {fmt(priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity))} ₩</div>)}
+                <div class="muted">Je donne · {fmt(mineSide.total)} ₩{mineSide.unknown ? ` (${mineSide.unknown} sans prix fiable)` : ""}</div>
+                {mineSide.items.map((i) => <div key={i.id}>{i.card?.wikipedia_title || i.card_id} <span class="muted">{i.snapshot_rarity}{i.is_shiny ? " shiny" : ""}</span> · {fmt(itemPrice(i))} ₩</div>)}
                 {mineSide.bidous > 0 && <div>+ {fmt(mineSide.bidous)} WikiBidous</div>}
               </div>
               <div class="small">
-                <div class="muted">Je reçois · {fmt(theirSide.total)} ₩{theirSide.unknown ? ` (${theirSide.unknown} sans prix)` : ""}</div>
-                {theirSide.items.map((i) => <div key={i.id}>{i.card?.wikipedia_title || i.card_id} <span class="muted">{i.snapshot_rarity}</span> · {fmt(priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity))} ₩</div>)}
+                <div class="muted">Je reçois · {fmt(theirSide.total)} ₩{theirSide.unknown ? ` (${theirSide.unknown} sans prix fiable)` : ""}</div>
+                {theirSide.items.map((i) => <div key={i.id}>{i.card?.wikipedia_title || i.card_id} <span class="muted">{i.snapshot_rarity}{i.is_shiny ? " shiny" : ""}</span> · {fmt(itemPrice(i))} ₩</div>)}
                 {theirSide.bidous > 0 && <div>+ {fmt(theirSide.bidous)} WikiBidous</div>}
               </div>
             </div>
@@ -130,7 +132,8 @@ export function TradesTab() {
   };
 
   const r = s.result;
-  const price = (c) => c.price ?? priceOf(c.card_id, c.card.rarity);
+  // Prix recalculé à chaque affichage : les prix arrivent après la recherche, et les réglages peuvent changer
+  const price = (c) => priceOf(c.card_id, c.card.rarity, {shiny: c.is_shiny});
   const target = r ? r.toAsk.filter((c) => selected.has(c.id)).reduce((n, c) => n + (price(c) || 0), 0) : 0;
   const chosen = useMemo(() => new Set(balance?.chosen.map((c) => c.card_id) || []), [balance]);
   const offerItems = useMemo(() => (r && balance ? [...r.toOffer].sort((a, b) => chosen.has(b.card_id) - chosen.has(a.card_id)) : r?.toOffer || []), [r, balance]);

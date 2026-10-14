@@ -2,7 +2,7 @@
 import {useState, useEffect, useRef} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {owned, loadMyCollection} from "../../state/collection";
-import {priceVersion, priceOf} from "../../state/prices";
+import {priceVersion, pricing} from "../../state/prices";
 import {
   families,
   createFamily,
@@ -260,7 +260,7 @@ function FamilyDetail({family, onBack}) {
           <CardRow
             key={c.id}
             card={{...c, wikipedia_title: c.title}}
-            price={priceOf(c.id, c.rarity)}
+            {...pricing(c.id, c.rarity)}
             badges={[ids.has(c.id) ? {label: "possédée", type: "ok", icon: "check"} : {label: "manquante", type: "warn"}, family.cover === c.id && {label: "couverture", type: "accent", icon: "star"}]}
             action={
               <span class="row" style={{gap: "2px"}}>

@@ -6,14 +6,14 @@ import {useState, useEffect, useRef} from "preact/hooks";
 import {createStore, useStore} from "../lib/store";
 import {sellCard} from "../features/market";
 import {site, AUCTION_DURATIONS} from "../api/site";
-import {priceOf} from "../state/prices";
+import {priceInfo, priceOptions, pricing} from "../state/prices";
 import {CardRow, Notice, Progress, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 
 const sellDialog = createStore({current: null});
 
-// askSell({card, userCardId, rarity, badges, note}) → Promise<{baseAmount, durationMinutes} | {uncertain: true} | null>
-// userCardId : l'exemplaire à mettre en vente (id de user_cards), card : la carte affichée
+// askSell({card, userCardId, rarity, shiny, badges, note}) → Promise<{baseAmount, durationMinutes} | {uncertain: true} | null>
+// userCardId : l'exemplaire à mettre en vente (id de user_cards), card : la carte affichée, shiny : l'exemplaire est shiny
 // null : annulé ; uncertain : le site n'a pas répondu, l'enchère a peut-être été créée
 export function askSell(options) {
   sellDialog.get().current?.resolve(null);
@@ -65,9 +65,19 @@ function AuctionFields({amount, setAmount, minutes, setMinutes, label = "Mise de
   );
 }
 
-function SellForm({card, userCardId, rarity, badges = [], note}) {
-  const avg = priceOf(card.id, rarity);
-  const [amount, setAmount] = useState(String(avg || 10));
+// Ce que l'on sait du prix de l'exemplaire, sous le formulaire
+function priceHelp(info, shiny) {
+  const version = shiny ? " en shiny" : "";
+  if (!info) return `Cette carte n'a jamais été vendue${version} dans cette rareté.`;
+  if (info.reliable) return `Prix du marché${shiny ? " shiny" : ""} pour cette rareté : ${fmt(info.price)} ₩ (${plural(info.total, "vente")}).`;
+  if (info.price == null) return `Les seules ventes${version} de cette carte sont ses toutes premières, ignorées : pas encore de prix du marché.`;
+  return `Prix indicatif : ${fmt(info.price)} ₩, sur trop peu de ventes pour être fiable (${plural(info.sales, "prise", "prises")} en compte, il en faut ${priceOptions().minSales}).`;
+}
+
+function SellForm({card, userCardId, rarity, shiny = false, badges = [], note}) {
+  const info = priceInfo(card.id, rarity, {shiny});
+  // Mise de départ proposée : le prix du marché, seulement s'il est fiable
+  const [amount, setAmount] = useState(String((info?.reliable && info.price) || 10));
   const [minutes, setMinutes] = useState(60);
   const quota = useQuota();
   const [busy, setBusy] = useState(false);
@@ -96,11 +106,11 @@ function SellForm({card, userCardId, rarity, badges = [], note}) {
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && dismiss()}>
       <div class="modal" role="dialog" aria-label="Mettre aux enchères">
         <h3>Mettre aux enchères</h3>
-        <CardRow card={card} rarity={rarity} price={avg} badges={badges} />
+        <CardRow card={card} rarity={rarity} {...pricing(card.id, rarity, {shiny})} badges={badges} />
         <p class="help">{note || "L'exemplaire est mis en réserve pendant l'enchère."}</p>
         <AuctionFields amount={amount} setAmount={setAmount} minutes={minutes} setMinutes={setMinutes} />
         <p class="small muted">
-          {avg != null ? `Prix moyen constaté pour cette rareté : ${fmt(avg)} ₩.` : "Cette carte n'a jamais été vendue dans cette rareté."}
+          {priceHelp(info, shiny)}
           {quota && ` ${quota.sellingCount} / ${quota.maxConcurrentAuctions} ventes en cours.`}
         </p>
         {full && <Notice type="warn">Vous avez atteint le nombre de ventes simultanées autorisé par le site.</Notice>}

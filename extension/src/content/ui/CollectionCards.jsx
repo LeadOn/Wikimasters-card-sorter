@@ -7,12 +7,12 @@
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {KINDS, cardsState, loadCards, viewGroups, filterGroups, matchKeywords, parseKeyword, normText, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED} from "../features/collection-view";
-import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../state/prices";
+import {pricing, summaryOf, priceVersion, loadPrices, hasFreshPrice} from "../state/prices";
 import {CardRow, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {askSell, askSellMany} from "./SellDialog";
 import {confirmDiscardMany} from "./discard";
-import {RARITIES, RARITY_LABEL, categorize, freeCopy} from "../../../../core";
+import {RARITIES, RARITY_LABEL, categorize, freeCopy, soldIn} from "../../../../core";
 
 const keyOf = (g) => `${g.card_id}|${g.rarity}`;
 // Thème d'une carte, calculé une seule fois : les listes sont recalculées à chaque prix reçu
@@ -127,7 +127,7 @@ export function CollectionFilters({filter, onChange, active = true, aside}) {
       {sale === "range" && (
         <div class="filter-row">
           <span class="filter-k" aria-hidden="true" />
-          <div class={`chip price-range${custom ? " on" : ""}`} role="group" aria-label="Prix moyen de vente, bornes incluses">
+          <div class={`chip price-range${custom ? " on" : ""}`} role="group" aria-label="Prix du marché, bornes incluses">
             <span>de</span>
             <PriceInput value={filter.min} onValue={(min) => onChange({min})} label="Prix minimum, en WikiBidous" placeholder="min" />
             <span>à</span>
@@ -275,6 +275,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
       card: g.card,
       userCardId: copy.id,
       rarity: g.rarity,
+      shiny: copy.is_shiny,
       badges: [g.count > 1 && {label: `×${g.count}`, type: "ok"}],
       note: sale === "never" ? "Cette carte n'a jamais été vendue : aucun prix de référence. L'exemplaire est mis en réserve pendant l'enchère." : undefined,
     });
@@ -442,14 +443,14 @@ export function CollectionCards({filter, onOpen, mini = false}) {
         render={(g) => {
           const key = keyOf(g);
           const free = freeCopy(g.rows);
-          const soldIn = sale === "never" ? RARITIES.filter((r) => priceOf(g.card_id, r) != null) : [];
+          const soldInRarities = sale === "never" ? RARITIES.filter((r) => soldIn(summaryOf(g.card_id), r)) : [];
           return (
             <CardRow
               key={key}
               card={g.card}
               rarity={g.rarity}
               theme={themeOf(g.card)}
-              price={sale === "never" ? null : priceOf(g.card_id, g.rarity)}
+              {...(sale === "never" ? {} : pricing(g.card_id, g.rarity, {shiny: free?.is_shiny}))}
               selected={Boolean(free) && picked.has(key)}
               onClick={free && !busy ? () => toggle(g) : undefined}
               onTitle={onOpen && (() => !opening && open(g))}
@@ -457,7 +458,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
                 opening === key && {label: "Ouverture…", type: "accent"},
                 g.count > 1 && {label: `×${g.count}`, type: "ok"},
                 keepOne && owned.get(g.card_id) > g.count && {label: `${owned.get(g.card_id)} au total`},
-                soldIn.length > 0 && {label: `vendue en ${soldIn.join(", ")}`},
+                soldInRarities.length > 0 && {label: `vendue en ${soldInRarities.join(", ")}`},
                 kinds.includes("none") && g.card.hide_image && {label: "masquée par le site", type: "warn"},
                 free?.is_shiny && {label: "shiny", type: "warn", icon: "shine"},
                 !free && {label: "favori", type: "warn", icon: "star"},

@@ -139,7 +139,7 @@ function TradeValuesWidget({path}) {
   // Valeur d'un côté : null si aucune de ses cartes n'a de prix connu
   const sideValue = (t, uid) => {
     const items = (t.items || []).filter((i) => i.offered_by === uid);
-    const prices = items.map((i) => priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity)).filter((p) => p != null);
+    const prices = items.map((i) => priceOf(i.card_id, i.snapshot_rarity || i.card?.rarity, {shiny: i.is_shiny})).filter((p) => p != null);
     if (items.length && !prices.length) return null;
     return prices.reduce((n, p) => n + p, 0) + (uid === t.initiator_id ? t.initiator_wikibidous || 0 : t.recipient_wikibidous || 0);
   };
@@ -165,7 +165,7 @@ function TradeValuesWidget({path}) {
           </div>
         );
       })}
-      <span class="small muted">Prix moyens connus seulement (onglet Échanges pour les charger).</span>
+      <span class="small muted">Prix du marché fiables seulement (onglet Échanges pour les charger).</span>
     </div>
   );
 }

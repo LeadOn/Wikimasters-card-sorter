@@ -39,15 +39,45 @@ test("offre équilibrée", () => {
   assert.equal(chosen[0].card_id, "a", "doublons d'abord");
 });
 
-test("prix : moyenne par rareté, valeur et doublons vendables", () => {
-  const summary = {UR: {average: 319.4, count: 10}, SR: {average: 216}};
-  assert.equal(core.averagePrice(summary, "UR"), 319);
-  assert.equal(core.averagePrice(summary, "L"), null);
+test("prix : médiane des dernières ventes, ventes minimum, premières ventes ignorées, shiny à part", () => {
+  // recent : du plus récent au plus ancien ; une vente aberrante ne déplace pas la médiane
+  const summary = {
+    UR: {average: 3100, count: 6, latest: 300, recent: [300, 320, 15000, 310, 290, 305]},
+    SR: {average: 216, count: 2, latest: 200, recent: [200, 232]},
+    R: {average: 15150, count: 1, latest: 15150, recent: [15150]},
+    L: {average: 500, count: 4, latest: 450, recent: [450, 520, 480, 510], shiny: {count: 1, latest: 4000, recent: [4000]}},
+  };
+  assert.deepEqual(core.priceInfo(summary, "UR"), {price: 310, sales: 5, total: 6, reliable: true, average: 3100, latest: 300}, "la 1re vente (305) est ignorée");
+  assert.equal(core.marketPrice(summary, "UR", {skipFirst: 0}), 308, "médiane paire : moyenne des deux du milieu, arrondie");
+  // Trop peu de ventes : prix indicatif seulement
+  assert.deepEqual(core.priceInfo(summary, "SR"), {price: 200, sales: 1, total: 2, reliable: false, average: 216, latest: 200});
+  assert.equal(core.marketPrice(summary, "SR"), null);
+  assert.equal(core.marketPrice(summary, "SR", {minSales: 1}), 200);
+  assert.equal(core.marketPrice(summary, "SR", {minSales: 2, skipFirst: 0}), 216);
+  // Une seule vente, ignorée : vendue, mais sans prix
+  assert.deepEqual(core.priceInfo(summary, "R"), {price: null, sales: 0, total: 1, reliable: false, average: 15150, latest: 15150});
+  assert.equal(core.marketPrice(summary, "R", {minSales: 1, skipFirst: 0}), 15150);
+  assert.equal(core.priceInfo(summary, "C"), null, "jamais vendue");
+  // Shiny : ses propres ventes seulement
+  assert.equal(core.marketPrice(summary, "L"), 480, "la plus ancienne (510) est ignorée");
+  assert.equal(core.marketPrice(summary, "L", {shiny: true}), null, "une vente shiny, ignorée");
+  assert.equal(core.marketPrice(summary, "L", {shiny: true, minSales: 1, skipFirst: 0}), 4000);
+  assert.equal(core.priceInfo(summary, "UR", {shiny: true}), null);
+  // Résumé du site (moyenne seule) : pas de premières ventes à écarter
+  const site = {UR: {average: 319.4, count: 10, latest: 300}, SR: {average: 216, count: 1}};
+  assert.deepEqual(core.priceInfo(site, "UR"), {price: 319, sales: 10, total: 10, reliable: true, average: 319, latest: 300});
+  assert.equal(core.marketPrice(site, "SR"), null);
+  assert.equal(core.marketPrice({UR: {average: null, count: 3}}, "UR"), null, "moyenne absente : pas de prix à 0");
+
+  // Valeur : seuls les prix fiables comptent ; une shiny au prix shiny
   const prices = new Map([["a", summary]]);
-  assert.deepEqual(core.collectionValue([{card_id: "a", rarity: "UR", count: 2}, {card_id: "b", rarity: "C"}], prices), {value: 638, priced: 2, total: 3});
-  // Jamais vendues : dans la rareté de l'exemplaire, ou dans aucune ; une carte non lue reste à part
-  const sold = new Map([["a", summary], ["z", {}]]);
-  const owned = [{card_id: "a", rarity: "UR"}, {card_id: "a", rarity: "L"}, {card_id: "z", rarity: "C"}, {card_id: "b", rarity: "C"}];
+  const copies = [{card_id: "a", rarity: "UR", count: 2}, {card_id: "a", rarity: "SR"}, {card_id: "a", rarity: "L", is_shiny: true}, {card_id: "b", rarity: "C"}];
+  assert.deepEqual(core.collectionValue(copies, prices), {value: 620, priced: 2, total: 5});
+  assert.deepEqual(core.collectionValue(copies, prices, {minSales: 1, skipFirst: 0}), {value: 616 + 216 + 4000, priced: 4, total: 5});
+  // Jamais vendues : dans la rareté de l'exemplaire, ou dans aucune ; une carte non lue reste à part.
+  // Une vente compte, même ignorée pour le prix, et même shiny.
+  const sold = new Map([["a", {UR: {average: 1, count: 1}, SR: {average: 1, count: 1}}], ["z", {}], ["s", {L: {average: null, count: 0, recent: [], shiny: {count: 1, latest: 9, recent: [9]}}}]]);
+  const owned = [{card_id: "a", rarity: "UR"}, {card_id: "a", rarity: "L"}, {card_id: "z", rarity: "C"}, {card_id: "b", rarity: "C"}, {card_id: "s", rarity: "L"}];
   const inRarity = core.unsoldCopies(owned, sold);
   assert.deepEqual(inRarity.unsold.map((c) => `${c.card_id}|${c.rarity}`), ["a|L", "z|C"]);
   assert.deepEqual(inRarity.unknown.map((c) => c.card_id), ["b"]);
@@ -96,14 +126,27 @@ test("codes de profil : aller-retour sans perte", async () => {
   }
 });
 
-test("résumé des ventes identique au site : 200 dernières ventes par rareté", () => {
+test("résumé des ventes : moyenne du site (200 dernières, hors shiny), 30 derniers prix, shiny à part", () => {
+  const at = (i) => new Date(Date.UTC(2026, 9, 12, 0, 0, 0) - i * 1000).toISOString(); // i : ancienneté
   const rows = [];
-  for (let i = 0; i < 260; i++) rows.push({card_id: "a", snapshot_rarity: "L", final_price: i < 200 ? 100 : 900, settled_at: new Date(Date.UTC(2026, 9, 12, 0, 0, 260 - i)).toISOString()});
+  for (let i = 0; i < 260; i++) rows.push({id: `n${i}`, card_id: "a", snapshot_rarity: "L", final_price: i < 200 ? 100 + (i % 3) : 900, settled_at: at(i), is_shiny: false});
+  for (let i = 0; i < 3; i++) rows.push({id: `s${i}`, card_id: "a", snapshot_rarity: "L", final_price: 4000 + i, settled_at: at(i + 0.5), is_shiny: true});
   rows.push({card_id: "a", snapshot_rarity: "SR", final_price: 51, settled_at: "2026-10-01T00:00:00Z"});
   rows.push({card_id: "b", snapshot_rarity: "C", final_price: null, settled_at: "2026-10-01T00:00:00Z"});
+  rows.push({card_id: "c", snapshot_rarity: "UR", final_price: 7000, settled_at: "2026-10-01T00:00:00Z", is_shiny: true});
   const s = core.summarizeSales(rows.reverse());
-  assert.deepEqual(s.get("a"), {L: {average: 100, count: 200, latest: 100}, SR: {average: 51, count: 1, latest: 51}});
+  const L = s.get("a").L;
+  assert.equal(L.average, 101, "les ventes shiny ne comptent pas dans la moyenne, comme sur le site");
+  assert.equal(L.count, 200);
+  assert.equal(L.latest, 100);
+  assert.equal(L.recent.length, 30);
+  assert.deepEqual(L.recent.slice(0, 4), [100, 101, 102, 100], "du plus récent au plus ancien");
+  assert.deepEqual(L.shiny, {count: 3, latest: 4000, recent: [4000, 4001, 4002]});
+  assert.deepEqual(s.get("a").SR, {average: 51, count: 1, latest: 51, recent: [51]});
   assert.equal(s.has("b"), false);
+  assert.deepEqual(s.get("c").UR, {average: null, count: 0, latest: null, recent: [], shiny: {count: 1, latest: 7000, recent: [7000]}}, "vendue seulement en shiny");
+  assert.equal(core.priceInfo(s.get("c"), "UR"), null);
+  assert.equal(core.soldIn(s.get("c"), "UR"), true);
 });
 
 test("lots de prix pondérés par rareté", () => {

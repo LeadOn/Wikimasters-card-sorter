@@ -1,5 +1,5 @@
 // Bloc de la Toolbox dans la fenêtre d'une carte (collection, profils, toutes les cartes) :
-// prix moyen instantané, thème, amis intéressés, possession et familles.
+// prix du marché instantané, thème, amis intéressés, possession et familles.
 import {useStore} from "../../lib/store";
 import {owned} from "../../state/collection";
 import {families, addCard} from "../../features/families";

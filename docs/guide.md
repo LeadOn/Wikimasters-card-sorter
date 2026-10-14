@@ -58,15 +58,16 @@ Des pastilles s'ajoutent en haut à droite de chaque carte affichée par le site
 
 | Pastille | Signification |
 |---|---|
-| `8 042 ₩` | Prix moyen de vente de la carte **dans sa rareté**, quand il est connu |
+| `8 042 ₩` | Prix du marché de la carte **dans sa rareté**, quand il est connu (voir [Prix](#prix)) |
+| `≈ 31 ₩` | Prix seulement **indicatif** : la carte s'est vendue trop peu de fois pour un prix fiable (le détail s'affiche au survol) |
 | ✓ | Vous possédez déjà cette carte (affichée partout sauf dans votre propre collection et dans la collection globale, qui l'indiquent déjà) |
 | `Nouvelle` | Vous n'avez pas cette carte (sur le marché et le profil des autres joueurs) |
 | `■ Sports` | Thème de la carte calculé par la Toolbox (pas sur votre collection, où il est déjà en étiquette) |
 | `W` | Ouvre l'article Wikipédia de la carte |
-| `−34 %` | **Bonne affaire** sur le marché : l'enchère se termine dans moins de 15 minutes et la mise minimale est au moins 25 % sous le prix moyen |
-| `+120 %` | **Trop cher** sur le marché : la mise minimale dépasse le prix moyen d'au moins 50 % |
+| `−34 %` | **Bonne affaire** sur le marché : l'enchère se termine dans moins de 15 minutes et la mise minimale est au moins 25 % sous le prix du marché |
+| `+120 %` | **Trop cher** sur le marché : la mise minimale dépasse le prix du marché d'au moins 50 % |
 
-Les pastilles du marché ne s'affichent que si la carte a été vendue au moins trois fois dans sa rareté.
+Les pastilles du marché ne s'affichent que pour un prix fiable. Une carte shiny mise aux enchères est comparée au prix des shiny.
 
 ### Page Collection
 
@@ -90,7 +91,7 @@ Le site garde ses étiquettes en cache : après un tri, cliquez sur *Actualiser*
 
 Quand vous ouvrez une carte (dans votre collection, le catalogue ou le profil d'un joueur), un bloc Toolbox s'ajoute sous ses détails :
 
-- son **prix moyen** dans sa rareté, le nombre de ventes et le prix de la dernière ;
+- son **prix du marché** dans sa rareté, le nombre de ventes (et combien de premières ventes sont ignorées), le prix de la dernière et la moyenne affichée par le site ; « indicatif » quand il y a trop peu de ventes ;
 - son **thème** ;
 - les **amis intéressés**, d'après leurs profils d'intérêts (« Vous » si elle correspond au vôtre) ;
 - les **familles** qui la contiennent, et un menu pour l'ajouter à l'une de vos familles manuelles ;
@@ -98,7 +99,7 @@ Quand vous ouvrez une carte (dans votre collection, le catalogue ou le profil d'
 
 ### Page d'une enchère
 
-Sous le formulaire de mise, l'**Analyse Toolbox** indique le prix moyen de la carte, l'écart entre la mise actuelle et ce prix (en vert quand elle est au moins 20 % en dessous, en orange au moins 20 % au-dessus), la prochaine mise possible, si vous avez déjà la carte et quels amis elle intéresse. Ce bloc ne fait que lire : la mise se fait toujours avec le formulaire du site.
+Sous le formulaire de mise, l'**Analyse Toolbox** indique le prix du marché de la carte (celui des shiny pour une carte shiny), l'écart entre la mise actuelle et ce prix s'il est fiable (en vert quand elle est au moins 20 % en dessous, en orange au moins 20 % au-dessus), la prochaine mise possible, si vous avez déjà la carte et quels amis elle intéresse. Ce bloc ne fait que lire : la mise se fait toujours avec le formulaire du site.
 
 ### Profil d'un autre joueur
 
@@ -112,9 +113,9 @@ Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, c
 ### Page Paquets
 
 - **Tout ouvrir**, à côté du bouton *Ouvrir* du site : ouvre tous vos paquets disponibles, sans animation, après confirmation. Le site impose environ 2 secondes entre deux paquets : l'ouverture prend donc quelques secondes par paquet, et le bouton affiche sa progression. L'ouverture s'arrête à la première erreur ou si le site demande une vérification anti-robot : ouvrez alors le paquet suivant avec le bouton *Ouvrir* du site, faites la vérification qu'il affiche, puis relancez *Tout ouvrir*.
-- **Récapitulatif du paquet**, sous la carte une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix moyen de chaque carte et valeur totale du paquet. Les cartes peuvent y être traitées sur place :
+- **Récapitulatif du paquet**, sous la carte une fois la dernière révélée : nouveautés et doublons, cartes shiny, étiquettes posées, prix du marché de chaque carte et valeur totale du paquet (prix fiables seulement ; un prix indicatif est précédé de « ≈ »). Les cartes peuvent y être traitées sur place :
   - **Défausser** : cochez les cartes à défausser (case de la ligne ou clic sur la ligne ; *Tout* coche toutes les cartes, *Doublons* les doublons sauf les shiny), puis un seul clic sur *Défausser*. Chaque exemplaire rapporte 1 WikiBidou, après une confirmation qui précise combien sont vos seuls exemplaires, lesquelles sont shiny et ce qu'elles vaudraient aux enchères. Les cartes sont défaussées l'une après l'autre ; au premier refus du site, la défausse s'arrête et indique combien de cartes ont été défaussées. Le solde affiché par le site se met à jour.
-  - **Vendre** ouvre, carte par carte, la fenêtre de mise aux enchères (mise de départ préremplie avec le prix moyen, durée de 10 minutes à 12 heures, nombre de ventes en cours).
+  - **Vendre** ouvre, carte par carte, la fenêtre de mise aux enchères (mise de départ préremplie avec le prix du marché s'il est fiable, durée de 10 minutes à 12 heures, nombre de ventes en cours).
 
   Une fois l'action faite, la ligne l'indique (« En vente », « Défaussée »). Si le tri automatique des cartes tirées est en cours, la défausse attend qu'il ait fini.
 - **Ouvrir le prochain**, en bas du récapitulatif quand il vous reste des paquets : passe l'écran de fin (*Continuer*) et ouvre le paquet suivant avec le bouton *Ouvrir* du site, animation comprise. Si le site demande une vérification anti-robot, sa fenêtre de vérification s'affiche comme d'habitude.
@@ -122,7 +123,7 @@ Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, c
 
 ### Page Échanges
 
-Un encart flottant donne la **valeur de chaque côté** de vos échanges en attente (prix moyens connus, plus les WikiBidous ajoutés), et l'écart en votre faveur ou non.
+Un encart flottant donne la **valeur de chaque côté** de vos échanges en attente (prix du marché fiables, shiny comprises, plus les WikiBidous ajoutés), et l'écart en votre faveur ou non.
 
 ### Alertes
 
@@ -177,28 +178,32 @@ Choisissez un ami, éventuellement des raretés et des thèmes précis (plutôt 
 - **À demander** : triées par liste de souhaits, puis cartes qu'il possède en plusieurs exemplaires, puis rareté. Les cartes déjà engagées dans un échange en cours sont signalées.
 - **À proposer** : vos doublons d'abord.
 
-Sélectionnez les cartes que vous voulez obtenir : la Toolbox en calcule la valeur, et **Proposer une offre équilibrée** choisit parmi vos cartes un lot de valeur équivalente en prix moyen. *Charger les prix* récupère les prix manquants des deux listes.
+Sélectionnez les cartes que vous voulez obtenir : la Toolbox en calcule la valeur, et **Proposer une offre équilibrée** choisit parmi vos cartes un lot de valeur équivalente en prix du marché. *Charger les prix* récupère les prix manquants des deux listes.
 
 En bas de l'onglet, **Échanges en cours** détaille chaque échange en attente : ce que vous donnez, ce que vous recevez, leur valeur et l'écart.
 
 ### Prix
 
-- **Valeur estimée** de votre collection, nombre d'exemplaires dont le prix est connu, valeur par rareté.
+- **Valeur estimée** de votre collection, nombre d'exemplaires dont le prix est connu, valeur par rareté. Les exemplaires vendus trop peu de fois (*Prix incertain*) ne comptent pas dans la valeur.
 - **Charger les prix** : les ventes conclues sont lues par lots de cartes, toute une collection se charge en quelques minutes. Choisissez les raretés, et seulement les cartes sans prix récent pour aller plus vite.
-- **Mes cartes les plus chères** : classement filtrable par thème.
-- **Filtrer ma collection** (bascule *Filtrer* à côté du classement ; mêmes filtres que sur la page Collection, *Jamais vendues* choisi d'office) : vos cartes les plus rares d'abord, filtrées par critères cumulables (doublons, sans image, GIF) et par vente. *Jamais vendues dans aucune rareté* ne garde que les cartes sans aucune vente conclue ; *dans la rareté de mon exemplaire*, celles qui ne se sont jamais vendues dans cette rareté (la pastille « vendue en … » indique les autres raretés vendues). *Vendues entre …* garde les cartes dont le prix moyen dans leur rareté est dans l'intervalle choisi (bornes incluses). Seules les cartes dont les prix ont été chargés sont comptées : si certaines n'en ont pas encore, un bouton les charge.
+- **Mes cartes les plus chères** : classement filtrable par thème, prix fiables seulement (une Commune vendue une fois très cher n'y apparaît pas).
+- **Filtrer ma collection** (bascule *Filtrer* à côté du classement ; mêmes filtres que sur la page Collection, *Jamais vendues* choisi d'office) : vos cartes les plus rares d'abord, filtrées par critères cumulables (doublons, sans image, GIF) et par vente. *Jamais vendues dans aucune rareté* ne garde que les cartes sans aucune vente conclue ; *dans la rareté de mon exemplaire*, celles qui ne se sont jamais vendues dans cette rareté (la pastille « vendue en … » indique les autres raretés vendues). *Vendues entre …* garde les cartes dont le prix du marché fiable dans leur rareté est dans l'intervalle choisi (bornes incluses). Seules les cartes dont les prix ont été chargés sont comptées : si certaines n'en ont pas encore, un bouton les charge.
   - **Une carte** : *Vendre* ouvre la fenêtre de mise aux enchères (sans prix de référence, la mise de départ est à choisir) ; la corbeille la défausse contre 1 WikiBidou, après confirmation.
   - **Plusieurs cartes** : cliquez sur les cartes pour les cocher, n'importe où sauf sur leur nom et leurs boutons (*Tout* coche la liste affichée), puis *Mettre aux enchères* (même mise de départ et même durée pour toutes, dans la limite des ventes simultanées autorisées par le site) ou *Défausser*, après une confirmation qui signale vos derniers exemplaires et les cartes shiny. Les cartes sont traitées une à une, *Arrêter* interrompt la série, et la première erreur l'arrête aussi : rien n'est jamais renvoyé automatiquement.
   - Un exemplaire par carte à chaque fois : jamais un favori (le site les verrouille), une carte shiny en dernier. La carte disparaît de la liste quand il ne vous en reste plus.
 
-Le prix d'une carte est la moyenne de ses 200 dernières ventes **dans sa rareté**. Les prix sont gardés 48 heures (réglable) et réutilisés partout : pastilles, récapitulatifs, échanges.
+Le **prix du marché** d'une carte est la **médiane de ses 30 dernières ventes dans sa rareté**, hors cartes shiny : une vente aberrante (une Commune vendue 15 000 ₩) ne le déplace pas, contrairement à la moyenne des 200 dernières ventes affichée par le site. Une carte **shiny** a son propre prix, calculé sur les seules ventes shiny.
+
+Un prix n'est **fiable** qu'à partir de 3 ventes, sans compter la toute première vente de la carte dans cette rareté, souvent faite à un prix sans rapport avec le marché (les deux nombres se règlent dans l'onglet *Réglages*). En dessous, le prix est affiché « ≈ » à titre indicatif : il ne compte ni dans les totaux (collection, paquet, échanges), ni dans les mises de départ proposées, ni dans les bonnes affaires.
+
+Les prix sont gardés 48 heures (réglable) et réutilisés partout : pastilles, récapitulatifs, échanges.
 
 ### Marché
 
 - **Mes enchères** : votre solde de WikiBidous, chaque enchère avec la mise actuelle, le temps restant et si vous êtes en tête ou dépassé. Quand vous êtes dépassé, un bouton propose la mise suivante : cliquez, vérifiez le montant dans la confirmation, c'est placé. Si la mise est devenue trop basse entre-temps, la Toolbox vous propose le minimum demandé par le site.
 - **Mes ventes en cours**.
 - **Mes doublons** : vos cartes en plusieurs exemplaires, les plus chères d'abord. Pour chacune :
-  - *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix moyen) et la durée (10 minutes à 12 heures). Le nombre de ventes simultanées autorisé par le site est affiché.
+  - *Vendre* ouvre une fenêtre pour choisir la mise de départ (pré-remplie avec le prix du marché s'il est fiable) et la durée (10 minutes à 12 heures). Le nombre de ventes simultanées autorisé par le site est affiché.
   - La corbeille **défausse** un exemplaire contre 1 WikiBidou, après une confirmation qui indique combien d'exemplaires il vous restera, si c'est une carte shiny et si elle vaut davantage aux enchères. Le solde affiché par le site se met à jour.
 
   Vous gardez toujours au moins un exemplaire : une carte quitte la liste quand il ne vous en reste qu'un. L'exemplaire vendu ou défaussé est le moins rare, jamais un favori (le site les verrouille), une carte shiny en dernier ; si tous vos exemplaires sont en favori, ni la vente ni la défausse ne sont possibles. L'étiquette `Doublon` de l'exemplaire restant est retirée au prochain tri.
@@ -272,7 +277,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 |---|---|---|
 | Cartes | Nouvel affichage des cartes | activée |
 | Cartes | Pastille du thème | activée |
-| Cartes | Prix moyen | activée |
+| Cartes | Prix du marché | activée |
 | Cartes | Lien Wikipédia | activée |
 | Cartes | Possédée / manquante | activée |
 | Cartes | Images manquantes (requêtes anonymes à Wikimedia) | désactivée |
@@ -292,7 +297,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 
 **Trier automatiquement les cartes tirées** : dès l'ouverture d'un paquet, les nouveaux exemplaires reçoivent leur thème, leurs étiquettes « Pour : … » et `Doublon`. Seuls les exemplaires qui viennent d'arriver sont touchés, rien n'est supprimé.
 
-L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **délai de l'alerte de fin d'enchère** (2 minutes), les **couleurs des étiquettes**, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
+L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **nombre de ventes minimum pour un prix fiable** (3) et le **nombre de premières ventes ignorées** pour chaque carte et chaque rareté (1), le **délai de l'alerte de fin d'enchère** (2 minutes), les **couleurs des étiquettes**, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
 
 ---
 
@@ -336,7 +341,13 @@ Coupez *Nouvel affichage des cartes* dans les réglages : les cartes reprennent 
 Le site n'a pas répondu à temps : l'action a peut-être été faite. Vérifiez dans votre collection ou sur le Marché avant de recommencer ; la Toolbox ne renvoie jamais une défausse ou une vente d'elle-même.
 
 **Une carte affiche « jamais vendue dans cette rareté ».**
-Aucune vente conclue n'existe pour cette carte dans cette rareté : il n'y a pas de prix moyen à calculer.
+Aucune vente conclue n'existe pour cette carte dans cette rareté : il n'y a pas de prix à calculer.
+
+**Un prix est précédé de « ≈ », ou une carte affiche « indicatif ».**
+La carte s'est vendue trop peu de fois pour que son prix soit représentatif (3 ventes au minimum par défaut, sa toute première vente n'étant pas comptée). Le prix reste affiché pour information, mais n'entre dans aucun calcul. Le minimum se règle dans l'onglet *Réglages*.
+
+**Le prix de la Toolbox n'est pas celui du site.**
+Le site affiche la moyenne des 200 dernières ventes ; la Toolbox, la médiane des 30 dernières, qui résiste aux ventes aberrantes et suit mieux le marché. La moyenne du site reste indiquée dans la fiche de la carte.
 
 **Comment tout effacer ?**
 Onglet *Réglages* → *Données*, ou désinstallez l'extension : tout ce qu'elle a enregistré est supprimé avec elle.
