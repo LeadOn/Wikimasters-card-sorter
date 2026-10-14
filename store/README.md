@@ -39,6 +39,19 @@ Tout ce que le tableau de bord demande est dans ce dossier :
    `confidentialite.md`, `PRIVACY.md` et l'onglet correspondant **avant** l'envoi : les utilisateurs
    devront accepter les nouvelles autorisations.
 
+## Refaire les visuels
+
+Après un changement visible de l'interface :
+
+1. **Captures** (1280 × 800) : `npm run build && node extension/dev/make-inject.mjs`, puis injecter
+   `dist/dev-inject.js` dans wiki-masters.com (voir « Tester sans installer l'extension » dans
+   `AGENTS.md`), avec une feuille qui déclare les polices IBM Plex en `data:` pour ne pas retomber sur
+   les polices du système. Écrans montrés : voir le tableau des captures de `fiche.md`. Masquer les
+   pseudos des autres joueurs (étiquettes « Pour : … ») avant la capture, et ne rien appliquer.
+2. **Vignettes** : capture de l'élément `#tile` de `promo.html` (fenêtre de 1400 × 560 pour
+   `promo.html?large`, qui reprend `images/capture-1.png`).
+3. **Icônes** : `node extension/make-icons.mjs` (à partir de `shared/brand.mjs`).
+
 ## Causes fréquentes de refus (déjà traitées)
 
 - **Autorisations superflues** : Chrome ne demande que l'accès à wiki-masters.com (Supabase et
