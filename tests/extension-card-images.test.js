@@ -62,8 +62,6 @@ test("collection lue : exemplaires cumulés par carte et rareté, raretés haute
   const urls = [];
   globalThis.fetch = async (url) => (urls.push(url), response(200, rows));
 
-  m.setCollectionFilter(null);
-  assert.equal(urls.length, 0, "aucune lecture sans filtre");
   await m.loadImageGroups();
   const {groups, loading, error} = m.imageState.get();
   assert.equal(loading, false);
@@ -74,17 +72,4 @@ test("collection lue : exemplaires cumulés par carte et rareté, raretés haute
     [["Masquée", "L", 1], ["Zèbre", "R", 1], ["Abeille", "C", 1], ["Zèbre", "C", 3]],
   );
   assert.deepEqual(groups.gif.map((c) => c.card.wikipedia_title), ["Basion"]);
-});
-
-test("filtre de la page Collection : choisi → collection lue ; erreur de lecture signalée", async () => {
-  const m = load();
-  globalThis.fetch = async () => response(200, {message: "oops"});
-  m.setCollectionFilter("gif");
-  assert.equal(m.imageState.get().filter, "gif");
-  assert.equal(m.imageState.get().loading, true);
-  await new Promise((r) => setTimeout(r, 20));
-  assert.equal(m.imageState.get().loading, false);
-  assert.match(m.imageState.get().error, /inattendue/);
-  m.setCollectionFilter(null);
-  assert.equal(m.imageState.get().filter, null);
 });

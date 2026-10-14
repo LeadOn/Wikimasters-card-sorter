@@ -80,8 +80,8 @@ extension/
         families.js            familles : catalogue, cartes manquantes en vente, étiquettes
         card-lookup.js         carte affichée par le site mais jamais vue dans ses réponses
         wiki-images.js         images Wikimedia pour les cartes sans image (option) : Wikipédia, Wikidata
-        card-images.js         cartes sans image ou en GIF sur toute la collection, filtre de la page Collection
-        unsold.js              cartes jamais vendues : liste, mise en vente et défausse, une à une ou par lot
+        card-images.js         cartes sans image ou en GIF sur toute la collection (onglet Images)
+        collection-view.js     collection filtrée (critères cumulables, prix de vente, mots-clés) : mise en vente et défausse, une à une ou par lot
         notify.js              sons de notification et d'alerte
         site-dom.js            intégration aux pages : tous les sélecteurs du site sont ici
       ui/                      interface (Preact, dans un Shadow DOM)
@@ -94,8 +94,8 @@ extension/
         SellDialog.jsx         fenêtre de mise aux enchères, d'une carte ou de plusieurs (Marché, récapitulatif de paquet, jamais vendues)
         discard.js             confirmation d'une défausse, d'une carte ou de plusieurs (doublons du Marché, récapitulatif de paquet, jamais vendues)
         DropRates.jsx          taux de drop par rareté
-        ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images, barre de la collection)
-        UnsoldCards.jsx        cartes jamais vendues, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
+        ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images)
+        CollectionCards.jsx    filtres de la collection et liste des cartes, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
         tabs/                  un fichier par onglet du panneau
         islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil)
 
@@ -186,7 +186,7 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |
 | `extension-card-images.test.js` | Filtre par image : GIF reconnu dans le chemin de l'URL (vignettes Wikimedia), image masquée comptée sans image, exemplaires cumulés par carte et rareté |
 | `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |
-| `extension-unsold.test.js` | Cartes jamais vendues : exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
+| `extension-collection-view.test.js` | Collection filtrée : critères cumulés, jamais vendues (toute rareté ou la sienne), intervalle de prix (bornes incluses, facultatives, remises dans l'ordre), mots-clés inclus ou exclus, ouverture depuis la grille du site ; exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
 
 Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
 

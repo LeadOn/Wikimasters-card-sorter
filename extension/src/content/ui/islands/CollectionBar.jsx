@@ -1,14 +1,14 @@
 // Barre de la Toolbox sur la page Collection : trier les nouvelles cartes sur place (aperçu puis
-// application, sur clic), afficher toute la collection ou seulement les doublons, les cartes sans
-// image, en GIF ou jamais vendues (à cocher, mettre aux enchères ou défausser), raccourcis vers les
-// doublons et les prix. Partage l'état du tri avec l'onglet « Tri » du panneau.
+// application, sur clic), filtrer toute la collection (doublons, sans image, GIF, jamais vendues ou
+// vendues entre X et Y ₩ : cartes à cocher, mettre aux enchères ou défausser), raccourci vers les
+// prix. Partage l'état du tri avec l'onglet « Tri » du panneau.
 import {useStore} from "../../lib/store";
 import {emit} from "../../lib/bus";
 import {sortState, planSort, applySort} from "../../features/sorter";
 import {collectionView, setCollectionView} from "../../features/collection-view";
 import {isOn} from "../../state/settings";
 import {Icon, Mark, Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
-import {ViewSeg, CollectionCards} from "../CollectionCards";
+import {CollectionFilters, CollectionCards} from "../CollectionCards";
 import {toast} from "../feedback";
 import {isThemeTag, DOUBLON} from "../../../../../core";
 
@@ -72,23 +72,25 @@ function Plan({plan}) {
   );
 }
 
-// Vues de toute la collection (le site n'en montre que 50 cartes par page) : la liste remplace la
-// grille du site, masquée par site-dom.js. onOpen : ouvre une carte dans la fenêtre du site.
+// Filtres de toute la collection (le site n'en montre que 50 cartes par page) : dès qu'un filtre est
+// choisi, la liste remplace la grille du site, masquée par site-dom.js. onOpen : ouvre une carte
+// dans la fenêtre du site.
 function CollectionViews({onOpen}) {
-  const {view} = useStore(collectionView);
+  const filter = useStore(collectionView);
+  const aside = filter.open ? (
+    <button class="btn sm ghost" onClick={() => setCollectionView(null)}>
+      <Icon name="close" size={14} /> Revenir à la grille du site
+    </button>
+  ) : (
+    <span class="filter-hint">Choisissez un filtre : toute votre collection s'affiche ici, à la place de la grille du site.</span>
+  );
   return (
     <>
-      <div class="row small">
-        <span class="muted">Afficher</span>
-        <ViewSeg value={view} onChange={setCollectionView} />
-        {view && (
-          <span class="muted">
-            Toute votre collection · la grille du site est masquée
-            {view === "none" && isOn("missingImages") ? " · une initiale : aucune image, même sur Wikimedia" : ""}
-          </span>
-        )}
-      </div>
-      {view && <CollectionCards view={view} onOpen={onOpen} mini />}
+      <CollectionFilters filter={filter} active={filter.open} onChange={setCollectionView} aside={aside} />
+      {filter.open && filter.kinds.includes("none") && isOn("missingImages") && (
+        <p class="small muted">Une vignette ne montrant qu'une initiale : aucune image, même sur Wikimedia.</p>
+      )}
+      {filter.open && <CollectionCards filter={filter} onOpen={onOpen} mini />}
     </>
   );
 }
@@ -108,7 +110,6 @@ export function CollectionBar({onOpen}) {
           <button class="btn sm primary" disabled={s.running} onClick={() => planSort({newOnly: true}).catch(() => {})}>
             Trier les nouvelles cartes
           </button>
-          <button class="btn sm" onClick={() => openTab("market")}>Mes doublons</button>
           <button class="btn sm" onClick={() => openTab("prices")}>Prix et valeur</button>
           <button class="btn sm ghost" onClick={() => openTab("sort")} title="Ouvrir la Toolbox" aria-label="Ouvrir la Toolbox">
             <Icon name="more" size={14} />

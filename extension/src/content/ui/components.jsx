@@ -111,26 +111,31 @@ export const Badge = ({label, type, icon}) => (
 );
 
 // Mini-carte : image, titre, description, rareté, thème, prix, badges.
-// check : case à cocher sur la vignette ({checked, onChange, label, disabled}) ; wiki : titre lié à l'article
-// Wikipédia (false quand un clic sur la carte fait autre chose, onClick)
-export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, action, check, wiki = true}) {
+// selected (avec onClick) : carte à cocher d'un clic, ou par Espace / Entrée au clavier ; onTitle : clic
+// sur le titre (ouvre la carte ailleurs) ; wiki : sinon, titre lié à l'article Wikipédia
+export function CardRow({card, rarity, theme, price, badges = [], selected, onClick, onTitle, action, wiki = true}) {
   const r = rarity || card?.rarity;
   const fallback = useWikiImage(card);
   const image = card?.image_url || fallback;
-  const href = wiki ? card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null) : null;
+  const name = card?.wikipedia_title || card?.title;
+  const href = wiki && !onTitle ? card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null) : null;
+  const pickable = selected !== undefined && Boolean(onClick);
+  const keys = (e) => {
+    if (e.target !== e.currentTarget || (e.key !== " " && e.key !== "Enter")) return;
+    e.preventDefault();
+    onClick();
+  };
   return (
-    <div class={`card${selected ? " sel" : ""}`} style={{"--rc": `var(--r-${r || "C"})`, cursor: onClick ? "pointer" : "default"}} onClick={onClick}>
-      {check && (
-        <input
-          type="checkbox"
-          class="pick"
-          checked={check.checked}
-          disabled={check.disabled}
-          aria-label={check.label}
-          title={check.label}
-          onClick={(e) => e.stopPropagation()}
-          onChange={check.onChange}
-        />
+    <div
+      class={`card${selected ? " sel" : ""}`}
+      style={{"--rc": `var(--r-${r || "C"})`, cursor: onClick ? "pointer" : "default"}}
+      onClick={onClick}
+      {...(pickable && {role: "checkbox", "aria-checked": Boolean(selected), "aria-label": name, tabIndex: 0, onKeyDown: keys})}
+    >
+      {selected && (
+        <span class="picked" aria-hidden="true">
+          <Icon name="check" size={12} />
+        </span>
       )}
       {image ? (
         <img class="thumb" src={image} alt="" loading="lazy" referrerpolicy="no-referrer" />
@@ -144,12 +149,23 @@ export function CardRow({card, rarity, theme, price, badges = [], selected, onCl
         {/* Le titre s'arrête avant les boutons d'action, en haut à droite */}
         <div class="head">
           <div class="t" title={card?.wikipedia_title}>
-            {href ? (
+            {onTitle ? (
+              <button
+                type="button"
+                class="t-link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTitle();
+                }}
+              >
+                {name}
+              </button>
+            ) : href ? (
               <a href={href} target="_blank" rel="noopener noreferrer" style={{color: "inherit", textDecoration: "none"}} onClick={(e) => e.stopPropagation()}>
-                {card?.wikipedia_title || card?.title}
+                {name}
               </a>
             ) : (
-              card?.wikipedia_title || card?.title
+              name
             )}
           </div>
           {action && <div class="act" onClick={(e) => e.stopPropagation()}>{action}</div>}

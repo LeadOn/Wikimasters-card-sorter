@@ -1,11 +1,13 @@
 // Onglet « Prix » : prix moyens de vente, valeur de ma collection, classement des plus chères et
-// cartes jamais vendues (à mettre aux enchères ou à défausser).
+// collection filtrée par vente (jamais vendues, vendues entre X et Y ₩ : à mettre aux enchères ou
+// à défausser).
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {loadMyCollection} from "../../state/collection";
 import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../../state/prices";
 import {CardRow, Money, Paged, Progress, Notice, fmt, plural} from "../components";
-import {CollectionCards} from "../CollectionCards";
+import {CollectionFilters, CollectionCards} from "../CollectionCards";
+import {DEFAULT_FILTER} from "../../features/collection-view";
 import {toast, errorMessage} from "../feedback";
 import {RARITIES, RARITY_LABEL, categorize} from "../../../../../core";
 
@@ -17,7 +19,8 @@ export function PricesTab() {
   const [onlyMissing, setOnlyMissing] = useState(true);
   const [bulk, setBulk] = useState(null);
   const [theme, setTheme] = useState(null);
-  const [view, setView] = useState("top"); // "top" : les plus chères ; "unsold" : jamais vendues
+  const [view, setView] = useState("top"); // "top" : les plus chères ; "filter" : collection filtrée
+  const [filter, setFilter] = useState({...DEFAULT_FILTER, sale: "never"});
   const abort = useRef(null);
 
   useEffect(() => {
@@ -121,18 +124,21 @@ export function PricesTab() {
 
           <div class="box stack">
             <div class="row">
-              <h3 style={{flex: 1}}>{view === "unsold" ? "Mes cartes jamais vendues" : "Mes cartes les plus chères"}</h3>
+              <h3 style={{flex: 1}}>{view === "filter" ? "Filtrer ma collection" : "Mes cartes les plus chères"}</h3>
               <div class="seg" role="tablist">
                 <button role="tab" aria-selected={view === "top"} class={view === "top" ? "on" : ""} onClick={() => setView("top")}>
                   Les plus chères
                 </button>
-                <button role="tab" aria-selected={view === "unsold"} class={view === "unsold" ? "on" : ""} onClick={() => setView("unsold")}>
-                  Jamais vendues
+                <button role="tab" aria-selected={view === "filter"} class={view === "filter" ? "on" : ""} onClick={() => setView("filter")}>
+                  Filtrer
                 </button>
               </div>
             </div>
-            {view === "unsold" ? (
-              <CollectionCards view="unsold" />
+            {view === "filter" ? (
+              <>
+                <CollectionFilters filter={filter} onChange={(patch) => setFilter((f) => ({...f, ...patch}))} />
+                <CollectionCards filter={filter} />
+              </>
             ) : (
               <>
                 <div class="chips">

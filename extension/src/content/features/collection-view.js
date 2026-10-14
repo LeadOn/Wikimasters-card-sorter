@@ -1,5 +1,6 @@
-// Ma collection vue par la Toolbox : toutes les cartes, doublons, sans image, GIF ou jamais vendues
-// (d'après les prix chargés), lues sur toute la collection et non sur la page de 50 cartes du site.
+// Ma collection vue par la Toolbox, lue en entier et non sur la page de 50 cartes du site, filtrée
+// par critères cumulables (doublons, sans image, GIF) et par prix de vente (jamais vendues, ou
+// vendues entre X et Y WikiBidous, d'après les prix chargés).
 // Liste de la barre de la page Collection (qui remplace alors la grille du site) et de l'onglet
 // « Prix ». Les cartes se mettent aux enchères ou se défaussent une à une ou par lot, toujours sur
 // clic du joueur après confirmation ; l'exemplaire traité quitte la liste sans relire la collection.
@@ -9,22 +10,26 @@ import {loadMyCollection, discardCopy} from "../state/collection";
 import {priceMap} from "../state/prices";
 import {sellCard} from "./market";
 import {imageKind} from "./card-images";
-import {freeCopy, groupCopies, unsoldCopies, rarityRank} from "../../../../core";
+import {averagePrice, freeCopy, groupCopies, unsoldCopies, rarityRank} from "../../../../core";
 
-export const VIEWS = [
-  {id: "all", label: "Toutes"},
+// Critères cumulables (une carte doit les remplir tous) ; « Toutes » : aucun critère
+export const KINDS = [
   {id: "doubles", label: "Doublons"},
   {id: "none", label: "Sans image"},
   {id: "gif", label: "GIF"},
-  {id: "unsold", label: "Jamais vendues"},
 ];
 
-// Vue choisie sur la page Collection (la grille du site est alors masquée), null : grille du site
-export const collectionView = createStore({view: null});
+// Filtre de la liste. kinds : critères cumulables (KINDS) ; sale : null (tous les prix), "never"
+// (jamais vendues) ou "range" (prix moyen de vente, dans la rareté de l'exemplaire, entre min et
+// max WikiBidous inclus ; null : borne absente) ; anyRarity : « jamais vendues » dans aucune
+// rareté (sinon : dans sa rareté).
+export const DEFAULT_FILTER = {kinds: [], sale: null, min: null, max: 5, anyRarity: true};
 
-// copies : exemplaires de ma collection (instantané, mis à jour après chaque action) ;
-// anyRarity : « jamais vendues » dans aucune rareté (sinon : dans la rareté de l'exemplaire)
-export const cardsState = createStore({copies: null, loading: false, progress: 0, error: null, anyRarity: true});
+// Liste de la page Collection : ouverte (la grille du site est alors masquée) et son filtre
+export const collectionView = createStore({open: false, ...DEFAULT_FILTER});
+
+// copies : exemplaires de ma collection (instantané, mis à jour après chaque action)
+export const cardsState = createStore({copies: null, loading: false, progress: 0, error: null});
 
 export const LOCKED = "Tous vos exemplaires sont en favori : le site les verrouille.";
 
@@ -39,14 +44,19 @@ export async function loadCards({force = false} = {}) {
   }
 }
 
-export function setCollectionView(view) {
-  if (collectionView.get().view !== view) collectionView.set({view});
+// Change le filtre et ouvre la liste (depuis la grille du site : à partir du filtre par défaut, en
+// gardant le dernier intervalle de prix) ; null : revient à la grille du site
+export function setCollectionView(patch) {
+  const {open, min, max} = collectionView.get();
+  if (patch) collectionView.set(open ? patch : {...DEFAULT_FILTER, min, max, ...patch, open: true});
+  else if (open) collectionView.set({open: false});
 }
 
-// Cartes de chaque vue : {all, doubles, none, gif, never, inRarity, unknown}. Groupes carte + rareté
-// (core.groupCopies), les plus rares d'abord. never / inRarity : jamais vendues dans aucune rareté /
-// dans la rareté de l'exemplaire ; unknown : nombre de groupes dont les ventes n'ont pas été lues.
-// Calculé une fois par instantané et par état des prix (priceVersion).
+// Cartes de chaque critère : {all, doubles, none, gif, never, inRarity, unknown, prices}. Groupes
+// carte + rareté (core.groupCopies), les plus rares d'abord. never / inRarity : jamais vendues dans
+// aucune rareté / dans la rareté de l'exemplaire ; unknown : groupes dont les ventes n'ont pas été
+// lues ; prices : Map(card_id → résumé des ventes). Calculé une fois par instantané et par état des
+// prix (priceVersion).
 let memo = {};
 export function viewGroups(copies, priceVersion) {
   if (memo.copies === copies && memo.v === priceVersion) return memo.views;
@@ -61,14 +71,56 @@ export function viewGroups(copies, priceVersion) {
     gif: all.filter((g) => imageKind(g.card) === "gif"),
     never: unsoldCopies(inRarity, prices, {anyRarity: true}).unsold,
     inRarity,
-    unknown: unknown.length,
+    unknown,
+    prices,
   };
   memo = {copies, v: priceVersion, views};
   return views;
 }
 
-// Groupes d'une vue (« Jamais vendues » : selon la portée choisie)
-export const groupsOf = (views, view, anyRarity) => (view === "unsold" ? (anyRarity ? views.never : views.inRarity) : views[view]) || [];
+// Prix moyen de vente d'un groupe dans sa rareté (null : jamais vendu dans cette rareté, ou prix non lu)
+export const groupPrice = (views, g) => averagePrice(views.prices.get(g.card_id), g.rarity);
+
+// Cartes qui remplissent tous les critères du filtre, dans l'ordre de views.all. Intervalle de prix
+// saisi à l'envers (min > max) : bornes échangées.
+export function filterGroups(views, {kinds = [], sale = null, min = null, max = null, anyRarity = true} = {}) {
+  const lists = kinds.map((k) => views[k]);
+  if (sale === "never") lists.push(anyRarity ? views.never : views.inRarity);
+  const sets = lists.map((l) => new Set(l));
+  const [lo, hi] = min != null && max != null && min > max ? [max, min] : [min, max];
+  return views.all.filter((g) => {
+    if (!sets.every((set) => set.has(g))) return false;
+    if (sale !== "range") return true;
+    const price = groupPrice(views, g);
+    return price != null && (lo == null || price >= lo) && (hi == null || price <= hi);
+  });
+}
+
+// Mots-clés : [{text, out}]. Une carte est gardée si elle contient au moins un mot inclus (tous avec
+// all) et aucun mot exclu, dans son titre ou sa description, sans tenir compte de la casse ni des
+// accents ; une partie de mot suffit (« foot » trouve « footballeur »).
+export const normText = (text) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+const texts = new Map();
+const textOf = (card) => texts.get(card.id) ?? texts.set(card.id, normText(`${card.wikipedia_title || ""} ${card.category || ""}`)).get(card.id);
+
+export function matchKeywords(words, {all = false} = {}) {
+  const inc = words.filter((w) => !w.out).map((w) => normText(w.text));
+  const exc = words.filter((w) => w.out).map((w) => normText(w.text));
+  if (!inc.length && !exc.length) return () => true;
+  return (g) => {
+    const text = textOf(g.card);
+    const has = (w) => text.includes(w);
+    return !exc.some(has) && (!inc.length || (all ? inc.every(has) : inc.some(has)));
+  };
+}
+
+// Mot saisi → {text, out} (« -mot » : mot exclu), null si vide
+export function parseKeyword(input) {
+  const t = input.trim();
+  const out = /^[-−]/.test(t);
+  const text = (out ? t.slice(1) : t).trim();
+  return text ? {text, out} : null;
+}
 
 const byRarityThenTitle = (a, b) => rarityRank(b.rarity) - rarityRank(a.rarity) || (a.card?.wikipedia_title || "").localeCompare(b.card?.wikipedia_title || "", "fr");
 

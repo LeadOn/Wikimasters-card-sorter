@@ -1,13 +1,14 @@
-// Vues de ma collection par la Toolbox (features/collection-view.js) : toutes les cartes, doublons,
-// sans image, GIF, jamais vendues. Filtres par rareté, thème et texte ; chaque carte se met aux
-// enchères ou se défausse sur place, et les cartes cochées ensemble, toujours après confirmation.
-// Barre de la page Collection (un clic sur une carte ouvre la fenêtre du site : onOpen) et onglet
-// « Prix » (vue « Jamais vendues »).
+// Ma collection filtrée par la Toolbox (features/collection-view.js). CollectionFilters : critères
+// cumulables (doublons, sans image, GIF) et prix de vente (jamais vendues, vendues entre X et Y ₩) ;
+// CollectionCards : la liste, affinée par mots-clés (inclus ou exclus), rareté et thème. Un clic sur
+// une carte la coche ; chaque carte se met aux enchères ou se défausse sur place, et les cartes
+// cochées ensemble, toujours après confirmation. Barre de la page Collection (un clic sur le nom
+// d'une carte ouvre la fenêtre du site : onOpen) et onglet « Prix ».
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../lib/store";
-import {VIEWS, cardsState, loadCards, viewGroups, groupsOf, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED} from "../features/collection-view";
+import {KINDS, cardsState, loadCards, viewGroups, filterGroups, matchKeywords, parseKeyword, normText, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED} from "../features/collection-view";
 import {priceOf, priceVersion, loadPrices, hasFreshPrice} from "../state/prices";
-import {CardRow, Icon, Notice, Paged, Progress, fmt, plural} from "./components";
+import {CardRow, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
 import {askSell, askSellMany} from "./SellDialog";
 import {confirmDiscardMany} from "./discard";
@@ -18,67 +19,194 @@ const keyOf = (g) => `${g.card_id}|${g.rarity}`;
 const themes = new Map();
 const themeOf = (card) => themes.get(card.id) ?? themes.set(card.id, categorize(card)[0]).get(card.id);
 
-const EMPTY = {
-  all: "Votre collection est vide.",
-  doubles: "Aucune carte en plusieurs exemplaires.",
-  none: "Toutes vos cartes ont une image.",
-  gif: "Aucune carte de votre collection n'a d'image GIF.",
-};
+// Tranches de prix proposées pour « Vendues entre … » (WikiBidous, bornes incluses ; les prix
+// moyens sont arrondis à l'unité)
+const RANGES = [
+  {min: null, max: 5, label: "≤ 5 ₩"},
+  {min: 6, max: 10, label: "6–10 ₩"},
+  {min: 11, max: 25, label: "11–25 ₩"},
+  {min: 26, max: 50, label: "26–50 ₩"},
+  {min: 51, max: 100, label: "51–100 ₩"},
+  {min: 101, max: null, label: "> 100 ₩"},
+];
 
-// Choix de la vue sur la page Collection, avec le nombre de cartes de chacune une fois la
-// collection lue. null : la grille du site.
-export function ViewSeg({value, onChange}) {
+const Count = ({n}) => (n == null ? null : <span class="n">{fmt(n)}</span>);
+
+// Borne saisie : "" → null (pas de borne), entier positif ou nul, sinon undefined (saisie ignorée)
+const toPrice = (text) => {
+  if (!text.trim()) return null;
+  const n = Number(text);
+  return Number.isInteger(n) && n >= 0 ? n : undefined;
+};
+const asText = (n) => (n == null ? "" : String(n));
+
+// Champ d'une borne de prix : suit la valeur du filtre, sauf pendant la saisie
+function PriceInput({value, onValue, label, placeholder}) {
+  const [text, setText] = useState(asText(value));
+  const editing = useRef(false);
+  useEffect(() => {
+    if (!editing.current) setText(asText(value));
+  }, [value]);
+  return (
+    <input
+      type="number"
+      min="0"
+      step="1"
+      placeholder={placeholder}
+      aria-label={label}
+      value={text}
+      onInput={(e) => {
+        setText(e.currentTarget.value);
+        const n = toPrice(e.currentTarget.value);
+        if (n !== undefined) onValue(n);
+      }}
+      onFocus={() => (editing.current = true)}
+      onBlur={() => {
+        editing.current = false;
+        setText(asText(value));
+      }}
+    />
+  );
+}
+
+// Filtres de la liste, une ligne par dimension. active : faux tant que la liste n'est pas affichée
+// (aucun choix n'apparaît sélectionné) ; aside : élément placé au bout de la première ligne.
+// Les nombres (une fois la collection lue) tiennent compte des lignes du dessus : ceux des ventes
+// comptent parmi les cartes choisies dans « Cartes ».
+export function CollectionFilters({filter, onChange, active = true, aside}) {
   const s = useStore(cardsState);
   const {v} = useStore(priceVersion);
   const views = s.copies ? viewGroups(s.copies, v) : null;
+  const kinds = active ? filter.kinds : [];
+  const sale = active ? filter.sale : undefined;
+  const isRange = (r) => r.min === filter.min && r.max === filter.max;
+  const custom = !RANGES.some(isRange);
+  const saleCount = (f) => (views ? filterGroups(views, {kinds, anyRarity: filter.anyRarity, ...f}).length : null);
+  const toggle = (k) => onChange({kinds: kinds.includes(k) ? kinds.filter((x) => x !== k) : [...kinds, k]});
+
   return (
-    <div class="seg" role="group" aria-label="Afficher">
-      {[{id: null, label: "Grille du site"}, ...VIEWS].map((o) => (
-        <button key={o.id || "site"} class={value === o.id ? "on" : ""} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-          {o.label}
-          {o.id && views ? ` · ${fmt(groupsOf(views, o.id, s.anyRarity).length)}` : ""}
-        </button>
-      ))}
+    <div class="filters">
+      <div class="filter-row">
+        <span class="filter-k">Cartes</span>
+        <div class="chips" role="group" aria-label="Cartes (critères cumulables)">
+          <button class={`chip${active && !kinds.length ? " on" : ""}`} aria-pressed={active && !kinds.length} onClick={() => onChange({kinds: []})}>
+            Toutes <Count n={views?.all.length} />
+          </button>
+          {KINDS.map((k) => {
+            const on = kinds.includes(k.id);
+            return (
+              <button key={k.id} class={`chip${on ? " on" : ""}`} aria-pressed={on} onClick={() => toggle(k.id)}>
+                {on && <Icon name="check" size={12} />}
+                {k.label} <Count n={views?.[k.id].length} />
+              </button>
+            );
+          })}
+        </div>
+        {aside && <div class="filter-aside">{aside}</div>}
+      </div>
+      <div class="filter-row">
+        <span class="filter-k">Ventes</span>
+        <div class="seg" role="group" aria-label="Ventes">
+          <button class={sale === null ? "on" : ""} aria-pressed={sale === null} onClick={() => onChange({sale: null})}>
+            Tous les prix
+          </button>
+          <button class={sale === "never" ? "on" : ""} aria-pressed={sale === "never"} onClick={() => onChange({sale: "never"})}>
+            Jamais vendues <Count n={saleCount({sale: "never"})} />
+          </button>
+          <button class={sale === "range" ? "on" : ""} aria-pressed={sale === "range"} onClick={() => onChange({sale: "range"})}>
+            Vendues entre…
+          </button>
+        </div>
+        {sale === "never" && (
+          <select class="mini-select" aria-label="Portée" value={filter.anyRarity ? "any" : "own"} onChange={(e) => onChange({anyRarity: e.currentTarget.value === "any"})}>
+            <option value="any">dans aucune rareté</option>
+            <option value="own">dans la rareté de mon exemplaire</option>
+          </select>
+        )}
+      </div>
+      {sale === "range" && (
+        <div class="filter-row">
+          <span class="filter-k" aria-hidden="true" />
+          <div class={`chip price-range${custom ? " on" : ""}`} role="group" aria-label="Prix moyen de vente, bornes incluses">
+            <span>de</span>
+            <PriceInput value={filter.min} onValue={(min) => onChange({min})} label="Prix minimum, en WikiBidous" placeholder="min" />
+            <span>à</span>
+            <PriceInput value={filter.max} onValue={(max) => onChange({max})} label="Prix maximum, en WikiBidous" placeholder="max" />
+            <span>₩</span>
+          </div>
+          <div class="chips" role="group" aria-label="Tranches de prix">
+            {RANGES.map((r) => (
+              <button key={r.label} class={`chip${isRange(r) ? " on" : ""}`} aria-pressed={isRange(r)} onClick={() => onChange({min: r.min, max: r.max})}>
+                {r.label} <Count n={saleCount({sale: "range", min: r.min, max: r.max})} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export function CollectionCards({view, onOpen, mini = false}) {
+// filter : voir DEFAULT_FILTER (features/collection-view.js)
+export function CollectionCards({filter, onOpen, mini = false}) {
   const s = useStore(cardsState);
   const {v} = useStore(priceVersion);
-  const [theme, setTheme] = useState(null);
+  const [theme, setTheme] = useState("");
   const [rarities, setRarities] = useState([]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(""); // mot en cours de saisie, appliqué sans attendre
+  const [words, setWords] = useState([]); // mots-clés ajoutés : [{text, out}]
+  const [allWords, setAllWords] = useState(false); // mots inclus : tous (sinon au moins un)
   const [picked, setPicked] = useState(() => new Set()); // clés carte|rareté cochées
   const [running, setRunning] = useState(null); // {label, done, total} : chargement des prix ou défausse
   const [opening, setOpening] = useState(null); // carte en cours d'ouverture dans la fenêtre du site
   const abort = useRef(null);
-  const keepOne = view === "doubles";
+  const {kinds, sale, min, max, anyRarity} = filter;
+  const keepOne = kinds.includes("doubles");
+  const filterKey = `${kinds.join()}|${sale}|${min}|${max}|${anyRarity}`;
   // Collection relue à l'affichage (en cache quelques minutes, relue après un paquet ou une action)
   useEffect(() => {
     loadCards();
   }, []);
-  // La sélection est propre à chaque vue
-  useEffect(() => setPicked(new Set()), [view]);
+  // La sélection est propre à chaque filtre
+  useEffect(() => setPicked(new Set()), [filterKey]);
 
   const views = useMemo(() => viewGroups(s.copies, v), [s.copies, v]);
-  const base = groupsOf(views, view, s.anyRarity);
+  const base = useMemo(() => filterGroups(views, filter), [views, filterKey]);
   const owned = useMemo(() => copiesByCard(s.copies || []), [s.copies]);
 
-  // Filtres : texte et raretés, puis thème (les pastilles de thème suivent les autres filtres)
-  const q = query.trim().toLowerCase();
-  const matchesQuery = (g) => !q || `${g.card.wikipedia_title} ${g.card.category || ""}`.toLowerCase().includes(q);
-  const byQuery = useMemo(() => base.filter(matchesQuery), [base, q]);
+  // Affiner : texte et raretés, puis thème (la liste des thèmes suit les autres filtres)
+  const live = parseKeyword(query);
+  const sameWord = (a, b) => normText(a.text) === normText(b.text);
+  const active = live ? [...words.filter((w) => !sameWord(w, live)), live] : words;
+  const wordsKey = `${allWords}|${active.map((w) => `${w.out ? "-" : "+"}${normText(w.text)}`).join("|")}`;
+  const byQuery = useMemo(() => base.filter(matchKeywords(active, {all: allWords})), [base, wordsKey]);
+  const included = words.filter((w) => !w.out).length;
+  // Ajoute le mot saisi (out : l'exclure, quel que soit le « - » saisi)
+  const addWord = (out) => {
+    if (!live) return;
+    const word = out === undefined ? live : {...live, out};
+    setWords((ws) => [...ws.filter((w) => !sameWord(w, word)), word]);
+    setQuery("");
+  };
+  const removeWord = (word) => setWords((ws) => ws.filter((w) => w !== word));
+  const flipWord = (word) => setWords((ws) => ws.map((w) => (w === word ? {...w, out: !w.out} : w)));
   const filtered = useMemo(() => (rarities.length ? byQuery.filter((g) => rarities.includes(g.rarity)) : byQuery), [byQuery, rarities]);
-  const themeList = useMemo(() => [...new Set(filtered.map((g) => themeOf(g.card)))].sort(), [filtered]);
+  const themeCounts = useMemo(() => {
+    const m = new Map();
+    for (const g of filtered) m.set(themeOf(g.card), (m.get(themeOf(g.card)) || 0) + 1);
+    return [...m].sort((a, b) => a[0].localeCompare(b[0], "fr"));
+  }, [filtered]);
   // Même tableau tant que rien ne change : cocher une carte ne ramène pas la liste à sa première page
-  const shown = useMemo(() => (theme && themeList.includes(theme) ? filtered.filter((g) => themeOf(g.card) === theme) : filtered), [filtered, theme, themeList]);
+  const shown = useMemo(() => (theme && themeCounts.some(([t]) => t === theme) ? filtered.filter((g) => themeOf(g.card) === theme) : filtered), [filtered, theme, themeCounts]);
   const rarityCount = (r) => byQuery.filter((g) => g.rarity === r).length;
 
   const choosable = shown.filter((g) => freeCopy(g.rows));
   const chosen = choosable.filter((g) => picked.has(keyOf(g)));
-  const unchecked = view === "unsold" ? views.all.filter((g) => !hasFreshPrice(g.card_id)) : [];
+  // Filtre par prix : cartes des autres critères dont le prix n'est pas chargé ou plus récent
+  const candidates = useMemo(() => (sale ? filterGroups(views, {kinds}) : []), [views, filterKey]);
+  const unchecked = useMemo(() => candidates.filter((g) => !hasFreshPrice(g.card_id)), [candidates]);
   const uncheckedCards = new Set(unchecked.map((g) => g.card_id)).size;
+  const unknownCount = unchecked.filter((g) => !views.prices.get(g.card_id)).length;
   const busy = Boolean(running);
 
   const toggle = (g) =>
@@ -104,7 +232,7 @@ export function CollectionCards({view, onOpen, mini = false}) {
     }
   };
 
-  // Vue « Doublons » : un exemplaire de chaque carte est toujours gardé
+  // Filtre « Doublons » : un exemplaire de chaque carte est toujours gardé
   const withoutLast = (targets) => {
     if (!keepOne) return targets;
     const {groups, skipped} = keepOnePerCard(targets, s.copies || []);
@@ -143,14 +271,14 @@ export function CollectionCards({view, onOpen, mini = false}) {
   const sellOne = async (g) => {
     const copy = copyFor(g, {keepOne});
     if (!copy) return toast(keepOne ? "Vous gardez toujours un exemplaire de chaque carte." : LOCKED, {type: "error"});
-    const sale = await askSell({
+    const result = await askSell({
       card: g.card,
       userCardId: copy.id,
       rarity: g.rarity,
       badges: [g.count > 1 && {label: `×${g.count}`, type: "ok"}],
-      note: view === "unsold" ? "Cette carte n'a jamais été vendue : aucun prix de référence. L'exemplaire est mis en réserve pendant l'enchère." : undefined,
+      note: sale === "never" ? "Cette carte n'a jamais été vendue : aucun prix de référence. L'exemplaire est mis en réserve pendant l'enchère." : undefined,
     });
-    afterSell(copy.id, sale);
+    afterSell(copy.id, result);
   };
 
   const sellMany = async (selection) => {
@@ -174,53 +302,101 @@ export function CollectionCards({view, onOpen, mini = false}) {
   if (s.error) return <Notice type="error">{s.error}</Notice>;
   if (!s.copies) return <Progress label="Lecture de votre collection" done={s.progress} />;
 
+  const empty = !views.all.length
+    ? "Votre collection est vide."
+    : candidates.length && unknownCount === candidates.length
+      ? "Aucun prix chargé pour l'instant : chargez les prix pour filtrer vos cartes par vente."
+      : "Aucune carte ne correspond à ces filtres.";
+
   return (
     <div class="stack">
-      {view === "unsold" && (
-        <>
-          <p class="help">Aucune vente conclue sur le marché, d'après les prix chargés.</p>
-          <div class="chips">
-            <button class={`chip${s.anyRarity ? " on" : ""}`} onClick={() => cardsState.set({anyRarity: true})}>
-              Dans aucune rareté · {fmt(views.never.length)}
+      <div class="filter-row">
+        <span class="filter-k">Mots-clés</span>
+        <div class="kw-box">
+          {words.map((w) => (
+            <span key={normText(w.text)} class={`chip kw${w.out ? " out" : ""}`}>
+              <button type="button" class="kw-t" title={w.out ? "Exclu : cliquer pour l'inclure" : "Inclus : cliquer pour l'exclure"} onClick={() => flipWord(w)}>
+                <span class="kw-sign">{w.out ? "−" : "+"}</span>
+                {w.text}
+              </button>
+              <button type="button" class="kw-x" aria-label={`Retirer « ${w.text} »`} onClick={() => removeWord(w)}>
+                <Icon name="close" size={12} />
+              </button>
+            </span>
+          ))}
+          <input
+            type="search"
+            placeholder={words.length ? "Autre mot…" : "Un mot du titre ou de la description, puis Entrée (-mot pour l'exclure)"}
+            aria-label="Mot-clé du titre ou de la description"
+            value={query}
+            onInput={(e) => setQuery(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addWord();
+              } else if (e.key === "Backspace" && !query && words.length) {
+                removeWord(words[words.length - 1]);
+              }
+            }}
+          />
+        </div>
+        <button class="btn sm" disabled={!live} onClick={() => addWord(false)}>
+          <Icon name="plus" size={14} /> Inclure
+        </button>
+        <button class="btn sm" disabled={!live} onClick={() => addWord(true)}>
+          Exclure
+        </button>
+        {included > 1 && (
+          <div class="seg" role="group" aria-label="Mots inclus">
+            <button class={allWords ? "" : "on"} aria-pressed={!allWords} onClick={() => setAllWords(false)}>
+              Un des mots
             </button>
-            <button class={`chip${s.anyRarity ? "" : " on"}`} onClick={() => cardsState.set({anyRarity: false})}>
-              Dans sa rareté · {fmt(views.inRarity.length)}
+            <button class={allWords ? "on" : ""} aria-pressed={allWords} onClick={() => setAllWords(true)}>
+              Tous les mots
             </button>
           </div>
-          {uncheckedCards > 0 && !running && (
-            <div class="row">
-              <Notice type={views.unknown ? "warn" : "info"}>
-                {views.unknown
-                  ? `${plural(views.unknown, "carte n'a", "cartes n'ont")} encore aucun prix chargé : elles ne figurent pas dans la liste.`
-                  : "Certains prix ne sont plus récents : une carte a pu se vendre depuis."}
-              </Notice>
-              <button class="btn sm" onClick={loadMissing}>
-                Charger {plural(uncheckedCards, "prix", "prix")}
-              </button>
-            </div>
-          )}
-        </>
-      )}
-      {view === "doubles" && <p class="help">Cartes que vous possédez en plusieurs exemplaires, toutes raretés confondues. Vous en gardez toujours un : le dernier n'est jamais vendu ni défaussé.</p>}
-      <div class="row">
-        <div class="chips" style={{flex: 1}}>
-          {RARITIES.filter((r) => rarityCount(r) || rarities.includes(r)).map((r) => (
-            <button key={r} class={`chip${rarities.includes(r) ? " on" : ""}`} onClick={() => setRarities(rarities.includes(r) ? rarities.filter((x) => x !== r) : [...rarities, r])}>
-              {RARITY_LABEL[r]} · {fmt(rarityCount(r))}
-            </button>
-          ))}
-        </div>
-        <input type="search" placeholder="Titre ou description…" style={{maxWidth: "220px"}} value={query} onInput={(e) => setQuery(e.currentTarget.value)} />
+        )}
       </div>
-      {themeList.length > 1 && (
-        <div class="chips">
-          {themeList.map((t) => (
-            <button key={t} class={`chip${theme === t ? " on" : ""}`} onClick={() => setTheme(theme === t ? null : t)}>
-              {t}
+      <div class="filter-row">
+        <span class="filter-k">Affiner</span>
+        <div class="chips" role="group" aria-label="Raretés">
+          {RARITIES.filter((r) => rarityCount(r) || rarities.includes(r)).map((r) => (
+            <button
+              key={r}
+              class={`chip${rarities.includes(r) ? " on" : ""}`}
+              aria-pressed={rarities.includes(r)}
+              title={RARITY_LABEL[r]}
+              onClick={() => setRarities(rarities.includes(r) ? rarities.filter((x) => x !== r) : [...rarities, r])}
+            >
+              <Rarity r={r} /> <Count n={rarityCount(r)} />
             </button>
           ))}
         </div>
+        {themeCounts.length > 1 && (
+          <select class={`mini-select${theme ? " on" : ""}`} aria-label="Thème" value={theme} onChange={(e) => setTheme(e.currentTarget.value)}>
+            <option value="">Tous les thèmes</option>
+            {themeCounts.map(([t, n]) => (
+              <option key={t} value={t}>
+                {t} · {fmt(n)}
+              </option>
+            ))}
+          </select>
+        )}
+        <span class="filter-aside small muted">{plural(shown.length, "carte")}</span>
+      </div>
+      {uncheckedCards > 0 && !running && (
+        <div class="row">
+          <Notice type={unknownCount ? "warn" : "info"}>
+            {unknownCount
+              ? `${plural(unknownCount, "carte n'a", "cartes n'ont")} encore aucun prix chargé : ${unknownCount > 1 ? "elles ne figurent" : "elle ne figure"} pas dans la liste.`
+              : "Certains prix ne sont plus récents : une carte a pu se vendre depuis."}
+          </Notice>
+          <button class="btn sm" onClick={loadMissing}>
+            Charger {plural(uncheckedCards, "prix", "prix")}
+          </button>
+        </div>
       )}
+      {keepOne && <p class="help small">Doublons : vous gardez toujours un exemplaire de chaque carte, le dernier n'est jamais vendu ni défaussé.</p>}
       {choosable.length > 0 && (
         <div class="row">
           <label class="check">
@@ -234,7 +410,11 @@ export function CollectionCards({view, onOpen, mini = false}) {
             Tout ({fmt(choosable.length)})
           </label>
           <span class="small muted" style={{flex: 1}}>
-            {chosen.length ? plural(chosen.length, "carte cochée", "cartes cochées") : onOpen ? "Cochez des cartes ; un clic sur une carte l'ouvre sur le site" : "Aucune carte cochée"}
+            {chosen.length
+              ? plural(chosen.length, "carte cochée", "cartes cochées")
+              : onOpen
+                ? "Cliquez sur une carte pour la cocher, sur son nom pour l'ouvrir sur le site"
+                : "Cliquez sur une carte pour la cocher"}
           </span>
           <button class="btn sm" disabled={!chosen.length || busy} onClick={() => sellMany(chosen)}>
             <Icon name="market" size={14} /> Mettre aux enchères
@@ -258,37 +438,27 @@ export function CollectionCards({view, onOpen, mini = false}) {
         items={shown}
         pageSize={mini ? 24 : 30}
         class={mini ? "mini" : ""}
-        empty={
-          base.length
-            ? "Aucune carte ne correspond à ces filtres."
-            : view !== "unsold"
-              ? EMPTY[view]
-              : views.unknown === views.all.length
-                ? "Aucun prix chargé pour l'instant : chargez les prix pour trouver vos cartes jamais vendues."
-                : "Toutes vos cartes dont le prix est chargé se sont déjà vendues."
-        }
+        empty={empty}
         render={(g) => {
           const key = keyOf(g);
           const free = freeCopy(g.rows);
-          const soldIn = view === "unsold" ? RARITIES.filter((r) => priceOf(g.card_id, r) != null) : [];
-          const title = g.card.wikipedia_title;
+          const soldIn = sale === "never" ? RARITIES.filter((r) => priceOf(g.card_id, r) != null) : [];
           return (
             <CardRow
               key={key}
               card={g.card}
               rarity={g.rarity}
               theme={themeOf(g.card)}
-              price={view === "unsold" ? null : priceOf(g.card_id, g.rarity)}
+              price={sale === "never" ? null : priceOf(g.card_id, g.rarity)}
               selected={Boolean(free) && picked.has(key)}
-              wiki={!onOpen}
-              onClick={onOpen ? () => !opening && open(g) : free && !busy ? () => toggle(g) : undefined}
-              check={{checked: Boolean(free) && picked.has(key), disabled: !free || busy, label: free ? `Cocher ${title}` : LOCKED, onChange: () => toggle(g)}}
+              onClick={free && !busy ? () => toggle(g) : undefined}
+              onTitle={onOpen && (() => !opening && open(g))}
               badges={[
                 opening === key && {label: "Ouverture…", type: "accent"},
                 g.count > 1 && {label: `×${g.count}`, type: "ok"},
                 keepOne && owned.get(g.card_id) > g.count && {label: `${owned.get(g.card_id)} au total`},
                 soldIn.length > 0 && {label: `vendue en ${soldIn.join(", ")}`},
-                view === "none" && g.card.hide_image && {label: "masquée par le site", type: "warn"},
+                kinds.includes("none") && g.card.hide_image && {label: "masquée par le site", type: "warn"},
                 free?.is_shiny && {label: "shiny", type: "warn", icon: "shine"},
                 !free && {label: "favori", type: "warn", icon: "star"},
               ]}

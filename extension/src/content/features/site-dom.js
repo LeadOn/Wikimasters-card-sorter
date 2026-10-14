@@ -503,9 +503,9 @@ function sectionOf(el, landmark) {
   return block?.parentElement ? block : null;
 }
 
-// Collection : barre sous la recherche et les filtres de rareté. Avec une vue de la barre (toutes,
-// doublons, sans image, GIF, jamais vendues), sa liste (toute la collection) remplace la grille du
-// site (une page de 50 cartes), masquée ; quitter la page revient à la grille.
+// Collection : barre sous la recherche et les filtres de rareté. Dès qu'un filtre de la barre est
+// choisi (doublons, sans image, GIF, prix de vente…), sa liste (toute la collection) remplace la
+// grille du site (une page de 50 cartes), masquée ; quitter la page revient à la grille.
 function ensureCollectionBar() {
   const title = currentPath() === "/collection" && isOn("collectionBar") ? document.querySelector(SEL.pageTitle) : null;
   const search = title && document.querySelector(SEL.collectionSearch);
@@ -516,7 +516,7 @@ function ensureCollectionBar() {
     setCollectionView(null);
   }
   // Grille du site : le bloc voisin de la barre qui contient les cartes, jamais celui du titre ou de la recherche
-  const tile = filters && collectionView.get().view ? document.querySelector(`main ${SEL.tile}`) : null;
+  const tile = filters && collectionView.get().open ? document.querySelector(`main ${SEL.tile}`) : null;
   const grid = tile && sectionOf(tile, islands.get("collection").host);
   const hidden = grid && !grid.contains(title) && !grid.contains(search) ? grid : null;
   for (const el of document.querySelectorAll("[data-wmt-hidden]")) if (el !== hidden) delete el.dataset.wmtHidden;
