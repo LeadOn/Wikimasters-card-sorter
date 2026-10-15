@@ -18,7 +18,7 @@ Ce guide décrit tout ce que fait l'extension, page par page puis onglet par ong
 ## En deux minutes
 
 1. **Installez l'extension** (voir le [README](../README.md#installation)) puis rechargez wiki-masters.com. Vous devez être connecté au site : l'extension utilise votre session, vous n'avez rien à saisir.
-2. **Ouvrez la Toolbox** par l'entrée **Toolbox** du menu du site, ou par l'icône de l'extension dans la barre du navigateur.
+2. **Ouvrez la Toolbox** par l'entrée **Toolbox** du menu du site (sur mobile, dans le menu *Plus*), ou par l'icône de l'extension dans la barre du navigateur.
 3. **Triez votre collection** : onglet *Tri* → *Aperçu du tri* → *Appliquer*. Chaque carte reçoit une étiquette de thème (Sports, Histoire, Sciences…), et les cartes en plusieurs exemplaires l'étiquette `Doublon`. Vos étiquettes personnelles ne sont jamais touchées.
 4. **Décrivez ce que vous collectionnez** dans l'onglet *Profils*, et importez les profils de vos amis : la Toolbox saura quelles cartes leur proposer, et lesquelles leur demander.
 
@@ -120,6 +120,21 @@ Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, c
   Une fois l'action faite, la ligne l'indique (« En vente », « Défaussée »). Si le tri automatique des cartes tirées est en cours, la défausse attend qu'il ait fini.
 - **Ouvrir le prochain**, en bas du récapitulatif quand il vous reste des paquets : passe l'écran de fin (*Continuer*) et ouvre le paquet suivant avec le bouton *Ouvrir* du site, animation comprise. Si le site demande une vérification anti-robot, sa fenêtre de vérification s'affiche comme d'habitude.
 - **Taux de drop** par rareté sur l'écran d'ouverture : d'après vos tirages comptés par l'extension, ou d'après toute votre collection tant que moins de 50 cartes ont été tirées.
+
+### Page Stonks
+
+L'entrée **Stonks** du menu du site (juste après *Marché* ; sur mobile, dans le menu *Plus* de la barre du bas) ouvre l'historique de vos achats et ventes aux enchères, à la place du contenu de la page (l'adresse se termine par `#stonks` : *Retour* ou un autre lien du menu la referme, et un rechargement la rouvre). Cette page ne fait que lire : aucune action d'achat ou de vente.
+
+- **Tout / Achat-revente** : *Achat-revente* n'affiche que les cartes achetées au marché puis revendues, pour isoler vos vrais allers-retours. Chaque revente y apparaît à la date de la vente, avec sa date et son prix d'achat, son prix de vente, sa plus-value et sa durée de détention ; les indicateurs deviennent plus-value, prix de vente, prix d'achat des cartes revendues, part des reventes gagnantes et détention moyenne. Les ventes de cartes tirées, les achats pas encore revendus et la plus-value latente sont écartés. Ce choix, comme la période et la mesure du graphique, est gardé d'une visite à l'autre.
+- **Jour / Semaine / Mois** : la période affichée, avec ses flèches pour passer à la précédente ou à la suivante. Une semaine va du lundi au dimanche ; tout est en heure locale.
+- **Indicateurs de la période** : *plus-value réalisée* (et son rendement sur le prix d'achat des cartes revendues), *ventes* (dont les cartes que vous n'aviez pas achetées : paquets, échanges), *achats*, *flux net* (ventes moins achats) et part des *reventes gagnantes*, avec la durée moyenne de détention.
+- **Graphique** : la *plus-value* réalisée, ou le *flux net*, de chaque jour (30 derniers), semaine (16) ou mois (12), au-dessus de zéro en vert, en dessous en rouge ; un point sur la ligne de zéro marque une période avec des opérations mais à zéro. Le survol donne le détail ; un clic sur une barre affiche cette période.
+- **Opérations** de la période, filtrables (achats, ventes) et triables (récentes, plus-value) : prix, prix d'achat, plus-value en ₩ et en %, durée de détention. Un achat déjà revendu indique la plus-value de sa revente ; sinon « en stock ».
+- **Cartes achetées en stock** : vos achats pas encore revendus et toujours dans votre collection, avec le prix du marché actuel et la plus-value latente (prix fiables seulement).
+
+**Calcul de la plus-value.** Chaque vente est rapprochée du plus ancien achat encore en stock de la même carte, dans la même rareté et la même version (shiny ou non), acheté avant elle (« premier entré, premier sorti »). La plus-value est le prix de vente moins ce prix d'achat. Une vente sans achat correspondant (carte tirée d'un paquet, reçue par échange) n'entre pas dans la plus-value : elle compte dans les ventes et le flux net. Les montants sont ceux des enchères conclues (`final_price`) : le site ne prend pas de commission, le vendeur reçoit le prix final.
+
+*Actualiser* relit l'historique ; il est aussi relu à l'ouverture de la page quand il date de plus de 5 minutes.
 
 ### Page Échanges
 
@@ -293,6 +308,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 | Paquets | Proposer de trier après un paquet | activée |
 | Échanges | Valeur des échanges | activée |
 | Marché | Alerte de fin d'enchère | activée |
+| Marché | Page Stonks | activée |
 | Confort | Son de notification | désactivée |
 
 **Trier automatiquement les cartes tirées** : dès l'ouverture d'un paquet, les nouveaux exemplaires reçoivent leur thème, leurs étiquettes « Pour : … » et `Doublon`. Seuls les exemplaires qui viennent d'arriver sont touchés, rien n'est supprimé.

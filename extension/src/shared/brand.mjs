@@ -30,6 +30,11 @@ export const markSvg = ({size = 20, ...colors} = {}) =>
 export const markOutlineSvg = (size = 24) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="11" height="18" rx="1.5"/><path d="M16 6.5h2.5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H16z" fill="currentColor"/></svg>`;
 
+// Entrée « Stonks » du menu du site, dessinée comme les icônes du menu (grille de 24, trait de 2) :
+// une courbe qui monte, sur une ligne de base
+export const stonksOutlineSvg = (size = 24) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M4 15.5l5-5 3.5 3.5L19 7.5"/><path d="M14.5 7.5H19V12"/></svg>`;
+
 const F = 'fill="currentColor" stroke="none"';
 
 export const ICONS = {

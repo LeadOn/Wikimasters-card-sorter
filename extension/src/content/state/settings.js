@@ -21,6 +21,7 @@ export const FEATURES = [
   {key: "sortAfterPack", group: "Paquets", label: "Proposer de trier après un paquet", help: "Sans tri automatique : bouton pour classer les nouvelles cartes depuis le récapitulatif."},
   {key: "tradeValues", group: "Échanges", label: "Valeur des échanges", help: "Prix du marché de chaque carte et total de chaque côté des échanges en cours."},
   {key: "bidAlerts", group: "Marché", label: "Alerte de fin d'enchère", help: "Prévient quand une enchère où vous êtes dépassé se termine bientôt."},
+  {key: "stonks", group: "Marché", label: "Page Stonks", help: "Entrée « Stonks » dans le menu du site : vos achats et ventes au marché par jour, semaine ou mois, et la plus-value de l'achat-revente. Historique seulement."},
   {key: "notificationSound", group: "Confort", label: "Son de notification", help: "Joue un son discret quand une nouvelle notification arrive."},
 ];
 

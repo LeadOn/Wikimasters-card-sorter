@@ -52,6 +52,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `POST /api/marketplace/{id}/bid {amount}` | erreurs : `bid_too_low` (+ `min`), `insufficient_balance`, `human_verification_required` |
 | `GET /api/marketplace/cards/{card_id}/sales?scope=summary` | `{summary: {RARETÉ: {average, count, latest}}, isPro}` — moyenne **hors ventes shiny** (vérifié le 14/10/2026). **~12 s par carte**, souvent en 500 : dernier recours seulement |
 | Supabase `auctions?status=eq.settled_sold&card_id=in.(…)&select=id,card_id,snapshot_rarity,final_price,settled_at,is_shiny&order=card_id,settled_at.desc,id` | ventes conclues, lisibles directement, **par lots de cartes** (pagination 1 000 lignes, `id` en dernier pour un ordre stable). Autres colonnes utiles : `seller_id`, `winner_id`, `base_amount` (mise de départ). Le résumé du site = par rareté, moyenne arrondie des 200 dernières ventes **non shiny**, nombre, dernière vente ; `core/prices.js` → `summarizeSales` le reproduit et garde en plus les 30 derniers prix (médiane, premières ventes ignorées) et un résumé à part des ventes shiny. Lots pondérés par rareté (`priceBatches`) : un lot de cartes rares trop gros dépasse le délai du serveur (`57014`). |
+| Supabase `auctions?select=id,card_id,snapshot_rarity,final_price,settled_at,is_shiny,seller_id,winner_id&status=eq.settled_sold&seller_id=eq.{moi}&order=settled_at.desc,id.asc` (puis `winner_id=eq.{moi}`) | mes ventes, puis mes achats conclus : historique de la page Stonks (pagination 1 000 lignes, dédoublonnée par `id` ; ~4 s chacune). Pas de commission sur les ventes : la notification `marketplace_auction_sold` annonce « vendue pour N wikibidous » avec N = `final_price` (vérifié le 15/10/2026). Statuts : `active`, `settled_sold`, `settled_unsold` |
 | `GET /api/marketplace/cards/{card_id}/sales` | historique complet (`pro_required` pour les non-Pro) |
 | `GET /api/wikibidous` | `{balance}` |
 
@@ -76,7 +77,12 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 - Une carte affichée : `div` dont la classe contient `glow-<rareté>` (`glow-l`, `glow-ur`, …) et
   `rounded-2xl`, avec le titre dans un `h3`. Pas d'identifiant dans le DOM : la carte est retrouvée
   par son titre dans les réponses observées.
-- Menu : `nav a[href="/collection"]`, `/trades`, `/marketplace`, `/pulls`, `/global-collection`, …
+- Menu : `nav a[href="/collection"]`, `/trades`, `/marketplace`, `/pulls`, `/global-collection`, … L'entrée active
+  porte la classe `bg-[var(--color-accent)]/10 text-[var(--color-accent)]`. Le contenu des pages défile dans `<main>`
+  (pas dans la fenêtre) ; une page met son titre à 24 px du bord et 44 px du haut. Sur mobile, la barre du bas
+  (`nav` : Paquets, Collection, Échanges, Marché) a un bouton *Plus* qui rend, dans le même `nav`, les autres
+  entrées (Profil… Classement, Paramètres) ; ce menu se ferme sur un appui en dehors.
+- Solde de WikiBidous : pastille fixée en haut à droite (38 px de haut).
 - Solde de WikiBidous affiché : le site le relit quand `window` reçoit l'événement
   `wikimasters:wikibidous-balance-refresh` (`window.dispatchEvent(new CustomEvent(…))`, ce qu'il fait
   lui-même après une défausse). L'extension l'émet après chaque défausse.

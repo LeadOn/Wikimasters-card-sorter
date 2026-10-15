@@ -1,6 +1,7 @@
-// Intégration dans les pages du site : entrée « Toolbox » dans le menu, badges sur les cartes,
-// bouton « Tout ouvrir » sur la page Paquets, images de remplacement, et blocs de la Toolbox
-// (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur.
+// Intégration dans les pages du site : entrées « Toolbox » et « Stonks » dans le menu, badges sur les
+// cartes, bouton « Tout ouvrir » sur la page Paquets, images de remplacement, blocs de la Toolbox
+// (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur, et la page
+// Stonks à la place du contenu de la page.
 // Tous les sélecteurs du site sont ici : si le site change, c'est le seul fichier à adapter.
 import {emit} from "../lib/bus";
 import {sleep} from "../lib/http";
@@ -14,6 +15,7 @@ import {recapState, openAllState, markRevealed, dismissRecap, pullStats, collect
 import {auctionById, auctionVersion, nextBid, msLeft} from "./market";
 import {resolveCard} from "./card-lookup";
 import {collectionView, setCollectionView} from "./collection-view";
+import {stonksPage, isStonksOpen, openStonks, closeStonks} from "./stonks";
 import {mountPackRecap} from "../ui/PackRecap";
 import {mountDropRates} from "../ui/DropRates";
 import {mountIsland} from "../ui/islands/mount";
@@ -21,15 +23,20 @@ import {CollectionBar} from "../ui/islands/CollectionBar";
 import {CardInsight} from "../ui/islands/CardInsight";
 import {AuctionInsight} from "../ui/islands/AuctionInsight";
 import {FriendTrades} from "../ui/islands/FriendTrades";
+import {StonksPage} from "../ui/islands/StonksPage";
 import {readSession} from "../lib/session";
 import {categorize, THEME_COLORS} from "../../../../core";
-import {iconSvg, markSvg, markOutlineSvg} from "../../shared/brand.mjs";
+import {iconSvg, markSvg, markOutlineSvg, stonksOutlineSvg} from "../../shared/brand.mjs";
 import fontsCss from "../../shared/fonts.css";
 import siteCss from "../ui/site.css";
 
 const SEL = {
   nav: "nav",
-  navLink: 'a[href="/collection"]',
+  // Lien présent seulement dans les menus qui listent toutes les pages (pas dans la barre du bas)
+  fullNavLink: 'a[href="/leaderboard"]',
+  marketLink: 'a[href="/marketplace"]',
+  siteLink: 'a[href^="/"]',
+  main: "main",
   tile: 'div[class*="glow-"][class*="rounded-2xl"]',
   // Exemplaire shiny (rareté L seulement) : « glow-shiny shiny-card » à la place de « glow-l »
   shinyTile: "shiny-card",
@@ -87,42 +94,126 @@ function svgElement(markup) {
   return tpl.content.firstElementChild;
 }
 
-// --- Entrée « Toolbox » dans le menu latéral
-function ensureNavEntry() {
-  const navs = [...document.querySelectorAll(SEL.nav)].filter((n) => n.querySelector(SEL.navLink));
-  if (!navs.length) return false;
-  // Le menu le plus fourni (le menu latéral, pas la barre du bas sur mobile)
-  const nav = navs.sort((a, b) => b.querySelectorAll("a").length - a.querySelectorAll("a").length)[0];
-  if (nav.querySelector(".wmt-nav-link")) return true;
-  // Modèle : une entrée du menu (icône + libellé) qui n'est pas la page active ; pas le logo
-  const items = [...nav.querySelectorAll("a[href^='/']")].filter((a) => a.querySelector("svg") && a.textContent.trim().length < 30);
-  const inactive = items.filter((a) => a.getAttribute("aria-current") == null && !/accent/.test(a.className));
-  const model = inactive.find((a) => a.getAttribute("href") === "/leaderboard") || inactive[inactive.length - 1];
-  if (!model) return false;
+// --- Entrées « Toolbox » et « Stonks » dans le menu latéral
+const isActiveLink = (a) => a.getAttribute("aria-current") != null || /accent/.test(a.className);
+
+// Copie d'une entrée du menu (model : icône + libellé), avec notre icône et notre libellé
+function navEntry(model, {cls, href, label, icon, onClick}) {
   const link = model.cloneNode(true);
-  link.classList.add("wmt-nav-link");
+  link.classList.add("wmt-nav-link", cls);
   link.removeAttribute("aria-current");
-  link.setAttribute("href", "#toolbox");
-  // Icône : la marque au trait, à la taille des icônes du menu (classes du modèle conservées)
+  link.setAttribute("href", href);
+  // Icône à la taille des icônes du menu (classes du modèle conservées)
   const svg = link.querySelector("svg");
   if (svg) {
-    const icon = svgElement(markOutlineSvg());
-    if (svg.getAttribute("class")) icon.setAttribute("class", svg.getAttribute("class"));
-    svg.replaceWith(icon);
+    const el = svgElement(icon);
+    if (svg.getAttribute("class")) el.setAttribute("class", svg.getAttribute("class"));
+    svg.replaceWith(el);
   }
   // Libellé : premier nœud texte non vide remplacé, les autres vidés (pastilles, compteurs)
   const walker = document.createTreeWalker(link, NodeFilter.SHOW_TEXT);
   const texts = [];
   while (walker.nextNode()) if (walker.currentNode.nodeValue.trim()) texts.push(walker.currentNode);
-  if (texts.length) texts.forEach((t, i) => (t.nodeValue = i ? "" : "Toolbox"));
-  else link.append("Toolbox");
+  if (texts.length) texts.forEach((t, i) => (t.nodeValue = i ? "" : label));
+  else link.append(label);
   link.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    emit("open-panel", {});
+    onClick();
   });
-  model.parentElement.insertBefore(link, model.nextSibling);
+  return link;
+}
+
+// Menus qui listent toutes les pages (lien vers le classement) : le menu latéral et, sur mobile, le
+// menu « Plus » de la barre du bas, rendu seulement quand il est ouvert
+function ensureNavEntry() {
+  const navs = [...document.querySelectorAll(SEL.nav)].filter((n) => n.querySelector(SEL.fullNavLink));
+  if (!navs.length) return false;
+  // Le menu latéral est le plus fourni ; les autres sont des menus qui se referment
+  const side = [...navs].sort((a, b) => b.querySelectorAll("a").length - a.querySelectorAll("a").length)[0];
+  for (const [nav] of swaps) if (!nav.isConnected) swaps.delete(nav);
+  for (const nav of navs) addNavEntries(nav, nav !== side);
   return true;
+}
+
+// Le menu « Plus » du site se referme sur un appui en dehors de lui (nos entrées n'ont pas ses gestionnaires)
+function closeSiteMenu() {
+  for (const type of ["pointerdown", "mousedown"]) document.body.dispatchEvent(new MouseEvent(type, {bubbles: true}));
+}
+
+function addNavEntries(nav, popup) {
+  // Modèle : une entrée du menu (icône + libellé) qui n'est pas la page active ; pas le logo
+  const items = [...nav.querySelectorAll("a[href^='/']")].filter((a) => a.querySelector("svg") && a.textContent.trim().length < 30);
+  const inactive = items.filter((a) => !isActiveLink(a));
+  const model = inactive.find((a) => a.matches(SEL.fullNavLink)) || inactive[inactive.length - 1];
+  if (!model) return;
+  const then = (action) => () => {
+    action();
+    if (popup) closeSiteMenu();
+  };
+  if (!nav.querySelector(".wmt-nav-toolbox")) {
+    const link = navEntry(model, {cls: "wmt-nav-toolbox", href: "#toolbox", label: "Toolbox", icon: markOutlineSvg(), onClick: then(() => emit("open-panel", {}))});
+    model.parentElement.insertBefore(link, model.nextSibling);
+  }
+  // « Stonks » juste après le Marché quand il est dans le même bloc que le modèle (pas dans la barre
+  // du bas, sur mobile), sinon après « Toolbox »
+  let stonks = nav.querySelector(".wmt-nav-stonks");
+  if (isOn("stonks") && !stonks) {
+    const market = nav.querySelector(SEL.marketLink);
+    const anchor = market?.parentElement === model.parentElement ? market : nav.querySelector(".wmt-nav-toolbox");
+    stonks = navEntry(model, {cls: "wmt-nav-stonks", href: "#stonks", label: "Stonks", icon: stonksOutlineSvg(), onClick: then(openStonks)});
+    anchor.parentElement.insertBefore(stonks, anchor.nextSibling);
+  } else if (!isOn("stonks") && stonks) {
+    stonks.remove();
+    stonks = null;
+  }
+  // Le menu « Plus » garde son apparence : l'entrée active est celle de la barre du bas, d'un autre style
+  if (!popup) markStonksNav(nav, stonks);
+}
+
+// Page Stonks ouverte : son entrée prend l'apparence de l'entrée active du site, et celle-ci
+// l'apparence de notre entrée au repos. À la fermeture sans changer de page, l'entrée du site reprend
+// la sienne ; après un changement de page, le site a déjà remis ses entrées à jour lui-même.
+const swaps = new Map(); // menu → {site, siteClass, siteCurrent, link, linkClass, path}
+function markStonksNav(nav, link) {
+  const open = Boolean(link) && isOn("stonks") && isStonksOpen();
+  const swapped = swaps.get(nav);
+  if (swapped && (!open || swapped.link !== link)) {
+    const {site, siteClass, siteCurrent, path} = swapped;
+    if (location.pathname === path && site.isConnected) {
+      site.className = siteClass;
+      if (siteCurrent != null) site.setAttribute("aria-current", siteCurrent);
+    }
+    swapped.link.className = swapped.linkClass;
+    swapped.link.removeAttribute("aria-current");
+    swaps.delete(nav);
+  }
+  if (!open || swaps.has(nav)) return;
+  const active = [...nav.querySelectorAll("a[href^='/']")].find(isActiveLink);
+  if (!active) return;
+  swaps.set(nav, {site: active, siteClass: active.className, siteCurrent: active.getAttribute("aria-current"), link, linkClass: link.className, path: location.pathname});
+  active.className = link.className.replace(/\s*\bwmt-\S+/g, "").trim();
+  active.removeAttribute("aria-current");
+  link.className = `${swaps.get(nav).siteClass} wmt-nav-link wmt-nav-stonks`;
+  link.setAttribute("aria-current", "page");
+}
+
+// Page Stonks : à la place du contenu de la page en cours. Les blocs de <main> sont masqués (repère
+// data-wmt-covered), et rendus à la fermeture.
+function ensureStonksPage() {
+  const main = isOn("stonks") && isStonksOpen() ? document.querySelector(SEL.main) : null;
+  if (main) {
+    // À l'ouverture, la page commence en haut (le contenu des pages du site défile dans <main>)
+    const opening = !islands.get("stonks")?.host.isConnected;
+    showIsland("stonks", StonksPage, {}, appendTo(main));
+    if (opening) {
+      main.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }
+  } else hideIsland("stonks");
+  const host = main && islands.get("stonks").host;
+  for (const el of document.querySelectorAll("[data-wmt-covered]")) if (!main || el.parentElement !== main) delete el.dataset.wmtCovered;
+  if (main) for (const child of main.children) if (child !== host && child.dataset.wmtCovered == null) child.dataset.wmtCovered = "";
 }
 
 // --- Badges sur les cartes
@@ -646,6 +737,7 @@ function run() {
   attempt("fiche d'une carte", ensureCardInsight);
   attempt("analyse d'enchère", ensureAuctionInsight);
   attempt("échanges sur un profil", ensureFriendTrades);
+  attempt("page Stonks", ensureStonksPage);
   for (const tile of document.querySelectorAll(SEL.tile)) attempt("badges des cartes", () => decorateTile(tile, version));
   forgetDetached();
 }
@@ -684,6 +776,17 @@ export function startSiteDom() {
   pullStats.subscribe(schedule);
   collectionRarity.subscribe(schedule);
   collectionView.subscribe(schedule);
+  stonksPage.subscribe(schedule);
+  // Page Stonks ouverte : un lien du site (menu, logo) la ferme, même vers la page en cours
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!isStonksOpen() || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = e.target.closest?.(SEL.siteLink);
+      if (link && !link.classList.contains("wmt-nav-link")) closeStonks();
+    },
+    true,
+  );
   // Ignore nos propres ajouts (badges, images) pour ne pas boucler
   const ours = (n) => n.nodeType === 1 && /\bwmt-/.test(n.className || "");
   new MutationObserver((mutations) => {

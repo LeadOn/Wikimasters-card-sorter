@@ -94,6 +94,7 @@ Remplacent les règles codées en dur pour chaque ami.
 | P4 | Classement de mes cartes les plus chères, filtrable par tag | P2 |
 | P5 | **Mes doublons** : liste des exemplaires en trop triés par valeur (un exemplaire est toujours conservé), mise en vente ou défausse (1 WikiBidou) en un clic avec confirmation | P2 |
 | P6 | **Mes enchères** : enchères en cours, temps restant, surenchère en un clic avec confirmation, alerte quand une enchère se termine bientôt | P2 |
+| P7 | **Stonks** : page du menu du site, historique de mes achats et ventes aux enchères par jour, semaine ou mois ; plus-value de l'achat-revente, flux net, cartes achetées encore en stock ; vue « achat-revente » limitée aux cartes achetées puis revendues. Historique seulement, aucune action | P2 |
 
 ### 3.6 Paquets
 
@@ -170,6 +171,7 @@ Toutes les fonctionnalités des sections 3.1 à 3.9 sont implémentées. Écarts
 | P1-P2 | Prix calculés à partir des ventes conclues (table `auctions`), lues par lots : toute une collection (~7 600 cartes) en ~5 min, au lieu de ~12 s par carte avec la route du site, gardée en dernier recours. Médiane plutôt que moyenne : sur 75 000 ventes (600 cartes, octobre 2026), elle prédit mieux la vente suivante (écart typique ×1,56 contre ×1,72, 1 cas sur 10 au-delà de ×4,1 contre ×5,7). Le site exclut les ventes shiny de sa moyenne : la Toolbox aussi, avec un prix shiny à part. Remplacer un prix peu fiable par celui de la rareté a été écarté : il prédit plus mal, la carte comptant bien plus que sa rareté. |
 | P4 | Classement filtrable par thème calculé (lire les étiquettes de 7 000 cartes à chaque affichage serait trop lent). |
 | P6 | Alerte par message et son ; vérification toutes les 60 s (20 s dans les 5 dernières minutes) tant qu'une enchère est en cours et l'onglet visible. |
+| P7 | Ventes rapprochées des achats « premier entré, premier sorti », par carte, rareté et version shiny (un exemplaire n'a pas d'identifiant propre : `user_cards` regroupe les exemplaires par `count`). Une vente sans achat correspondant compte dans les ventes et le flux net, pas dans la plus-value. Page ouverte par `#stonks` sur la page en cours, faute de route sur le site. |
 | E3 | Valeur des échanges : encart flottant sur la page Échanges + détail dans l'onglet Échanges (le rendu des échanges du site varie trop pour y greffer des badges). |
 | F2 | Le catalogue compte ~2,8 millions de cartes : une famille intelligente part d'une recherche du site (10 pages de 50 cartes au plus), filtrée ensuite par mots-clés, exclusions, thèmes et raretés. |
 | C2 | Badge « ✓ » (possédée) partout hors collection, « Nouvelle » sur le marché et les profils ; rien sur la collection globale, qui l'affiche déjà. |

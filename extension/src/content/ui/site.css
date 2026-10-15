@@ -145,8 +145,8 @@
 }
 [data-wmt-card] > .wmt-tile-badges { top: calc(var(--wmt-frame) + 5px); right: calc(var(--wmt-frame) + 5px); }
 [data-wmt-card] > .wmt-tile-badges.wmt-below-controls { top: calc(var(--wmt-frame) + 36px); }
-/* Grille de la collection masquée pendant le filtre « Sans image » / « GIF » de la barre Toolbox */
-[data-wmt-hidden] { display: none !important; }
+/* Grille de la collection masquée pendant un filtre de la barre Toolbox ; contenu de la page sous la page Stonks */
+[data-wmt-hidden], [data-wmt-covered] { display: none !important; }
 .wmt-open-all {
   display: inline-flex;
   align-items: center;

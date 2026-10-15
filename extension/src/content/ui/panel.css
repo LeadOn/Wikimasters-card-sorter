@@ -578,6 +578,87 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
   .kw-box { flex-basis: 100%; max-width: none; }
 }
 
+/* --- Page « Stonks » (affichée dans la page du site, à la place de son contenu) */
+.eyebrow { color: var(--faint); font: 500 10.5px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.stonks {
+  /* Barres du graphique : gain / perte, validées contre la surface (daltonisme, contraste) ; le texte garde --ok / --danger */
+  --up: #42a877;
+  --down: #c43f38;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Marges des pages du site (titre à 24 px du bord, 44 px du haut) : la pastille du solde, fixée en
+     haut à droite, ne recouvre pas les boutons */
+  padding: 44px 24px 48px;
+  color: var(--fg);
+  text-align: left;
+  animation: rise 0.2s ease-out;
+}
+.stonks.refreshing .box { opacity: 0.6; transition: opacity 0.2s; }
+.stonks-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.stonks-head h1 { font-size: 26px; font-weight: 650; line-height: 1.15; letter-spacing: -0.02em; }
+.stonks-units button { font-size: 12.5px; padding: 4px 12px; }
+.stonks-lead { color: var(--muted); max-width: 80ch; }
+.stonks-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.stonks-period { gap: 12px; }
+.stonks-period h2 { font-size: 19px; font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.icon-btn.flip .i { transform: scaleX(-1); }
+.stonks-stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.stonks-stats .v { font-variant-numeric: normal; }
+.stat-sub { margin-top: 4px; color: var(--faint); font-size: 12px; line-height: 1.4; }
+.delta.up { color: var(--ok); }
+.delta.down { color: var(--danger); }
+.stonks-chart-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.stonks-chart-head .eyebrow { margin-bottom: 2px; }
+/* Graphique : axe à gauche (gouttière), une colonne cliquable par période */
+.pnl { padding-left: 52px; }
+.pnl-plot { position: relative; height: 190px; }
+.pnl-empty { position: absolute; left: 0; right: 0; top: 34%; text-align: center; color: var(--faint); font-size: 12.5px; pointer-events: none; }
+.pnl-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+.pnl-grid.zero { border-top-color: var(--line-3); }
+.pnl-grid > span { position: absolute; right: calc(100% + 8px); top: -7px; color: var(--faint); font: 500 10.5px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pnl-cols { position: absolute; inset: 0; display: grid; gap: 2px; }
+.pnl-col { all: unset; position: relative; cursor: pointer; border-radius: 4px; }
+.pnl-col:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+.pnl-col.on { background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 -2px 0 var(--accent); }
+.pnl-col:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pnl-bar { position: absolute; left: 50%; transform: translateX(-50%); width: min(24px, 70%); min-height: 2px; }
+.pnl-bar.up { background: var(--up); border-radius: 4px 4px 0 0; }
+.pnl-bar.down { background: var(--down); border-radius: 0 0 4px 4px; }
+.pnl-col:hover .pnl-bar, .pnl-col.on .pnl-bar { filter: brightness(1.15); }
+/* Période avec des opérations mais sans revente */
+.pnl-mark { position: absolute; left: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--muted); box-shadow: 0 0 0 2px var(--surface); }
+.pnl-x { display: grid; gap: 2px; margin-top: 6px; color: var(--faint); font: 500 10.5px/1.2 var(--mono); }
+.pnl-x > span { text-align: center; white-space: nowrap; overflow: visible; }
+.pnl-x > span.on { color: var(--fg); }
+.pnl-tip { position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%); z-index: 2; display: flex; flex-direction: column; gap: 2px; min-width: 150px; padding: 8px 10px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line-2); box-shadow: var(--shadow); pointer-events: none; white-space: nowrap; }
+.pnl-tip.left { transform: translateX(-12px); }
+.pnl-tip.right { transform: translateX(calc(-100% + 12px)); }
+.pnl-tip-v { font-size: 15px; font-weight: 650; }
+.pnl-tip-k { color: var(--muted); font-size: 12px; }
+/* Tableaux d'opérations */
+.table-scroll { overflow-x: auto; margin: 0 -4px; }
+table.list.ops td { padding: 6px 8px; }
+table.list.ops .num { font-size: 12.5px; }
+.stack-num { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.op-card { display: flex; align-items: center; gap: 10px; min-width: 220px; max-width: 420px; }
+.op-thumb { width: 30px; height: 40px; border-radius: 3px; object-fit: cover; background: var(--surface-3); outline: 1.5px solid var(--rc, var(--line-2)); outline-offset: 1.5px; margin: 1px; flex: none; }
+.op-thumb.wide { object-fit: contain; }
+.op-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.op-title > a, .op-title > span:first-child { color: var(--fg); font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.op-meta { display: flex; align-items: center; gap: 4px; }
+.op-meta .chip { height: 18px; font-size: 11px; padding: 0 5px; gap: 4px; }
+.chip.side.sell { border-color: var(--line-3); background: transparent; }
+@media (max-width: 760px) {
+  .stonks { padding: 16px 16px 32px; }
+  .stonks-head h1 { font-size: 22px; }
+  .stonks-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stonks-stats .v { font-size: 19px; }
+  .pnl { padding-left: 40px; }
+  .pnl-plot { height: 150px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

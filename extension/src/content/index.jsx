@@ -10,6 +10,7 @@ import {packsStatus} from "./features/packs";
 import {startBidAlerts} from "./features/market";
 import {startSiteDom, watchRoute} from "./features/site-dom";
 import {startNotificationSound} from "./features/notify";
+import {startStonksRoute} from "./features/stonks";
 import {planSort} from "./features/sorter";
 import {App, openPanel} from "./ui/App";
 import {toast, errorMessage} from "./ui/feedback";
@@ -41,6 +42,7 @@ if (!window.__wmtContent) {
     setInterval(attach, 1500);
     startSiteDom();
     watchRoute();
+    startStonksRoute();
     startBidAlerts();
   };
   // Après le chargement complet : le site (React) doit avoir fini d'hydrater la page avant

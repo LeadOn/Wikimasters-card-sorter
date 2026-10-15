@@ -13,4 +13,5 @@ module.exports = {
   ...require("./trade"),
   ...require("./families"),
   ...require("./share-code"),
+  ...require("./stonks"),
 };

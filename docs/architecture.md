@@ -42,6 +42,7 @@ core/                          moteur partagé (CommonJS, sans dépendance)
   prices.js                    raretés, prix du marché (médiane, ventes minimum, premières ventes ignorées, shiny à part), valeur d'une collection, doublons à vendre
   families.js                  familles de cartes (manuelles ou par règle), progression
   share-code.js                codes de partage WMT-P1… / WMT-F1… (JSON compressé, base64url)
+  stonks.js                    achats et ventes au marché : rapprochement vente → achat (premier entré, premier sorti), reventes seules, plus-value, périodes jour / semaine / mois
 
 extension/
   build.mjs                    build esbuild → dist/chrome, dist/firefox (+ .zip), manifeste généré
@@ -83,6 +84,7 @@ extension/
         card-images.js         cartes sans image ou en GIF sur toute la collection (onglet Images)
         collection-view.js     collection filtrée (critères cumulables, prix de vente, mots-clés) : mise en vente et défausse, une à une ou par lot
         notify.js              sons de notification et d'alerte
+        stonks.js              page Stonks : historique de mes enchères conclues, cartes achetées en stock, ouverture par #stonks
         site-dom.js            intégration aux pages : tous les sélecteurs du site sont ici
         site-assets.js         fichiers du site repris pour la carte sans image : logo, textures de rareté
       ui/                      interface (Preact, dans un Shadow DOM)
@@ -98,7 +100,7 @@ extension/
         ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images)
         CollectionCards.jsx    filtres de la collection et liste des cartes, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
         tabs/                  un fichier par onglet du panneau
-        islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil)
+        islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil) et page Stonks
 
 scripts/
   categorize_cards.js          CLI de tri (token requis)
@@ -155,9 +157,11 @@ joueur ──clic──▶ ui/ ──▶ features/ ──▶ api/ (http.js) ─�
 
 ### Intégration aux pages du site
 
-`features/site-dom.js` regroupe **tous** les sélecteurs du site. Une boucle, déclenchée par les changements de la page et des données, place les badges sur les cartes, le bouton « Tout ouvrir », l'entrée du menu et les blocs intégrés (`ui/islands/`). Chaque étape est isolée : si le site change et qu'un élément n'est plus trouvé, seule cette étape cesse de fonctionner, sans erreur visible. Un bloc se place par rapport à l'imbrication de la page (`sectionOf`), jamais par rapport aux classes Tailwind du site, qui changent souvent.
+`features/site-dom.js` regroupe **tous** les sélecteurs du site. Une boucle, déclenchée par les changements de la page et des données, place les badges sur les cartes, le bouton « Tout ouvrir », les entrées du menu (« Toolbox », « Stonks ») et les blocs intégrés (`ui/islands/`). Chaque étape est isolée : si le site change et qu'un élément n'est plus trouvé, seule cette étape cesse de fonctionner, sans erreur visible. Un bloc se place par rapport à l'imbrication de la page (`sectionOf`), jamais par rapport aux classes Tailwind du site, qui changent souvent.
 
 **Nouvel affichage des cartes.** `site-dom.js` reconnaît les parties d'une carte du site (texture de rareté, zone image, zone texte, badge, étiquettes, attaque et défense) et leur pose des repères `data-wmt-*` ; `site.css` ne cible que ces repères. React ne touche pas à ces attributs, et la boucle les repose si le site reconstruit une carte. Si la structure n'est plus reconnue, la carte garde l'affichage du site. Les tailles sont relatives à la carte (unités `cqw`) : le même style sert en grille et dans la fenêtre d'une carte.
+
+**Page Stonks.** Le site n'a pas de route pour elle : l'entrée du menu ajoute `#stonks` à l'adresse de la page en cours (`history.pushState`, sans navigation de Next.js), et `site-dom.js` masque les blocs de `<main>` (repère `data-wmt-covered`) pour y monter `ui/islands/StonksPage.jsx`. L'entrée prend l'apparence de l'entrée active du site, qui reprend la sienne à la fermeture (*Retour*, lien du site, ou changement de page : le site remet alors ses entrées à jour lui-même). Les entrées « Toolbox » et « Stonks » sont ajoutées à tout menu qui liste toutes les pages (lien vers le classement) : le menu latéral et, sur mobile, le menu *Plus* de la barre du bas, refermé après un clic sur l'une d'elles.
 
 ### Stockage
 
@@ -187,6 +191,8 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |
 | `extension-card-images.test.js` | Filtre par image : GIF reconnu dans le chemin de l'URL (vignettes Wikimedia), image masquée comptée sans image, exemplaires cumulés par carte et rareté |
 | `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |
+| `stonks.test.js` | Page Stonks : opérations du joueur, rapprochement vente → achat (carte, rareté, shiny ; jamais un achat postérieur), vue achat-revente (reventes seules, à la date de la vente), plus-value, rendement, périodes jour / semaine / mois en heure locale (changement d'heure, semaines du lundi) |
+| `extension-stonks.test.js` | Lecture de l'historique : deux lectures triées (vendeur, acheteur), aucune écriture, cartes encore en stock d'après la collection, cache de quelques minutes, panne signalée sans perdre l'historique affiché |
 | `extension-collection-view.test.js` | Collection filtrée : critères cumulés, jamais vendues (toute rareté ou la sienne), intervalle de prix (prix fiables seulement, recalculés quand les réglages changent ; bornes incluses, facultatives, remises dans l'ordre), lecture des ventes (ordre stable, shiny) et résumé du site qui n'écrase pas un prix récent, mots-clés inclus ou exclus, ouverture depuis la grille du site ; exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
 
 Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
