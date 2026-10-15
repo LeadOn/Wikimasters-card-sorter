@@ -8,7 +8,7 @@ import {toast} from "../feedback";
 import {PriceLine, Interest} from "./shared";
 import {Icon, Mark} from "../components";
 
-// card : {id, title, rarity, category, summary, image_url, owned}
+// card : {id, title, rarity, shiny, category, summary, image_url, owned}
 export function CardInsight({card}) {
   const {list} = useStore(families);
   const {ids, loadedAt} = useStore(owned);
@@ -34,7 +34,7 @@ export function CardInsight({card}) {
         )}
         {isOwned === false && <span class="chip warn">Pas dans votre collection</span>}
       </div>
-      <PriceLine cardId={card.id} rarity={card.rarity} />
+      <PriceLine cardId={card.id} rarity={card.rarity} shiny={card.shiny} />
       <Interest card={card} />
       {card.id && (
         <div class="kv">

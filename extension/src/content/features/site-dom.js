@@ -31,6 +31,8 @@ const SEL = {
   nav: "nav",
   navLink: 'a[href="/collection"]',
   tile: 'div[class*="glow-"][class*="rounded-2xl"]',
+  // Exemplaire shiny (rareté L seulement) : « glow-shiny shiny-card » à la place de « glow-l »
+  shinyTile: "shiny-card",
   tileTitle: "h3",
   // Carte du site : texture de rareté (img enfant direct), zone image, badge de rareté, zone texte
   // (titre, description, étiquettes, attaque / défense) ; image remplacée par le logo du site si absente
@@ -59,6 +61,9 @@ const DEAL_WINDOW = 15 * 60 * 1000;
 const AUCTION_PATH = /^\/marketplace\/([0-9a-f-]{36})\/?$/;
 const PROFILE_PATH = /^\/profile\/([^/]+)\/?$/;
 const RARITY_CLASS = /\bglow-(l|ur|sr|r|pc|c)\b/;
+const isShinyTile = (tile) => tile.classList.contains(SEL.shinyTile);
+// Rareté d'une carte du site (classe glow-<rareté>, L pour une shiny), sinon celle de la carte connue
+const tileRarity = (tile, fallback) => (isShinyTile(tile) ? "L" : (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase()) || fallback || null;
 // Bouton de la page dont le texte passe le test (hors boutons de l'extension)
 const findButton = (test) => [...document.querySelectorAll(SEL.pullsOpenButton)].find((b) => !b.className.includes("wmt-") && test(b.textContent.trim()));
 
@@ -287,7 +292,7 @@ function decorateTile(tile, version) {
   // Sans réponse observée (page servie depuis le cache du site), le titre et la description
   // affichés suffisent pour le thème et le lien Wikipédia.
   const info = lookupTitle(title) || {title, category: titleEl.parentElement?.querySelector("p")?.textContent.trim() || "", dom: true};
-  const rarity = (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase() || info?.rarity;
+  const rarity = tileRarity(tile, info?.rarity);
   const parts = tileParts(tile, titleEl);
   styleTile(tile, parts, rarity);
   fillMissingImage(tile, info, parts, title);
@@ -310,7 +315,7 @@ function decorateTile(tile, version) {
 
   // Marché : l'enchère est retrouvée par le lien de la carte ; une carte shiny a son propre prix
   const auction = path.startsWith("/marketplace") ? auctionById(AUCTION_PATH.exec(tile.closest("a[href]")?.getAttribute("href") || "")?.[1]) : null;
-  const shiny = Boolean(auction?.is_shiny);
+  const shiny = Boolean(auction?.is_shiny) || isShinyTile(tile);
   const fmt = (n) => n.toLocaleString("fr-FR");
   if (info.id && isOn("priceBadges")) {
     const p = priceInfo(info.id, rarity, {shiny});
@@ -538,9 +543,7 @@ export async function openCardOnSite({title, rarity}) {
   const input = document.querySelector(SEL.collectionSearch);
   if (!input) throw new Error("Ouvrez la page Collection pour afficher cette carte.");
   const wanted = normTitle(title);
-  const r = (rarity || "").toLowerCase();
-  const find = () =>
-    [...document.querySelectorAll(`main ${SEL.tile}`)].find((t) => normTitle(t.querySelector(SEL.tileTitle)?.textContent || "") === wanted && (!r || RARITY_CLASS.exec(t.className)?.[1] === r));
+  const find = () => [...document.querySelectorAll(`main ${SEL.tile}`)].find((t) => normTitle(t.querySelector(SEL.tileTitle)?.textContent || "") === wanted && (!rarity || tileRarity(t) === rarity));
   const previous = input.value;
   let tile = find();
   if (!tile) {
@@ -575,11 +578,11 @@ function ensureCardInsight() {
   const title = normTitle(titleEl.textContent);
   const info = lookupTitle(title) || {};
   if (!info.id) resolveCard(title);
-  const rarity = (RARITY_CLASS.exec(tile.className)?.[1] || "").toUpperCase() || info.rarity || null;
   const card = {
     id: info.id || null,
     title,
-    rarity,
+    rarity: tileRarity(tile, info.rarity),
+    shiny: isShinyTile(tile),
     category: info.category || titleEl.parentElement?.parentElement?.querySelector("p")?.textContent.trim() || "",
     summary: info.summary || "",
     image_url: info.image_url || null,

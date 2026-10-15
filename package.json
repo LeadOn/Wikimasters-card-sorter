@@ -1,6 +1,6 @@
 {
   "name": "wikimasters-toolbox",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "WikiMasters Toolbox : extension de navigateur et scripts de tri pour WikiMasters",
   "scripts": {

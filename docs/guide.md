@@ -58,7 +58,7 @@ Des pastilles s'ajoutent en haut à droite de chaque carte affichée par le site
 
 | Pastille | Signification |
 |---|---|
-| `8 042 ₩` | Prix du marché de la carte **dans sa rareté**, quand il est connu (voir [Prix](#prix)) |
+| `8 042 ₩` | Prix du marché de la carte **dans sa rareté** (celui des shiny pour une carte shiny), quand il est connu (voir [Prix](#prix)) |
 | `≈ 31 ₩` | Prix seulement **indicatif** : la carte s'est vendue trop peu de fois pour un prix fiable (le détail s'affiche au survol) |
 | ✓ | Vous possédez déjà cette carte (affichée partout sauf dans votre propre collection et dans la collection globale, qui l'indiquent déjà) |
 | `Nouvelle` | Vous n'avez pas cette carte (sur le marché et le profil des autres joueurs) |
@@ -91,7 +91,7 @@ Le site garde ses étiquettes en cache : après un tri, cliquez sur *Actualiser*
 
 Quand vous ouvrez une carte (dans votre collection, le catalogue ou le profil d'un joueur), un bloc Toolbox s'ajoute sous ses détails :
 
-- son **prix du marché** dans sa rareté, le nombre de ventes (et combien de premières ventes sont ignorées), le prix de la dernière et la moyenne affichée par le site ; « indicatif » quand il y a trop peu de ventes ;
+- son **prix du marché** dans sa rareté (celui des shiny pour une carte shiny), le nombre de ventes (et combien de premières ventes sont ignorées), le prix de la dernière et la moyenne affichée par le site ; « indicatif » quand il y a trop peu de ventes ;
 - son **thème** ;
 - les **amis intéressés**, d'après leurs profils d'intérêts (« Vous » si elle correspond au vôtre) ;
 - les **familles** qui la contiennent, et un menu pour l'ajouter à l'une de vos familles manuelles ;
