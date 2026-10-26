@@ -538,6 +538,23 @@ table.list tbody tr:hover td { background: color-mix(in srgb, var(--fg) 3%, tran
 .price-big { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
 .mini-select { width: auto; height: 26px; min-height: 26px; padding: 0 26px 0 8px; border-radius: 5px; font-size: 12px; background-position: right 7px center; }
 .mini-select.on { border-color: var(--accent); }
+/* Bilan dans la fenêtre « Échanger avec … » du site : une ligne, chaque côté puis la différence */
+.trade-recap-row { display: flex; align-items: center; gap: 8px 22px; flex-wrap: wrap; }
+.trade-recap-head { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; }
+.trade-recap-side { display: flex; flex-direction: column; gap: 2px; min-width: 96px; }
+.trade-recap-side .k { color: var(--faint); font: 500 10.5px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.trade-recap-v { display: inline-flex; align-items: center; gap: 8px; }
+.trade-recap-diff { padding-left: 22px; border-left: 1px solid var(--line); }
+.trade-recap-notes { margin: 0; color: var(--faint); font-size: 12px; }
+/* Fenêtre étroite (mobile) : les trois montants sur une ligne, sans le titre */
+.trade-recap { container-type: inline-size; }
+@container (max-width: 520px) {
+  .trade-recap-head { display: none; }
+  .trade-recap-row { flex-wrap: nowrap; justify-content: space-between; gap: 12px; }
+  .trade-recap-side { min-width: 0; }
+  .trade-recap-diff { padding-left: 12px; }
+  .trade-recap .price-big { font-size: 14px; }
+}
 
 /* --- Filtres d'une liste de cartes : une ligne par dimension, libellé en petites capitales */
 .filters { display: flex; flex-direction: column; gap: 8px; }

@@ -38,6 +38,22 @@ export const Money = ({v, class: cls = "", approx = false, title}) => (
   </span>
 );
 
+export const signOf = (v) => (v > 0 ? "+" : v < 0 ? "−" : "");
+
+// Montant signé : vert si gain, rouge si perte (le signe le dit aussi, pas seulement la couleur).
+// approx : estimation (prix indicatifs ou manquants), précédée de « ≈ ».
+export const Gain = ({v, class: cls = "", approx = false, title}) =>
+  v == null ? (
+    <span class="muted">—</span>
+  ) : (
+    <span class={`money delta${v > 0 ? " up" : v < 0 ? " down" : ""}${cls ? ` ${cls}` : ""}`} title={title}>
+      {approx && "≈ "}
+      {signOf(v)}
+      {fmt(Math.abs(v))}
+      <span class="cur">₩</span>
+    </span>
+  );
+
 export function Progress({done, total, label}) {
   const pct = total ? Math.min(100, Math.round((100 * done) / total)) : null;
   return (

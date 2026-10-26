@@ -1,7 +1,7 @@
 // Intégration dans les pages du site : entrées « Toolbox » et « Stonks » dans le menu, badges sur les
 // cartes, bouton « Tout ouvrir » sur la page Paquets, images de remplacement, blocs de la Toolbox
-// (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur, et la page
-// Stonks à la place du contenu de la page.
+// (« îlots ») dans les pages : collection, fiche d'une carte, enchère, profil d'un joueur, bilan d'une
+// proposition d'échange, et la page Stonks à la place du contenu de la page.
 // Tous les sélecteurs du site sont ici : si le site change, c'est le seul fichier à adapter.
 import {emit} from "../lib/bus";
 import {sleep} from "../lib/http";
@@ -23,6 +23,7 @@ import {CollectionBar} from "../ui/islands/CollectionBar";
 import {CardInsight} from "../ui/islands/CardInsight";
 import {AuctionInsight} from "../ui/islands/AuctionInsight";
 import {FriendTrades} from "../ui/islands/FriendTrades";
+import {TradeRecap} from "../ui/islands/TradeRecap";
 import {StonksPage} from "../ui/islands/StonksPage";
 import {readSession} from "../lib/session";
 import {categorize, THEME_COLORS} from "../../../../core";
@@ -62,6 +63,14 @@ const SEL = {
   modalActionText: /^(Mettre aux enchères|Défausser)/,
   // Onglets du profil d'un joueur
   profileTabText: /^(Vitrine|Collection)$/,
+  // Fenêtre « Échanger avec … » : barre des nombres (« Moi : 2 cartes · 150 wb », « <ami> : 0 cartes »),
+  // onglets « Mes cartes » / « Cartes de <ami> » (l'actif est souligné : border-b-2), cartes choisies
+  // de l'onglet ouvert seulement, sous « Sélectionnées (n) »
+  tradeMine: /^Moi\s*:/,
+  tradeCounts: /:\s*([\d\s]+)\s*cartes?(?:\s*·\s*([\d\s]+)\s*wb)?/i,
+  tradeMineTab: /^Mes cartes/,
+  tradeActiveTab: "border-b-2",
+  tradeSelected: /^Sélectionnées\s*\(/,
 };
 // « Bonne affaire » : seulement dans les dernières minutes d'une enchère
 const DEAL_WINDOW = 15 * 60 * 1000;
@@ -656,13 +665,18 @@ function typeInto(input, value) {
   input.dispatchEvent(new Event("input", {bubbles: true}));
 }
 
+// Grande carte d'une fenêtre dont le titre est celui de la carte. Les autres fenêtres qui montrent des
+// cartes (« Échanger avec … » et sa liste de cartes) n'en ont pas.
+function modalCard(modal) {
+  const title = normTitle(modal.querySelector(SEL.modalTitle)?.textContent);
+  return title ? [...modal.querySelectorAll(SEL.modalTile)].find((t) => normTitle(t.querySelector(SEL.tileTitle)?.textContent) === title) : null;
+}
+
 // Fenêtre d'une carte (collection, profils, toutes les cartes) : bloc sous les détails
 function ensureCardInsight() {
-  const modal = isOn("cardInsight")
-    ? [...document.querySelectorAll(SEL.modal)].find((m) => m.querySelector(SEL.modalTitle) && m.querySelector(SEL.modalTile))
-    : null;
+  const modal = isOn("cardInsight") ? [...document.querySelectorAll(SEL.modal)].find(modalCard) : null;
   const titleEl = modal?.querySelector(SEL.modalTitle);
-  const tile = modal?.querySelector(SEL.modalTile);
+  const tile = modal && modalCard(modal);
   // Colonne des détails : le bloc qui contient le titre, à côté de la grande carte
   const details = titleEl && tile && sectionOf(titleEl, tile);
   if (!details || details.contains(tile)) return hideIsland("card");
@@ -705,6 +719,44 @@ function ensureFriendTrades() {
   showIsland("friend", FriendTrades, {username: title.textContent.trim() || name}, after(header));
 }
 
+// Fenêtre « Échanger avec … » : bilan de la proposition sous la barre des nombres de cartes. Le site
+// n'affiche que les cartes choisies de l'onglet ouvert : celles de chaque côté sont relevées quand son
+// onglet est ouvert, et gardées tant que la fenêtre reste ouverte.
+let tradeDraft = null; // {modal, friend, mine, theirs}
+const countOf = (text) => Number(String(text || "").replace(/\D/g, "")) || 0;
+function ensureTradeRecap() {
+  const mineLabel = isOn("tradeRecap")
+    ? [...document.querySelectorAll(SEL.modal)].flatMap((m) => [...m.querySelectorAll("span")]).find((el) => SEL.tradeMine.test(el.textContent.trim()))
+    : null;
+  const bar = mineLabel?.parentElement;
+  const theirLabel = bar && [...bar.children].find((el) => el !== mineLabel && el.tagName === "SPAN" && SEL.tradeCounts.test(el.textContent));
+  const modal = theirLabel && bar.closest(SEL.modal);
+  const mineTab = modal && [...modal.querySelectorAll("button")].find((b) => SEL.tradeMineTab.test(b.textContent.trim()));
+  if (!mineTab) {
+    tradeDraft = null;
+    return hideIsland("trade");
+  }
+  const friend = theirLabel.textContent.split(":")[0].trim();
+  if (tradeDraft?.modal !== modal || tradeDraft.friend !== friend) tradeDraft = {modal, friend, mine: [], theirs: []};
+  // Onglet ouvert : ses cartes choisies remplacent celles relevées pour ce côté
+  const active = [...mineTab.parentElement.children].find((b) => b.tagName === "BUTTON" && b.className.includes(SEL.tradeActiveTab));
+  if (active) {
+    const heading = [...modal.querySelectorAll("p")].find((p) => SEL.tradeSelected.test(p.textContent.trim()));
+    const cards = [...(heading?.parentElement.querySelectorAll(SEL.tile) || [])].map((tile) => {
+      const title = normTitle(tile.querySelector(SEL.tileTitle)?.textContent);
+      const info = lookupTitle(title);
+      if (!info?.id) resolveCard(title);
+      return {title, id: info?.id || null, rarity: tileRarity(tile, info?.rarity), shiny: isShinyTile(tile)};
+    });
+    tradeDraft[active === mineTab ? "mine" : "theirs"] = cards;
+  }
+  const side = (label, cards) => {
+    const [, count, wb] = SEL.tradeCounts.exec(label.textContent) || [];
+    return {cards, count: countOf(count), wb: countOf(wb)};
+  };
+  showIsland("trade", TradeRecap, {friend, give: side(mineLabel, tradeDraft.mine), get: side(theirLabel, tradeDraft.theirs)}, after(bar));
+}
+
 // --- Boucle de rafraîchissement (regroupée par image)
 // Chaque étape est isolée : si le site change et qu'une étape échoue, les autres continuent
 // (repli silencieux, une seule trace par étape dans la console).
@@ -737,6 +789,7 @@ function run() {
   attempt("fiche d'une carte", ensureCardInsight);
   attempt("analyse d'enchère", ensureAuctionInsight);
   attempt("échanges sur un profil", ensureFriendTrades);
+  attempt("bilan d'un échange", ensureTradeRecap);
   attempt("page Stonks", ensureStonksPage);
   for (const tile of document.querySelectorAll(SEL.tile)) attempt("badges des cartes", () => decorateTile(tile, version));
   forgetDetached();

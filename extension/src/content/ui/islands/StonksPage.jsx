@@ -7,7 +7,7 @@ import {persistentStore} from "../../lib/storage";
 import {readSession} from "../../lib/session";
 import {stonksState, loadStonks} from "../../features/stonks";
 import {priceVersion, pricing, priceOf, priceStatus} from "../../state/prices";
-import {CardArt, Icon, Mark, Money, Notice, Progress, Rarity, fmt, plural, timeAgo} from "../components";
+import {CardArt, Gain, Icon, Mark, Money, Notice, Progress, Rarity, fmt, plural, signOf, timeAgo} from "../components";
 import {byPeriod, tradeStats, resalesOnly} from "../../../../../core";
 
 // window : nombre de périodes affichées dans le graphique
@@ -36,23 +36,9 @@ const view = persistentStore("stonks-view", {unit: "day", metric: "profit", scop
 const picked = createStore({selected: null});
 
 // --- Formats
-const MINUS = "−";
-const signOf = (v) => (v > 0 ? "+" : v < 0 ? MINUS : "");
 const dateFmt = (opts) => new Intl.DateTimeFormat("fr-FR", opts);
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const sameYear = (d) => d.getFullYear() === new Date().getFullYear();
-
-// Montant signé : vert si gain, rouge si perte (le signe le dit aussi, pas seulement la couleur)
-const Gain = ({v, class: cls = ""}) =>
-  v == null ? (
-    <span class="muted">—</span>
-  ) : (
-    <span class={`money delta${v > 0 ? " up" : v < 0 ? " down" : ""}${cls ? ` ${cls}` : ""}`}>
-      {signOf(v)}
-      {fmt(Math.abs(v))}
-      <span class="cur">₩</span>
-    </span>
-  );
 
 const percent = (x) => (x == null ? "—" : `${signOf(x)}${Math.abs(x * 100).toLocaleString("fr-FR", {maximumFractionDigits: 1})} %`);
 

@@ -19,6 +19,7 @@ export const FEATURES = [
   {key: "openAll", group: "Paquets", label: "Bouton « Tout ouvrir »", help: "Sur la page Paquets : ouvre tous les paquets disponibles sans animation, après confirmation."},
   {key: "autoSortPulls", group: "Paquets", label: "Trier automatiquement les cartes tirées", help: "Dès l'ouverture d'un paquet, ajoute aux cartes tirées leur thème, les étiquettes « Pour : … » et Doublon. Seuls les nouveaux exemplaires sont touchés, rien n'est supprimé."},
   {key: "sortAfterPack", group: "Paquets", label: "Proposer de trier après un paquet", help: "Sans tri automatique : bouton pour classer les nouvelles cartes depuis le récapitulatif."},
+  {key: "tradeRecap", group: "Échanges", label: "Bilan dans la fenêtre d'échange", help: "Dans la fenêtre « Échanger avec … » du site : valeur au prix du marché de ce que vous donnez et de ce que vous recevez (WikiBidous compris), et la différence."},
   {key: "tradeValues", group: "Échanges", label: "Valeur des échanges", help: "Prix du marché de chaque carte et total de chaque côté des échanges en cours."},
   {key: "bidAlerts", group: "Marché", label: "Alerte de fin d'enchère", help: "Prévient quand une enchère où vous êtes dépassé se termine bientôt."},
   {key: "stonks", group: "Marché", label: "Page Stonks", help: "Entrée « Stonks » dans le menu du site : vos achats et ventes au marché par jour, semaine ou mois, et la plus-value de l'achat-revente. Historique seulement."},

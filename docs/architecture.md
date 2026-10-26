@@ -38,7 +38,7 @@ core/                          moteur partagé (CommonJS, sans dépendance)
   builtin-profiles.js          profils de la bande, fournis avec l'extension et les scripts
   tag-sync.js                  plan de synchronisation des étiquettes (fonctions pures)
   tag-writer.js                écriture d'un plan en base : ordre sûr, lots, reprise après panne
-  trade.js                     recherche d'échanges et offre équilibrée
+  trade.js                     recherche d'échanges, offre équilibrée, bilan d'une offre
   prices.js                    raretés, prix du marché (médiane, ventes minimum, premières ventes ignorées, shiny à part), valeur d'une collection, doublons à vendre
   families.js                  familles de cartes (manuelles ou par règle), progression
   share-code.js                codes de partage WMT-P1… / WMT-F1… (JSON compressé, base64url)
@@ -100,7 +100,7 @@ extension/
         ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images)
         CollectionCards.jsx    filtres de la collection et liste des cartes, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
         tabs/                  un fichier par onglet du panneau
-        islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil) et page Stonks
+        islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil, bilan d'une offre d'échange) et page Stonks
 
 scripts/
   categorize_cards.js          CLI de tri (token requis)
@@ -185,7 +185,7 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `profiles.test.js` | Règles, éditeur simple, validation des profils |
 | `tag-sync.test.js` | Plan de synchronisation, modes complet et incrémental |
 | `tag-writer.test.js` | Écriture des étiquettes : reprise après interruption, pas de doublon, erreurs |
-| `trade-prices-families.test.js` | Échanges, prix (médiane, ventes minimum, premières ventes ignorées, shiny à part, résumé des ventes), cartes jamais vendues, familles, codes de partage, couleurs des raretés |
+| `trade-prices-families.test.js` | Échanges (offre équilibrée, bilan d'une offre : WikiBidous, prix fiables seulement, cartes non vues), prix (médiane, ventes minimum, premières ventes ignorées, shiny à part, résumé des ventes), cartes jamais vendues, familles, codes de partage, couleurs des raretés |
 | `extension-http.test.js` | Couche réseau : réessais, écritures jamais rejouées, session renouvelée, pagination |
 | `extension-storage.test.js` | Stockage : valeurs enregistrées jamais écrasées, plusieurs onglets |
 | `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |

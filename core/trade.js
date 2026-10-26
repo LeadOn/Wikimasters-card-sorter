@@ -101,4 +101,28 @@ function balanceOffer(target, candidates, {preferSpare = true} = {}) {
   return {chosen, total};
 }
 
-module.exports = {findTrades, balanceOffer};
+// Bilan d'une proposition d'échange en cours de composition. Chaque côté : {cards, wb, count}
+// cards : cartes choisies vues par l'extension [{price, loading}] (price : prix fiable, null sinon ;
+//         loading : prix pas encore lu). Comme partout, un prix indicatif n'entre pas dans les totaux.
+// wb    : WikiBidous ajoutés de ce côté ; count : nombre de cartes annoncé par le site (des cartes
+//         choisies hors de la vue, ex. offre pré-remplie, ne sont pas encore estimées)
+// diff = ce que je reçois − ce que je donne ; exact : toutes les cartes ont un prix fiable.
+function offerBalance(give, get) {
+  const side = ({cards = [], wb = 0, count = cards.length}) => {
+    const s = {total: wb || 0, wb: wb || 0, count: Math.max(count, cards.length), missing: 0, loading: 0};
+    for (const c of cards) {
+      if (c.loading) s.loading++;
+      else if (c.price == null) s.missing++;
+      else s.total += c.price;
+    }
+    s.unseen = s.count - cards.length;
+    s.exact = !s.missing && !s.loading && !s.unseen;
+    return s;
+  };
+  const g = side(give);
+  const r = side(get);
+  const diff = r.total - g.total;
+  return {give: g, get: r, diff, pct: g.total > 0 ? Math.round((100 * diff) / g.total) : null, exact: g.exact && r.exact};
+}
+
+module.exports = {findTrades, balanceOffer, offerBalance};

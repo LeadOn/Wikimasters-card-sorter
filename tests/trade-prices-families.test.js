@@ -39,6 +39,22 @@ test("offre équilibrée", () => {
   assert.equal(chosen[0].card_id, "a", "doublons d'abord");
 });
 
+test("bilan d'une proposition : totaux avec WB, différence, prix manquants et cartes non vues", () => {
+  const b = core.offerBalance({cards: [{price: 800}, {price: 300}], wb: 150}, {cards: [{price: 1500}]});
+  assert.equal(b.give.total, 1250);
+  assert.equal(b.get.total, 1500);
+  assert.equal(b.diff, 250);
+  assert.equal(b.pct, 20);
+  assert.equal(b.exact, true);
+
+  const partial = core.offerBalance({cards: [{price: 200}, {price: null}, {loading: true}]}, {cards: [{price: 100}], count: 3, wb: 50});
+  assert.deepEqual([partial.give.total, partial.give.missing, partial.give.loading], [200, 1, 1], "seuls les prix fiables entrent dans le total");
+  assert.equal(partial.get.unseen, 2, "cartes choisies que l'extension n'a pas encore vues");
+  assert.equal(partial.get.total, 150);
+  assert.equal(partial.exact, false);
+  assert.equal(core.offerBalance({cards: []}, {cards: [{price: 10}]}).pct, null, "rien donné : pas de pourcentage");
+});
+
 test("prix : médiane des dernières ventes, ventes minimum, premières ventes ignorées, shiny à part", () => {
   // recent : du plus récent au plus ancien ; une vente aberrante ne déplace pas la médiane
   const summary = {

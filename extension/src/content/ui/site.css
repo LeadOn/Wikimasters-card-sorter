@@ -181,3 +181,5 @@
 .wmt-island { display: block; }
 .wmt-island-card { margin-top: 12px; }
 .wmt-island-auction { margin-top: 4px; }
+/* Fenêtre « Échanger avec … » : sous la barre des nombres de cartes, hors de la zone qui défile */
+.wmt-island-trade { flex-shrink: 0; padding: 10px 16px 0; }

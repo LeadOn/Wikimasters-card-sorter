@@ -140,6 +140,8 @@ L'entrée **Stonks** du menu du site (juste après *Marché* ; sur mobile, dans 
 
 Un encart flottant donne la **valeur de chaque côté** de vos échanges en attente (prix du marché fiables, shiny comprises, plus les WikiBidous ajoutés), et l'écart en votre faveur ou non.
 
+Quand vous composez une offre (*Proposer un échange*, fenêtre « Échanger avec … »), un bloc **Bilan** sous le nombre de cartes de chaque côté se met à jour à chaque carte ajoutée ou retirée : ce que vous donnez, ce que vous recevez (cartes au prix du marché fiable, plus les WikiBidous ajoutés) et la **différence** en votre faveur ou non, en ₩ et en pourcentage de ce que vous donnez. Une carte sans prix fiable n'est pas comptée : le bloc le signale et les montants passent en « ≈ ». Le site n'affiche que les cartes choisies de l'onglet ouvert : des cartes déjà choisies à l'ouverture de la fenêtre sont estimées dès que vous ouvrez leur onglet. Le bloc ne fait que lire : l'offre part toujours avec le bouton du site.
+
 ### Alertes
 
 - **Fin d'enchère** : un message et un son vous préviennent quand une enchère sur laquelle vous êtes dépassé se termine dans moins de 2 minutes (délai réglable). La vérification se fait tant qu'un onglet WikiMasters est ouvert et visible.
@@ -306,6 +308,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 | Paquets | Bouton « Tout ouvrir » | activée |
 | Paquets | Trier automatiquement les cartes tirées | désactivée |
 | Paquets | Proposer de trier après un paquet | activée |
+| Échanges | Bilan dans la fenêtre d'échange | activée |
 | Échanges | Valeur des échanges | activée |
 | Marché | Alerte de fin d'enchère | activée |
 | Marché | Page Stonks | activée |

@@ -82,6 +82,12 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
   (pas dans la fenêtre) ; une page met son titre à 24 px du bord et 44 px du haut. Sur mobile, la barre du bas
   (`nav` : Paquets, Collection, Échanges, Marché) a un bouton *Plus* qui rend, dans le même `nav`, les autres
   entrées (Profil… Classement, Paramètres) ; ce menu se ferme sur un appui en dehors.
+- Fenêtre de proposition d'échange (*Proposer un échange*) : voile `div.fixed.inset-0`, titre
+  « Échanger avec <ami> » en `h2` ; sous l'en-tête, une barre « Moi : 2 cartes · 150 wb ⇆ <ami> : 0 cartes »
+  (un `span` par côté, WikiBidous ajoutés seulement s'il y en a) ; onglets « Mes cartes » / « Cartes de <ami> »,
+  l'actif souligné (`border-b-2`). Seules les cartes choisies de l'onglet ouvert sont dans le DOM, sous un
+  `p` « Sélectionnées (n) ». Rien n'est envoyé avant *Envoyer l'offre* (`POST /api/trades`) ; fermer la
+  fenêtre avec une sélection demande une confirmation (« Modifications non enregistrées »).
 - Solde de WikiBidous : pastille fixée en haut à droite (38 px de haut).
 - Solde de WikiBidous affiché : le site le relit quand `window` reçoit l'événement
   `wikimasters:wikibidous-balance-refresh` (`window.dispatchEvent(new CustomEvent(…))`, ce qu'il fait
