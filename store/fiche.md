@@ -59,6 +59,12 @@ PRIX ET MARCHÉ
 • Valeur de votre collection et vos cartes les plus chères.
 • Suivi de vos enchères, surenchère en un clic (avec confirmation), alerte avant la fin.
 
+STONKS : VOTRE HISTORIQUE DE TRADING
+• Une page « Stonks » dans le menu du site : vos achats et ventes aux enchères, par jour, semaine ou mois.
+• Plus-value de l'achat-revente : chaque vente est rapprochée de son achat, avec le rendement, la part des reventes gagnantes et la durée de détention.
+• Vue « Achat-revente » pour n'afficher que les cartes achetées puis revendues ; ou tout l'historique, avec le flux net et la plus-value latente des cartes achetées encore en stock.
+• Historique seulement : aucune action d'achat ou de vente depuis cette page.
+
 ÉCHANGES
 • Profils d'intérêts : décrivez ce que vous collectionnez, vos amis importent votre profil avec un code.
 • Sur le profil d'un ami : ses cartes qui vous intéressent, les vôtres qui l'intéressent, et une proposition équilibrée en prix du marché.
