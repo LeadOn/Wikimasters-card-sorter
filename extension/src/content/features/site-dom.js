@@ -26,7 +26,7 @@ import {FriendTrades} from "../ui/islands/FriendTrades";
 import {TradeRecap} from "../ui/islands/TradeRecap";
 import {StonksPage} from "../ui/islands/StonksPage";
 import {readSession} from "../lib/session";
-import {categorize, THEME_COLORS} from "../../../../core";
+import {themeMemo, tagColor, otherTheme} from "../state/themes";
 import {iconSvg, markSvg, markOutlineSvg, stonksOutlineSvg} from "../../shared/brand.mjs";
 import fontsCss from "../../shared/fonts.css";
 import siteCss from "../ui/site.css";
@@ -226,13 +226,8 @@ function ensureStonksPage() {
 }
 
 // --- Badges sur les cartes
-const themeCache = new Map();
-function themeOf(info) {
-  if (themeCache.has(info.title)) return themeCache.get(info.title);
-  const theme = categorize({wikipedia_title: info.title, category: info.category, summary: info.summary || ""})[0];
-  themeCache.set(info.title, theme);
-  return theme;
-}
+const themeCache = themeMemo();
+const themeOf = (info) => themeCache(info.title, {wikipedia_title: info.title, category: info.category, summary: info.summary || ""});
 
 const visible = new WeakSet();
 // Cartes observées : celles que le site a retirées de la page sont oubliées (sinon l'observateur
@@ -450,9 +445,9 @@ function decorateTile(tile, version) {
   }
   if (isOn("themeBadges") && !onMyCollection && (info.category || info.summary)) {
     const theme = themeOf(info);
-    if (theme && theme !== "Autre") {
+    if (theme && theme !== otherTheme()) {
       const el = chip("wmt-chip-theme", theme.split(" ")[0], theme);
-      el.style.setProperty("--wmt-theme", settings.get().themeColors[theme] || THEME_COLORS[theme] || "#64748b");
+      el.style.setProperty("--wmt-theme", tagColor(theme));
       box.append(el);
     }
   }
@@ -816,10 +811,7 @@ export function startSiteDom() {
   };
   registryVersion.subscribe(bump);
   priceVersion.subscribe(bump);
-  settings.subscribe(() => {
-    themeCache.clear();
-    bump();
-  });
+  settings.subscribe(bump);
   owned.subscribe(bump);
   auctionVersion.subscribe(bump);
   // Les pastilles « bonne affaire » dépendent du temps restant

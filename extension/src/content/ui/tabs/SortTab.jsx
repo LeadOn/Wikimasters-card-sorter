@@ -5,7 +5,8 @@ import {sortState, planSort, applySort} from "../../features/sorter";
 import {activeProfiles} from "../../state/profiles";
 import {Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
-import {isThemeTag, DOUBLON} from "../../../../../core";
+import {DOUBLON} from "../../../../../core";
+import {isTheme} from "../../state/themes";
 
 function TagCounts({counts}) {
   const max = Math.max(1, ...counts.map((c) => c.count));
@@ -14,7 +15,7 @@ function TagCounts({counts}) {
       <tbody>
         {counts.map(({name, count}) => (
           <tr key={name}>
-            <td style={{width: "45%"}}>{isThemeTag(name) ? <ThemeChip theme={name} /> : <span class={`chip ${name === DOUBLON ? "danger" : "accent"}`}>{name}</span>}</td>
+            <td style={{width: "45%"}}>{isTheme(name) ? <ThemeChip theme={name} /> : <span class={`chip ${name === DOUBLON ? "danger" : "accent"}`}>{name}</span>}</td>
             <td>
               <div class="bar" style={{width: `${(100 * count) / max}%`}} />
             </td>
@@ -26,11 +27,13 @@ function TagCounts({counts}) {
   );
 }
 
+const retiredList = (retired) => retired.map((t) => `${t.name} (${plural(t.count, "carte")})`).join(", ");
+
 function PlanView({plan}) {
   const [filter, setFilter] = useState("");
   const q = filter.trim().toLowerCase();
   const cards = q ? plan.cards.filter((c) => `${c.title} ${c.tags.join(" ")}`.toLowerCase().includes(q)) : plan.cards;
-  const nothing = !plan.insertCount && !plan.deleteCount;
+  const nothing = !plan.insertCount && !plan.deleteCount && !plan.extraTagIds.length && !plan.renamed?.length;
   return (
     <div class="stack">
       <div class="grid-stats">
@@ -43,6 +46,15 @@ function PlanView({plan}) {
       {plan.upserts.create.length > 0 && (
         <Notice>Étiquettes créées : {plan.upserts.create.map((t) => t.name).join(", ")}.</Notice>
       )}
+      {plan.renamed?.length > 0 && <Notice>Étiquettes renommées (thèmes renommés dans les réglages) : {plan.renamed.map((r) => `${r.from} → ${r.to}`).join(", ")}.</Notice>}
+      {plan.retired?.length > 0 &&
+        (plan.newOnly ? (
+          <Notice>
+            Étiquettes de thèmes supprimés, laissées en place : {retiredList(plan.retired)}. Leurs cartes comptent comme triées ; le retri complet les reclasse et retire ces étiquettes.
+          </Notice>
+        ) : (
+          <Notice type="warn">Étiquettes de thèmes supprimés, retirées puis supprimées : {retiredList(plan.retired)}. Leurs cartes reçoivent un thème de votre liste.</Notice>
+        ))}
       {plan.unmanaged.length > 0 && <p class="small muted">Vos étiquettes personnelles ne seront pas touchées : {plan.unmanaged.join(", ")}.</p>}
       {(plan.doublonAdds.length > 0 || plan.doublonDels.length > 0) && (
         <div class="box">
@@ -76,7 +88,7 @@ function PlanView({plan}) {
                   </td>
                   <td>
                     <div class="chips">
-                      {c.tags.map((t) => (isThemeTag(t) ? <ThemeChip key={t} theme={t} /> : <span key={t} class={`chip ${t === DOUBLON ? "danger" : "accent"}`}>{t}</span>))}
+                      {c.tags.map((t) => (isTheme(t) ? <ThemeChip key={t} theme={t} /> : <span key={t} class={`chip ${t === DOUBLON ? "danger" : "accent"}`}>{t}</span>))}
                     </div>
                   </td>
                 </tr>
@@ -107,7 +119,9 @@ export function SortTab() {
     if (!plan.newOnly) {
       const ok = await confirmAction({
         title: "Appliquer le retri complet ?",
-        body: `Toute la collection est resynchronisée : ${fmt(plan.insertCount)} étiquette(s) ajoutée(s), ${fmt(plan.deleteCount)} retirée(s). Les corrections faites à la main sur une étiquette gérée (thème, « Pour : … », Doublon) seront écrasées. Vos étiquettes personnelles ne sont jamais touchées.`,
+        body: `Toute la collection est resynchronisée : ${fmt(plan.insertCount)} étiquette(s) ajoutée(s), ${fmt(plan.deleteCount)} retirée(s). Les corrections faites à la main sur une étiquette gérée (thème, « Pour : … », Doublon) seront écrasées.${
+          plan.retired?.length ? ` Étiquettes de thèmes supprimés, supprimées : ${retiredList(plan.retired)}.` : ""
+        } Vos étiquettes personnelles ne sont jamais touchées.`,
         confirm: "Appliquer",
         danger: true,
       });
@@ -175,7 +189,7 @@ export function SortTab() {
             <button class="btn ghost" onClick={() => sortState.set({plan: null})}>Annuler</button>
             <button
               class={`btn ${s.plan.newOnly ? "primary" : "danger"}`}
-              disabled={!s.plan.insertCount && !s.plan.deleteCount && !s.plan.upserts.recolor.length && !s.plan.upserts.create.length && !s.plan.extraTagIds.length}
+              disabled={!s.plan.insertCount && !s.plan.deleteCount && !s.plan.upserts.recolor.length && !s.plan.upserts.create.length && !s.plan.extraTagIds.length && !s.plan.renamed?.length}
               onClick={apply}
             >
               Appliquer

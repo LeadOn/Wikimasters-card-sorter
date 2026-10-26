@@ -1,4 +1,6 @@
 // Profils d'intérêts de la bande : chaque profil génère le tag « Pour : <name> ».
+// Utilisés par les scripts Node (tri, échanges, évaluation) et les tests, jamais par l'extension
+// publiée : ce fichier n'est pas ré-exporté par core/index.js.
 // Format des règles : voir core/profiles.js. Un profil s'applique si l'une de ses règles s'applique.
 // Les règles sont évaluées sur le titre, la description et la 1re phrase du résumé (`focus`),
 // pour ignorer les mentions incidentes plus loin dans le texte.

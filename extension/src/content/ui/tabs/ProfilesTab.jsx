@@ -5,22 +5,22 @@ import {readSession} from "../../lib/session";
 import {profiles, newId} from "../../state/profiles";
 import {loadMyCollection} from "../../state/collection";
 import {friendsState, loadFriends} from "../../features/trades";
-import {Notice, Copyable, CardRow, fmt, plural} from "../components";
+import {Notice, Copyable, CardRow, FileButton, downloadFile, datedFilename, fmt, plural} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {
-  THEME_COLORS,
-  BUILTIN_PROFILES,
   simpleToProfile,
   validateProfile,
   profileTags,
   extractFields,
-  categorize,
   tagForProfile,
   encodeShareCode,
   decodeShareCode,
+  exportProfiles,
+  importProfiles,
+  mergeProfiles,
 } from "../../../../../core";
+import {themeNames, classify, aliasesOf} from "../../state/themes";
 
-const THEMES = Object.keys(THEME_COLORS);
 const PALETTE = ["#0ea5e9", "#ec4899", "#22c55e", "#eab308", "#dc2626", "#8b5cf6", "#14b8a6", "#f97316", "#64748b", "#4c1d95"];
 
 function describeRules(p) {
@@ -115,7 +115,7 @@ function ProfileEditor({initial, isMine, onSave, onClose}) {
             <div class="field">
               <span style={{fontWeight: 600}}>Thèmes entiers</span>
               <div class="chips" style={{marginTop: "6px"}}>
-                {THEMES.map((t) => (
+                {[...new Set([...themeNames(), ...themes])].map((t) => (
                   <button key={t} class={`chip${themes.includes(t) ? " on" : ""}`} onClick={() => setThemes(themes.includes(t) ? themes.filter((x) => x !== t) : [...themes, t])}>
                     {t}
                   </button>
@@ -168,45 +168,104 @@ function ExportDialog({profile, onClose}) {
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="modal">
         <h3>Partager le profil « {profile.name} »</h3>
-        <p class="help">Envoyez ce code à vos amis : dans leur Toolbox, onglet Profils, « Importer un code ».</p>
+        <p class="help">Envoyez ce code à vos amis : dans leur Toolbox, onglet Profils, « Importer ». Le fichier JSON s'importe au même endroit.</p>
         {error ? <Notice type="error">{error}</Notice> : code ? <Copyable text={code} /> : <div class="spinner" />}
-        <div class="actions"><button class="btn" onClick={onClose}>Fermer</button></div>
+        <div class="actions">
+          <button class="btn ghost" onClick={onClose}>Fermer</button>
+          <button class="btn" onClick={() => downloadFile(datedFilename(`profil-${profile.name}`), JSON.stringify(exportProfiles([profile]), null, 2))}>Télécharger en JSON</button>
+        </div>
       </div>
     </div>
   );
 }
 
+// Tous mes profils (le mien et ceux de mes amis) en JSON
+function ExportAllDialog({list, onClose}) {
+  const text = JSON.stringify(exportProfiles(list), null, 2);
+  return (
+    <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div class="modal">
+        <h3>Exporter les profils</h3>
+        <p class="help">{plural(list.length, "profil")} : le vôtre et ceux de vos amis. Pour les retrouver dans un autre navigateur, ou les donner à un ami : onglet Profils, « Importer ».</p>
+        <Copyable text={text} />
+        <div class="actions">
+          <button class="btn ghost" onClick={onClose}>Fermer</button>
+          <button class="btn" onClick={() => downloadFile(datedFilename("profils"), text)}>Télécharger le fichier</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Code de partage (WMT-P1…), JSON collé ou fichier → résumé, puis import sur confirmation.
+// Le profil qui porte mon pseudo devient le mien ; un ami déjà présent est remplacé.
 function ImportDialog({onClose}) {
   const me = readSession()?.username;
-  const [code, setCode] = useState("");
+  const [text, setText] = useState("");
   const [error, setError] = useState(null);
-  const run = async () => {
+  const [preview, setPreview] = useState(null);
+  const read = async () => {
+    setError(null);
     try {
-      const {payload} = await decodeShareCode(code, "P");
-      const problems = validateProfile(payload);
-      if (problems.length) throw new Error(problems.join(" "));
-      const p = {...payload, id: newId(), enabled: true};
-      if (me && p.name.toLowerCase() === me.toLowerCase()) {
-        profiles.set({mine: p});
-        toast("Profil importé comme votre profil.", {type: "ok"});
-      } else {
-        profiles.set((s) => ({friends: [...s.friends.filter((f) => f.name.toLowerCase() !== p.name.toLowerCase()), p]}));
-        toast(`Profil de ${p.name} importé.`, {type: "ok"});
-      }
-      onClose();
+      const input = text.trim();
+      const result = input.startsWith("WMT-") ? importProfiles(JSON.stringify((await decodeShareCode(input, "P")).payload)) : importProfiles(input);
+      if (result.error) throw new Error(result.error);
+      if (!result.profiles.length) throw new Error(result.rejected.map((r) => `${r.name} : ${r.problems.join(" ")}`).join(" "));
+      setPreview({...result, merge: mergeProfiles(profiles.get(), result.profiles, me, newId)});
     } catch (e) {
-      setError(e.message);
+      setError(errorMessage(e));
     }
+  };
+  const confirm = () => {
+    const {merge} = preview;
+    // Recalculé sur l'état actuel : un profil modifié entre-temps (autre onglet) n'est pas perdu
+    profiles.set((st) => mergeProfiles(st, preview.profiles, me, newId).state);
+    toast(`${plural(merge.added.length + merge.replaced.length + (merge.mine ? 1 : 0), "profil importé", "profils importés")}.`, {type: "ok"});
+    onClose();
   };
   return (
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div class="modal">
-        <h3>Importer un profil</h3>
-        <textarea class="mono" rows={5} placeholder="WMT-P1.…" value={code} onInput={(e) => setCode(e.currentTarget.value)} />
+        <h3>Importer des profils</h3>
+        {preview ? (
+          <div class="stack" style={{gap: "8px"}}>
+            {preview.merge.mine && <p>Mon profil : {preview.merge.mine === "replaced" ? "remplacé" : "ajouté"}.</p>}
+            {preview.merge.added.length > 0 && <p>Ajoutés : {preview.merge.added.join(", ")}.</p>}
+            {preview.merge.replaced.length > 0 && <p>Remplacés (même pseudo) : {preview.merge.replaced.join(", ")}.</p>}
+            {preview.rejected.length > 0 && (
+              <Notice type="warn">
+                Écartés : {preview.rejected.map((r) => `${r.name} (${r.problems.join(" ")})`).join(" ; ")}
+              </Notice>
+            )}
+            <p class="small muted">Les étiquettes « Pour : … » suivent au prochain tri. Rien n'est écrit sur le site.</p>
+          </div>
+        ) : (
+          <>
+            <p class="help">Collez le code d'un ami (WMT-P1…) ou un export JSON de la Toolbox, ou choisissez le fichier. Un résumé s'affiche avant l'import.</p>
+            <textarea class="mono" rows={6} spellcheck={false} placeholder="WMT-P1.… ou {&quot;format&quot;: &quot;wikimasters-toolbox/profiles&quot;, …}" value={text} onInput={(e) => setText(e.currentTarget.value)} />
+          </>
+        )}
         {error && <Notice type="error">{error}</Notice>}
         <div class="actions">
-          <button class="btn ghost" onClick={onClose}>Annuler</button>
-          <button class="btn primary" onClick={run} disabled={!code.trim()}>Importer</button>
+          {preview ? (
+            <>
+              <button class="btn ghost" onClick={() => setPreview(null)}>Retour</button>
+              <button class="btn primary" onClick={confirm}>Importer</button>
+            </>
+          ) : (
+            <>
+              <FileButton
+                maxSize={1000000}
+                onError={setError}
+                onText={(t) => {
+                  setText(t);
+                  setError(null);
+                }}
+              />
+              <button class="btn ghost" onClick={onClose}>Annuler</button>
+              <button class="btn primary" onClick={read} disabled={!text.trim()}>Continuer</button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -224,8 +283,8 @@ function TestDialog({profile, onClose}) {
           if (seen.has(c.card_id)) continue;
           seen.add(c.card_id);
           const f = extractFields(c.card);
-          const theme = categorize(c.card)[0];
-          if (profileTags([profile], c.card, f, theme).length) matches.push({...c, theme});
+          const theme = classify(c.card)[0];
+          if (profileTags([profile], c.card, f, aliasesOf(theme)).length) matches.push({...c, theme});
         }
         setState({matches, total: seen.size});
       })
@@ -279,24 +338,22 @@ export function ProfilesTab() {
   const {mine, friends} = useStore(profiles);
   const me = readSession()?.username;
   const [modal, setModal] = useState(null);
-  const builtinMine = me && BUILTIN_PROFILES.find((p) => p.name.toLowerCase() === me.toLowerCase());
-  const missingBuiltins = BUILTIN_PROFILES.filter((b) => b.name.toLowerCase() !== me?.toLowerCase() && !friends.some((f) => f.name.toLowerCase() === b.name.toLowerCase()));
 
   const saveFriend = (p) => {
     profiles.set((s) => ({friends: s.friends.some((f) => f.id === p.id) ? s.friends.map((f) => (f.id === p.id ? p : f)) : [...s.friends, p]}));
     setModal(null);
   };
-  const importBuiltins = () => {
-    profiles.set((s) => ({friends: [...s.friends, ...missingBuiltins.map((b) => ({...b, id: newId(), enabled: true}))]}));
-    toast(`${plural(missingBuiltins.length, "profil importé", "profils importés")}.`, {type: "ok"});
-  };
 
   return (
     <div class="stack">
       <div class="page-head">
-        <div>
+        <div style={{flex: 1}}>
           <h2>Profils d'intérêts</h2>
-          <p>Ce que chacun collectionne. Chaque profil donne une étiquette « Pour : pseudo » lors du tri, et guide la recherche d'échanges. Partagez votre profil par code avec vos amis.</p>
+          <p>Ce que chacun collectionne. Chaque profil donne une étiquette « Pour : pseudo » lors du tri, et guide la recherche d'échanges. Partagez votre profil par code ou en JSON avec vos amis.</p>
+        </div>
+        <div class="row">
+          <button class="btn" onClick={() => setModal({type: "import"})}>Importer</button>
+          <button class="btn" disabled={!mine && !friends.length} onClick={() => setModal({type: "export-all"})}>Exporter</button>
         </div>
       </div>
 
@@ -314,7 +371,6 @@ export function ProfilesTab() {
         ) : (
           <div class="box row">
             <p class="help" style={{flex: 1}}>Décrivez ce que vous collectionnez : vos amis pourront importer votre profil pour savoir quoi vous proposer.</p>
-            {builtinMine && <button class="btn" onClick={() => profiles.set({mine: {...builtinMine, id: newId()}})}>Reprendre le profil de la bande</button>}
             <button class="btn primary" onClick={() => setModal({type: "edit", profile: null, isMine: true})}>Créer mon profil</button>
           </div>
         )}
@@ -322,8 +378,6 @@ export function ProfilesTab() {
 
       <div class="row">
         <h3 class="section-title" style={{flex: 1}}>Profils de mes amis</h3>
-        {missingBuiltins.length > 0 && <button class="btn" onClick={importBuiltins}>Profils de la bande ({missingBuiltins.length})</button>}
-        <button class="btn" onClick={() => setModal({type: "import"})}>Importer un code</button>
         <button class="btn primary" onClick={() => setModal({type: "edit", profile: null, isMine: false})}>Ajouter</button>
       </div>
       {friends.length ? (
@@ -344,7 +398,7 @@ export function ProfilesTab() {
           ))}
         </div>
       ) : (
-        <div class="empty">Aucun profil d'ami. Importez le code d'un ami, ou créez son profil vous-même.</div>
+        <div class="empty">Aucun profil d'ami. Importez le code ou le fichier JSON d'un ami, ou créez son profil vous-même.</div>
       )}
 
       {modal?.type === "edit" && (
@@ -362,6 +416,7 @@ export function ProfilesTab() {
       )}
       {modal?.type === "export" && <ExportDialog profile={modal.profile} onClose={() => setModal(null)} />}
       {modal?.type === "import" && <ImportDialog onClose={() => setModal(null)} />}
+      {modal?.type === "export-all" && <ExportAllDialog list={[...(mine ? [{...mine, name: me || mine.name}] : []), ...friends]} onClose={() => setModal(null)} />}
       {modal?.type === "test" && <TestDialog profile={modal.profile} onClose={() => setModal(null)} />}
     </div>
   );

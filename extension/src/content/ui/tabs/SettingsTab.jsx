@@ -1,11 +1,12 @@
-// Onglet « Réglages » : fonctionnalités, couleurs des étiquettes, caches.
+// Onglet « Réglages » : fonctionnalités, thèmes de tri, caches.
 import {useStore} from "../../lib/store";
 import {keysWithPrefix, remove} from "../../lib/storage";
 import {settings, FEATURES, DEFAULT_SETTINGS} from "../../state/settings";
 import {clearPrices} from "../../state/prices";
 import {Toggle} from "../components";
 import {confirmAction, toast} from "../feedback";
-import {THEME_COLORS, DOUBLON, DOUBLON_COLOR} from "../../../../../core";
+import {ThemeEditor} from "../ThemeEditor";
+import {defaultThemeList, storeThemes} from "../../../../../core";
 
 // Nombre entier saisi, borné ; champ vide ou illisible : valeur par défaut
 const count = (value, min, max, fallback) => {
@@ -17,8 +18,6 @@ export function SettingsTab() {
   const s = useStore(settings);
   const groups = [...new Set(FEATURES.map((f) => f.group))];
   const setFeature = (key, on) => settings.set((st) => ({...st, features: {...st.features, [key]: on}}));
-  const setColor = (name, color) => settings.set((st) => ({...st, themeColors: {...st.themeColors, [name]: color}}));
-  const colors = {...THEME_COLORS, [DOUBLON]: DOUBLON_COLOR};
 
   return (
     <div class="stack">
@@ -67,21 +66,7 @@ export function SettingsTab() {
         </div>
       </div>
 
-      <div class="box stack">
-        <div class="row">
-          <h3 style={{flex: 1}}>Couleurs des étiquettes</h3>
-          <button class="btn sm ghost" onClick={() => settings.set({themeColors: {}})}>Couleurs d'origine</button>
-        </div>
-        <p class="help">Appliquées aux étiquettes WikiMasters au prochain tri.</p>
-        <div class="grid-2" style={{gap: "6px 14px"}}>
-          {Object.entries(colors).map(([name, color]) => (
-            <label class="row" key={name} style={{gap: "8px"}}>
-              <input type="color" value={s.themeColors[name] || color} onInput={(e) => setColor(name, e.currentTarget.value)} />
-              <span>{name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <ThemeEditor />
 
       <div class="box stack">
         <h3>Données</h3>
@@ -108,7 +93,11 @@ export function SettingsTab() {
           </button>
           <button
             class="btn ghost"
-            onClick={async () => (await confirmAction({title: "Réinitialiser les réglages ?", confirm: "Réinitialiser", danger: true})) && settings.set(DEFAULT_SETTINGS)}
+            onClick={async () =>
+              (await confirmAction({title: "Réinitialiser les réglages ?", body: "Les thèmes de tri reviennent aussi à la liste par défaut ; leurs étiquettes suivent au prochain tri.", confirm: "Réinitialiser", danger: true})) &&
+              // Les étiquettes des thèmes renommés ou supprimés restent notées pour le prochain tri
+              settings.set((st) => ({...DEFAULT_SETTINGS, themes: storeThemes(defaultThemeList(), st.themes)}))
+            }
           >
             Réinitialiser les réglages
           </button>

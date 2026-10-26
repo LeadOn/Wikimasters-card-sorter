@@ -90,6 +90,7 @@ export const tagClient = (userId) => ({
   listTags: () => rest(`tags?select=id,name,color&user_id=eq.${userId}`, {retries: 3}),
   createTag: async ({name, color}) => (await rest("tags?select=id,name,color", {method: "POST", prefer: "return=representation", body: {user_id: userId, name, color}}))?.[0],
   recolorTag: (id, color) => rest(`tags?id=eq.${id}`, {method: "PATCH", body: {color}, retries: 3}),
+  renameTag: (id, name) => rest(`tags?id=eq.${id}`, {method: "PATCH", body: {name}, retries: 3}),
   insertLinks: (rows) => rest("user_card_tags", {method: "POST", body: rows, prefer: "resolution=ignore-duplicates", retries: 4}),
   deleteLinks: (tagId, ids) => rest(`user_card_tags?tag_id=eq.${tagId}&user_card_id=in.(${ids.join(",")})`, {method: "DELETE", retries: 4}),
   deleteTag: (id) => rest(`tags?id=eq.${id}`, {method: "DELETE", retries: 3}),

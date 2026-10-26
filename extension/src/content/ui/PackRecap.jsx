@@ -14,7 +14,8 @@ import {toast, errorMessage} from "./feedback";
 import {confirmDiscardMany} from "./discard";
 import {askSell} from "./SellDialog";
 import {emit} from "../lib/bus";
-import {categorize, isThemeTag, DOUBLON, RECENT_SALES} from "../../../../core";
+import {DOUBLON, RECENT_SALES} from "../../../../core";
+import {classify, isTheme} from "../state/themes";
 import {mountIsland} from "./islands/mount";
 
 function Price({card, loading}) {
@@ -79,21 +80,21 @@ function CardActions({card, index, at, locked}) {
 
 // Étiquettes posées par le tri automatique (ou thème calculé si l'option est désactivée)
 function SortTags({card, sort, index}) {
-  if (!sort) return <ThemeChip theme={categorize(card)[0]} />;
+  if (!sort) return <ThemeChip theme={classify(card)[0]} />;
   if (sort.status === "running")
     return (
       <span class="chip">
         <span class="spinner" style={{width: "10px", height: "10px", borderWidth: "2px"}} /> tri…
       </span>
     );
-  if (sort.status === "error") return <ThemeChip theme={categorize(card)[0]} />;
+  if (sort.status === "error") return <ThemeChip theme={classify(card)[0]} />;
   const r = sort.byIndex?.[index];
   if (!r || r.status === "unknown") return <span class="chip warn" title="Exemplaire introuvable : utilisez le tri manuel">non trié</span>;
   if (r.status === "already") return <span class="chip" title="Cet exemplaire avait déjà un thème : il n'a pas été modifié">déjà triée</span>;
   return (
     <>
       {r.tags.map((t) =>
-        isThemeTag(t) ? <ThemeChip key={t} theme={t} /> : t === DOUBLON ? null : <span key={t} class="chip accent">{t}</span>,
+        isTheme(t) ? <ThemeChip key={t} theme={t} /> : t === DOUBLON ? null : <span key={t} class="chip accent">{t}</span>,
       )}
     </>
   );

@@ -8,6 +8,7 @@ import {createLimiter} from "../lib/http";
 import {withLock} from "../lib/locks";
 import {loadMyCollection} from "../state/collection";
 import {newId} from "../state/profiles";
+import {themeSet, isTheme} from "../state/themes";
 import {
   matchesFamilyRule,
   compactCard,
@@ -17,7 +18,6 @@ import {
   decodeShareCode,
   ensureTags,
   insertLinks,
-  isThemeTag,
   isFriendTag,
   DOUBLON,
 } from "../../../../core";
@@ -56,7 +56,7 @@ export async function refreshSmartFamily(id, {maxPages = 10, onProgress, signal}
     if (signal?.aborted) break;
     const res = await site.searchCards({q: family.rule.query.trim(), page, rarities: family.rule.rarities || [], signal});
     const cards = res.cards || [];
-    for (const c of cards) if (matchesFamilyRule(c, family.rule)) found.set(c.id, compactCard(c));
+    for (const c of cards) if (matchesFamilyRule(c, family.rule, {themes: themeSet()})) found.set(c.id, compactCard(c));
     // Résultats visibles au fil des pages
     update(id, (f) => ({...f, cards: [...found.values()]}));
     onProgress?.({page: page + 1, maxPages, found: found.size});
@@ -101,7 +101,7 @@ export async function importFamily(code) {
 // tri est donc refusé, sinon le prochain retri complet retirerait ces associations).
 export async function familyToTag(family, color = "#0ea5e9") {
   const name = family.name.trim();
-  if (isThemeTag(name) || name === DOUBLON || isFriendTag(name))
+  if (isTheme(name) || name === DOUBLON || isFriendTag(name))
     throw new Error(`« ${name} » est une étiquette gérée par le tri automatique : renommez la famille avant d'en faire une étiquette.`);
   const session = await ensureSession();
   const copies = await loadMyCollection();

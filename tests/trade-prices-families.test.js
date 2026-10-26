@@ -2,6 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const core = require("../core");
+const {BUILTIN_PROFILES} = require("../core/builtin-profiles");
 
 const card = (id, title, category, rarity = "C", extra = {}) => ({id, wikipedia_title: title, category, rarity, summary: "", ...extra});
 
@@ -136,7 +137,7 @@ test("familles : règle, progression, partage", async () => {
 });
 
 test("codes de profil : aller-retour sans perte", async () => {
-  for (const p of core.BUILTIN_PROFILES) {
+  for (const p of BUILTIN_PROFILES) {
     const {payload} = await core.decodeShareCode(await core.encodeShareCode("P", p), "P");
     assert.deepEqual(payload, p);
   }

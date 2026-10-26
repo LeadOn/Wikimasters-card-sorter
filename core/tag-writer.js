@@ -5,6 +5,7 @@
 //   listTags()                      → [{id, name, color}] : étiquettes actuelles du joueur
 //   createTag({name, color})        → {id, name, color}
 //   recolorTag(id, color)
+//   renameTag(id, name)             seulement pour un plan qui renomme (thème renommé par le joueur)
 //   insertLinks(rows)               rows : [{user_card_id, tag_id}], ajout qui ignore les doublons
 //   deleteLinks(tagId, userCardIds)
 //   deleteTag(id)
@@ -100,12 +101,14 @@ async function deleteLinks(client, groups, {onProgress, chunkSize = CHUNK} = {})
   return deleted;
 }
 
-// Applique un plan de core/tag-sync.js : {toInsert, toDelete, extraTagIds, upserts, managed}.
-// Ajouts d'abord, suppressions ensuite : une interruption laisse au pire une étiquette en trop.
+// Applique un plan de core/tag-sync.js : {toInsert, toDelete, extraTagIds, upserts, managed, renamed?}.
+// Renommages d'abord (le plan a été calculé avec les nouveaux noms), puis ajouts, puis suppressions :
+// une interruption laisse au pire une étiquette en trop. Un renommage est idempotent.
 // onProgress({step: "tags" | "insert" | "delete", done?, total?})
 async function applyPlan(client, plan, {onProgress} = {}) {
   const {existing = {}, create = [], recolor = []} = plan.upserts || {};
   onProgress?.({step: "tags"});
+  for (const {id, to} of plan.renamed || []) await client.renameTag(id, to);
   for (const {id, color} of recolor) await client.recolorTag(id, color);
 
   const wanted = {};

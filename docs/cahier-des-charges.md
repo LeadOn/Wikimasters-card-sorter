@@ -60,6 +60,7 @@ Priorité : **P1** indispensable · **P2** important · **P3** bonus.
 | T4 | Pastille du thème sur les cartes affichées par le site | P2 |
 | T5 | Après l'ouverture d'un paquet, proposition de trier immédiatement les nouvelles cartes | P2 |
 | T6 | « Mauvais thème ? » : génère un rapport à copier (carte, thème obtenu, thème attendu) pour enrichir le jeu de test | P3 |
+| T7 | **Thèmes personnalisés** : chaque joueur renomme, recolore, modifie (mots-clés), ajoute ou supprime des thèmes dans les réglages ; retour aux thèmes par défaut ; import / export en JSON ; étiquettes renommées au tri suivant, celles des thèmes supprimés retirées au retri complet après confirmation | P2 |
 
 ### 3.3 Profils d'intérêts (« Pour : … »)
 
@@ -71,7 +72,7 @@ Remplacent les règles codées en dur pour chaque ami.
 | I2 | **Profils de mes amis** : chaque profil génère le tag `Pour : <pseudo>` lors du tri | P1 |
 | I3 | Éditeur simple (thèmes + mots-clés séparés par des virgules, `*` pour un préfixe) et éditeur avancé (règles) | P1 |
 | I4 | Partage par code : j'exporte mon profil, mes amis l'importent | P1 |
-| I5 | Profils de la bande fournis avec l'extension (les règles historiques de ce dépôt), importables en un clic | P2 |
+| I5 | Export / import JSON de tous les profils (le mien et ceux de mes amis), avec résumé avant import ; les profils de la bande ne sont plus fournis avec l'extension publiée (ils restent pour les scripts Node) | P2 |
 | I6 | Test d'un profil sur ma collection : nombre de cartes concernées, exemples | P2 |
 
 ### 3.4 Échanges
@@ -135,7 +136,7 @@ partage son état avec l'onglet correspondant du panneau.
 | D2 | **Fiche d'une carte** (fenêtre ouverte au clic, sur toutes les pages) : prix du marché de la rareté (instantané si en cache), thème, amis intéressés (« Pour : … »), possession, ajout à une famille | P2 |
 | D3 | **Page d'une enchère** : prix du marché, écart entre la mise et ce prix, carte déjà possédée ou nouvelle, amis intéressés | P2 |
 | D4 | **Marché** : pastille « −X % » sur une enchère qui se termine dans moins de 15 min sous le prix du marché, « +X % » quand la mise minimale dépasse nettement ce prix (prix fiable seulement) | P3 |
-| D5 | **Profil d'un ami** : recherche d'échanges sur place (raretés au choix), aperçu des cartes à demander et à proposer, profil de la bande en un clic | P2 |
+| D5 | **Profil d'un ami** : recherche d'échanges sur place (raretés au choix), aperçu des cartes à demander et à proposer | P2 |
 
 ## 4. Hors périmètre (pour l'instant)
 

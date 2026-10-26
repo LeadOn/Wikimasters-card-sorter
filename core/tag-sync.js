@@ -2,22 +2,48 @@
 // Fonctions pures : la lecture et l'écriture en base sont faites par l'appelant (script Node ou extension).
 "use strict";
 
-const {THEME_COLORS, DOUBLON, DOUBLON_COLOR} = require("./themes");
+const {DOUBLON, DOUBLON_COLOR} = require("./themes");
 const {tagForProfile} = require("./profiles");
 const {categorize} = require("./categorize");
+const {themeSetOf} = require("./theme-set");
+
+// `themes` (partout) : liste de thèmes du joueur (core/theme-set.js) ; par défaut, celle de core/themes.js.
 
 // Tags gérés par l'outil, avec leur couleur : thèmes, puis profils actifs, puis Doublon.
 // Les autres tags (créés à la main par le joueur) ne sont jamais touchés.
-function managedTags({profiles = [], themeColors = {}} = {}) {
+function managedTags({profiles = [], themeColors = {}, themes = null} = {}) {
   const tags = {};
-  for (const [name, color] of Object.entries(THEME_COLORS)) tags[name] = themeColors[name] || color;
+  for (const [name, color] of Object.entries(themeSetOf(themes).tags)) tags[name] = themeColors[name] || color;
   for (const p of profiles) tags[tagForProfile(p)] = p.color || "#64748b";
   tags[DOUBLON] = themeColors[DOUBLON] || DOUBLON_COLOR;
   return tags;
 }
 
 // Tag de thème générique (un seul par carte triée).
-const isThemeTag = (name) => Object.prototype.hasOwnProperty.call(THEME_COLORS, name);
+const isThemeTag = (name, themes = null) => Object.prototype.hasOwnProperty.call(themeSetOf(themes).tags, name);
+
+// Étiquettes des thèmes renommés ou supprimés par le joueur (réglage `renames` / `removed` de
+// core/theme-set.js), à traiter avant de calculer le plan :
+// - renommée : l'étiquette de l'ancien nom prend le nouveau (associations et corrections manuelles
+//   conservées), si aucune étiquette ne porte déjà le nouveau nom ;
+// - retirée : ancienne étiquette de thème qui n'a plus de thème (supprimé, ou renommé vers un nom
+//   déjà pris). Elle compte encore comme thème pour le tri des nouvelles cartes ; le retri complet
+//   retire ses associations puis la supprime, après confirmation du joueur.
+// Un nom redevenu géré (un thème le porte de nouveau) n'est jamais renommé ni retiré.
+// Renvoie {tags: étiquettes telles qu'après les renommages, renamed: [{id, from, to}], retired: [étiquette]}.
+function planThemeTags(existingTags, managed, {renames = {}, removed = []} = {}) {
+  const taken = new Set(existingTags.map((t) => t.name));
+  const renamed = [];
+  const tags = existingTags.map((tag) => {
+    const to = renames[tag.name];
+    if (!to || tag.name in managed || !(to in managed) || taken.has(to)) return tag;
+    taken.add(to);
+    renamed.push({id: tag.id, from: tag.name, to});
+    return {...tag, name: to};
+  });
+  const old = new Set([...removed, ...Object.keys(renames)].filter((name) => !(name in managed)));
+  return {tags, renamed, retired: tags.filter((t) => old.has(t.name))};
+}
 
 // Nombre d'exemplaires de chaque carte : Map(card id → exemplaires), plusieurs lignes ou `count` > 1.
 function countCopies(userCards) {
@@ -32,11 +58,11 @@ function countCopies(userCards) {
 // (plusieurs lignes, ou une ligne dont `count` dépasse 1).
 // copies : à fournir (countCopies de toute la collection) quand userCards n'en est qu'une partie,
 // sinon deux exemplaires répartis dans deux parties ne seraient pas vus comme un doublon.
-function computeAssignments(userCards, {profiles = [], manualMapping = null, copies = countCopies(userCards)} = {}) {
+function computeAssignments(userCards, {profiles = [], manualMapping = null, themes = null, copies = countCopies(userCards)} = {}) {
   const assignments = [];
   for (const uc of userCards) {
     if (!uc.cards) continue;
-    const tags = categorize(uc.cards, {profiles, manualMapping, userCardId: uc.id});
+    const tags = categorize(uc.cards, {profiles, manualMapping, userCardId: uc.id, themes});
     if (uc.cards.id && copies.get(uc.cards.id) > 1) tags.push(DOUBLON);
     assignments.push({userCard: uc, tags: [...new Set(tags)]});
   }
@@ -52,11 +78,13 @@ function managedTagIds(existingTags, managed) {
 }
 
 // Calcule les associations à ajouter / supprimer (par nom de tag : un tag peut ne pas encore exister).
-// current : Map(tagId → Set(userCardId)), associations actuelles des tags gérés.
+// current : Map(tagId → Set(userCardId)), associations actuelles des tags gérés (et retirés).
 // Mode complet : toutes les cartes sont resynchronisées sur le résultat du moteur.
 // Mode newOnly : seules les cartes sans tag de thème (jamais triées) sont classées ; les cartes
 // déjà triées gardent leurs tags (corrections manuelles comprises), sauf Doublon, recalculé partout.
-function planChanges(assignments, existingTags, current, {newOnly = false, managed}) {
+// retired : étiquettes de thèmes retirés (planThemeTags) : comptent comme thème en mode newOnly,
+// vidées puis supprimées en mode complet. existingTags : la liste renvoyée par planThemeTags.
+function planChanges(assignments, existingTags, current, {newOnly = false, managed, themes = null, retired = []}) {
   const wanted = Object.fromEntries(Object.keys(managed).map((name) => [name, new Set()]));
   for (const {userCard, tags} of assignments) for (const t of tags) wanted[t]?.add(userCard.id);
 
@@ -67,8 +95,8 @@ function planChanges(assignments, existingTags, current, {newOnly = false, manag
   let mayDelete = () => true;
   if (newOnly) {
     const sorted = new Set();
-    for (const [name, ids] of Object.entries(idsByName))
-      if (isThemeTag(name)) for (const id of ids) for (const ucId of current.get(id) || []) sorted.add(ucId);
+    const themeTagIds = Object.entries(idsByName).flatMap(([name, ids]) => (isThemeTag(name, themes) ? ids : []));
+    for (const id of [...themeTagIds, ...retired.map((t) => t.id)]) for (const ucId of current.get(id) || []) sorted.add(ucId);
     fresh = new Set(assignments.map((a) => a.userCard.id).filter((id) => !sorted.has(id)));
     inScope = (name, ucId) => name === DOUBLON || fresh.has(ucId);
     mayDelete = (name) => name === DOUBLON;
@@ -89,6 +117,11 @@ function planChanges(assignments, existingTags, current, {newOnly = false, manag
       extraTagIds.push(id);
     }
   }
+  if (!newOnly)
+    for (const tag of retired) {
+      if (current.get(tag.id)?.size) toDelete.push({name: tag.name, tagId: tag.id, ids: [...current.get(tag.id)]});
+      extraTagIds.push(tag.id);
+    }
   return {fresh, toInsert, toDelete, extraTagIds};
 }
 
@@ -119,4 +152,4 @@ function countByTag(assignments, managed) {
   return Object.keys(managed).filter((n) => counts[n]).map((name) => ({name, count: counts[name]}));
 }
 
-module.exports = {managedTags, isThemeTag, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag};
+module.exports = {managedTags, isThemeTag, planThemeTags, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag};

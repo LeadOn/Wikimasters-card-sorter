@@ -10,7 +10,8 @@ import {isOn} from "../../state/settings";
 import {Icon, Mark, Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
 import {CollectionFilters, CollectionCards} from "../CollectionCards";
 import {toast} from "../feedback";
-import {isThemeTag, DOUBLON} from "../../../../../core";
+import {DOUBLON} from "../../../../../core";
+import {isTheme} from "../../state/themes";
 
 const openTab = (tab) => emit("open-panel", {tab});
 
@@ -35,7 +36,7 @@ function Plan({plan}) {
       {plan.counts.length > 0 && (
         <div class="chips">
           {plan.counts.map((c) =>
-            isThemeTag(c.name) ? (
+            isTheme(c.name) ? (
               <ThemeChip key={c.name} theme={c.name} />
             ) : (
               <span key={c.name} class={`chip ${c.name === DOUBLON ? "danger" : "accent"}`}>

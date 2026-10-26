@@ -2,14 +2,16 @@
 // viennent d'arriver sont classés, en quelques requêtes, sans relire toute la collection.
 // - thème + tags « Pour : … » sur chaque nouvel exemplaire qui n'a encore aucun thème ;
 // - Doublon sur tous les exemplaires d'une carte possédée en plusieurs exemplaires ;
+// - étiquette d'un thème renommé dans les réglages : renommée ;
 // - aucune suppression, aucune autre carte touchée, étiquettes personnelles jamais modifiées.
 import {restIn, rest, tagClient} from "../api/supabase";
 import {ensureSession} from "../lib/session";
 import {withLock} from "../lib/locks";
 import {activeProfiles} from "../state/profiles";
 import {settings} from "../state/settings";
+import {themeSet, pendingThemeTags, settleThemeTags} from "../state/themes";
 import {invalidateCollection} from "../state/collection";
-import {categorize, managedTags, isThemeTag, ensureTags, insertLinks, DOUBLON} from "../../../../core";
+import {categorize, managedTags, isThemeTag, planThemeTags, ensureTags, insertLinks, DOUBLON} from "../../../../core";
 
 // Exemplaires des cartes tirées : user_card_id fourni par le site, sinon les plus récents de chaque carte
 function pulledCopies(cards, rows) {
@@ -35,21 +37,31 @@ export function sortPulledCards(cards) {
 async function sortNow(cards) {
   const session = await ensureSession();
   const profiles = activeProfiles();
-  const managed = managedTags({profiles, themeColors: settings.get().themeColors});
+  const themes = themeSet();
+  const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes});
   const ids = cards.map((c) => c.id);
 
-  const [tags, copies, summaries] = await Promise.all([
+  const [tagRows, copies, summaries] = await Promise.all([
     rest(`tags?select=id,name,color&user_id=eq.${session.userId}`, {retries: 3}),
     restIn("user_cards?select=id,card_id,count,obtained_at", "card_id", ids, {retries: 3}),
     cards.some((c) => c.summary == null) ? restIn("cards?select=id,summary", "id", ids, {retries: 3}) : Promise.resolve([]),
   ]);
+  // Thème renommé dans les réglages : l'ancienne étiquette prend le nouveau nom avant tout ajout,
+  // sinon une deuxième étiquette serait créée à côté
+  const client = tagClient(session.userId);
+  const pending = pendingThemeTags();
+  const {tags, renamed, retired} = planThemeTags(tagRows, managed, pending);
+  for (const {id, to} of renamed) await client.renameTag(id, to);
+  settleThemeTags(renamed.map((r) => r.from));
   const summaryOf = new Map(summaries.map((s) => [s.id, s.summary]));
   const pulledIds = pulledCopies(cards, copies);
 
   // Étiquettes déjà présentes sur les exemplaires tirés (un exemplaire déjà trié n'est pas reclassé)
   const links = await restIn("user_card_tags?select=user_card_id,tag_id", "user_card_id", pulledIds, {retries: 3});
+  // L'étiquette d'un thème supprimé dans les réglages compte encore comme thème (retirée au retri complet)
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
-  const hasTheme = new Set(links.filter((l) => isThemeTag(tagName.get(l.tag_id) || "")).map((l) => l.user_card_id));
+  const retiredIds = new Set(retired.map((t) => t.id));
+  const hasTheme = new Set(links.filter((l) => retiredIds.has(l.tag_id) || isThemeTag(tagName.get(l.tag_id) || "", themes)).map((l) => l.user_card_id));
 
   // Thème + profils pour chaque nouvel exemplaire
   const wanted = []; // {userCardId, name}
@@ -58,7 +70,7 @@ async function sortNow(cards) {
     if (!ucId) return {status: "unknown"};
     if (hasTheme.has(ucId)) return {status: "already"};
     const card = {...c, summary: c.summary ?? summaryOf.get(c.id) ?? ""};
-    const names = categorize(card, {profiles});
+    const names = categorize(card, {profiles, themes});
     for (const name of names) wanted.push({userCardId: ucId, name});
     return {status: "sorted", tags: names};
   });
@@ -75,7 +87,6 @@ async function sortNow(cards) {
   });
 
   // Étiquettes gérées manquantes : créées à la demande, après relecture (core/tag-writer.js)
-  const client = tagClient(session.userId);
   const tagId = await ensureTags(client, Object.fromEntries([...new Set(wanted.map((w) => w.name))].map((name) => [name, managed[name]])), {known: tags});
   const rows = wanted.map((w) => ({user_card_id: w.userCardId, tag_id: tagId.get(w.name)})).filter((r) => r.tag_id);
   await insertLinks(client, rows);

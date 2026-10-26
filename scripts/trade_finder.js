@@ -11,7 +11,8 @@
 const fs = require("fs");
 const path = require("path");
 const {readToken, api, fetchAll, TAG_COLORS} = require("./categorize_cards");
-const {findTrades, BUILTIN_PROFILES, RARITY_COLORS} = require("../core");
+const {findTrades, RARITY_COLORS} = require("../core");
+const {BUILTIN_PROFILES} = require("../core/builtin-profiles");
 
 const SITE = "https://www.wiki-masters.com";
 const ROOT = path.join(__dirname, "..");

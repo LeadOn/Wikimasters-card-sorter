@@ -22,6 +22,25 @@ function hasKeyword(text, keywords) {
   return regexCache.get(keywords).test(text);
 }
 
+// Une expression saisie par un joueur (profil importé, thème modifié) est appliquée à chaque carte
+// de la collection : trop longue, ou à quantificateurs imbriqués (« (a+)+ », temps d'exécution
+// explosif), elle figerait la page. Renvoie le problème, ou null.
+const MAX_PATTERN = 5000;
+const NESTED_QUANTIFIER = /\((?:[^()\\]|\\.)*[+*}](?:[^()\\]|\\.)*\)[+*{]/;
+function patternProblem(pattern) {
+  if (typeof pattern !== "string") return "texte attendu";
+  if (pattern.length > MAX_PATTERN) return `trop longue, ${MAX_PATTERN} caractères au plus`;
+  if (NESTED_QUANTIFIER.test(pattern)) return "quantificateurs imbriqués, trop lente à évaluer";
+  try {
+    compile(pattern);
+  } catch (e) {
+    return e.message;
+  }
+  return null;
+}
+
+const isColor = (c) => typeof c === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(c);
+
 function normalize(s) {
   return (s || "")
     .toLowerCase()
@@ -76,4 +95,4 @@ function extractFields(card) {
   };
 }
 
-module.exports = {WORD_CHARS, compile, hasKeyword, normalize, firstMatch, extractFields};
+module.exports = {WORD_CHARS, compile, hasKeyword, patternProblem, isColor, normalize, firstMatch, extractFields};

@@ -32,10 +32,11 @@ core/                          moteur partagé (CommonJS, sans dépendance)
   index.js                     point d'entrée : ré-exporte tous les modules
   text.js                      normalisation, mots entiers, extraction des champs d'une carte
   themes.js                    thèmes génériques : mots-clés, couleurs, étiquette Doublon
+  theme-set.js                 liste de thèmes du joueur : différences avec themes.js, compilation, vérification, import / export JSON, suivi des étiquettes renommées / supprimées
   engine.js                    score par thème, homonymies, politique française / internationale
   categorize.js                classement d'une carte : thème + étiquettes « Pour : … »
-  profiles.js                  profils d'intérêts : format des règles, éditeur simple, validation
-  builtin-profiles.js          profils de la bande, fournis avec l'extension et les scripts
+  profiles.js                  profils d'intérêts : format des règles, éditeur simple, validation, import / export JSON
+  builtin-profiles.js          profils de la bande, pour les scripts Node et les tests (pas ré-exportés par index.js, absents de l'extension)
   tag-sync.js                  plan de synchronisation des étiquettes (fonctions pures)
   tag-writer.js                écriture d'un plan en base : ordre sûr, lots, reprise après panne
   trade.js                     recherche d'échanges, offre équilibrée, bilan d'une offre
@@ -68,7 +69,8 @@ extension/
         supabase.js            API REST Supabase (pagination stable, filtres in.() par lots)
         site.js                routes /api du site (voir docs/site-api.md)
       state/                   données gardées en mémoire et en cache
-        settings.js            réglages : interrupteurs, délais, couleurs
+        settings.js            réglages : interrupteurs, délais, thèmes de tri, couleur de Doublon
+        themes.js              thèmes de tri du joueur : liste compilée, classement d'une carte, couleur d'une étiquette
         profiles.js            mon profil et ceux de mes amis
         collection.js          ma collection, ids des cartes possédées, défausse d'un exemplaire
         prices.js              cache des prix, chargement groupé, prix fiable ou indicatif selon les réglages
@@ -98,6 +100,7 @@ extension/
         discard.js             confirmation d'une défausse, d'une carte ou de plusieurs (doublons du Marché, récapitulatif de paquet, jamais vendues)
         DropRates.jsx          taux de drop par rareté
         ImageCards.jsx         filtre Sans image / GIF et liste des cartes (onglet Images)
+        ThemeEditor.jsx        éditeur des thèmes de tri (onglet Réglages) : noms, couleurs, mots-clés, essai sur une description, import / export JSON
         CollectionCards.jsx    filtres de la collection et liste des cartes, à cocher, vendre ou défausser (onglet Prix, barre de la collection)
         tabs/                  un fichier par onglet du panneau
         islands/               blocs intégrés aux pages du site (collection, carte, enchère, profil, bilan d'une offre d'échange) et page Stonks
@@ -123,6 +126,8 @@ Fichiers à la racine : `README.md`, `AGENTS.md` (connaissances et règles pour 
 Le moteur ne fait ni réseau ni écriture : il reçoit des cartes et rend des décisions. C'est ce qui permet de le partager entre Node et le navigateur, et de le tester sans réseau.
 
 **Classement d'une carte** (`categorize`). Le champ `category` d'une carte est la description courte Wikidata, qui commence presque toujours par le type de l'article. Chaque thème de `themes.js` a une liste de mots-clés, et des noms ambigus qui ne comptent qu'en tête de description. Un mot-clé rapporte des points selon le champ où il apparaît (description ×10, définition de la première phrase ×7, titre ×3, reste du résumé ×0,5) et selon sa position. Le meilleur score l'emporte ; sous le seuil, la carte va dans *Autre*. Les profils d'intérêts sont évalués ensuite, sur le titre, la description et la première phrase seulement.
+
+**Thèmes du joueur** (`theme-set.js`). Le moteur reçoit en option une liste de thèmes (`categorize(card, {themes})`, `managedTags`, `planChanges`…) ; sans elle, il utilise celle de `themes.js` (scripts Node, tests). L'extension enregistre seulement les différences avec la liste par défaut, pour qu'un thème non modifié profite des améliorations des mots-clés, ainsi que les étiquettes renommées ou supprimées qu'aucun tri n'a encore traitées. Avant chaque tri, `planThemeTags` (`tag-sync.js`) renomme l'étiquette d'un thème renommé (associations et corrections conservées) et marque celle d'un thème supprimé comme « retirée » : elle compte encore comme thème pour le tri des nouvelles cartes, le retri complet la vide puis la supprime après confirmation. Les rôles particuliers (homonymies, noms latins, biographies) et la scission France / international sont des propriétés du thème (`role`, `split`), qui suivent son renommage.
 
 **Synchronisation des étiquettes** (`tag-sync.js`, `tag-writer.js`). Le plan compare les étiquettes voulues à celles en base et n'écrit que les différences. Les ajouts passent avant les suppressions : une interruption laisse au pire une étiquette en trop, jamais une étiquette manquante. Seules les étiquettes gérées (thèmes, profils actifs, `Doublon`) sont touchées.
 
@@ -177,12 +182,13 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 
 ## Tests
 
-`npm test` lance `node --test tests/`, sans réseau :
+`npm test` lance `node --test tests/*.test.js`, sans réseau :
 
 | Fichier | Ce qui est vérifié |
 |---|---|
 | `engine.test.js` | Classement du jeu de cartes étiquetées, profils d'intérêts |
-| `profiles.test.js` | Règles, éditeur simple, validation des profils |
+| `profiles.test.js` | Règles, éditeur simple, validation des profils, export / import JSON et fusion des profils importés, profils de la bande hors du moteur partagé |
+| `themes.test.js` | Thèmes personnalisés : classement identique par défaut, renommage, ajout, suppression, réglage enregistré (différences seulement), suivi des étiquettes renommées / supprimées, vérification, export / import JSON, plan du tri et écriture après un renommage ou une suppression, réglage de l'extension |
 | `tag-sync.test.js` | Plan de synchronisation, modes complet et incrémental |
 | `tag-writer.test.js` | Écriture des étiquettes : reprise après interruption, pas de doublon, erreurs |
 | `trade-prices-families.test.js` | Échanges (offre équilibrée, bilan d'une offre : WikiBidous, prix fiables seulement, cartes non vues), prix (médiane, ventes minimum, premières ventes ignorées, shiny à part, résumé des ventes), cartes jamais vendues, familles, codes de partage, couleurs des raretés |

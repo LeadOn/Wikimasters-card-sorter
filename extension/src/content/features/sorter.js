@@ -8,8 +8,9 @@ import {createStore} from "../lib/store";
 import {load, save} from "../lib/storage";
 import {activeProfiles} from "../state/profiles";
 import {settings} from "../state/settings";
+import {themeSet, pendingThemeTags, settleThemeTags} from "../state/themes";
 import {invalidateCollection} from "../state/collection";
-import {managedTags, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag, applyPlan, DOUBLON} from "../../../../core";
+import {managedTags, planThemeTags, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag, applyPlan, DOUBLON} from "../../../../core";
 
 export const sortState = createStore({running: false, step: "", progress: null, plan: null, result: null, error: null, lastRun: null});
 load("lastSort", null).then((lastRun) => lastRun && sortState.set({lastRun}));
@@ -17,13 +18,13 @@ load("lastSort", null).then((lastRun) => lastRun && sortState.set({lastRun}));
 const step = (label, progress = null) => sortState.set({step: label, progress});
 const yieldToUi = () => new Promise((r) => setTimeout(r, 0));
 
-async function classify(rows, profiles) {
+async function classify(rows, profiles, themes) {
   // Par tranches, pour garder la page réactive. Les exemplaires sont comptés sur toute la
   // collection : deux exemplaires d'une carte peuvent tomber dans deux tranches différentes.
   const copies = countCopies(rows);
   const out = [];
   for (let i = 0; i < rows.length; i += 400) {
-    out.push(...computeAssignments(rows.slice(i, i + 400), {profiles, copies}));
+    out.push(...computeAssignments(rows.slice(i, i + 400), {profiles, themes, copies}));
     step("Classement des cartes", {done: Math.min(i + 400, rows.length), total: rows.length});
     await yieldToUi();
   }
@@ -35,10 +36,15 @@ export async function planSort({newOnly}) {
   try {
     const session = await ensureSession();
     const profiles = activeProfiles();
-    const managed = managedTags({profiles, themeColors: settings.get().themeColors});
+    const themes = themeSet();
+    const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes});
+    const pending = pendingThemeTags();
 
     step("Lecture de vos étiquettes");
-    const existingTags = await rest(`tags?select=*&user_id=eq.${session.userId}`);
+    const tagRows = await rest(`tags?select=*&user_id=eq.${session.userId}`);
+    // Thèmes renommés ou supprimés dans les réglages : anciennes étiquettes renommées, ou retirées
+    // (retri complet seulement). Le plan est calculé avec les nouveaux noms.
+    const {tags: existingTags, renamed, retired} = planThemeTags(tagRows, managed, pending);
 
     // Pagination triée de façon stable (`id` départage les cartes d'un même paquet), lignes
     // dédoublonnées : une carte lue deux fois serait prise pour un doublon, une carte manquée
@@ -54,7 +60,7 @@ export async function planSort({newOnly}) {
     // Lecture étiquette par étiquette (une lecture globale dépasse le délai du serveur), 3 à la fois.
     // Une association manquée ferait passer une carte triée (et corrigée à la main) pour non triée.
     const ids = managedTagIds(existingTags, managed);
-    const tagIds = Object.values(ids).flat();
+    const tagIds = [...Object.values(ids).flat(), ...retired.map((t) => t.id)];
     const current = new Map();
     let done = 0;
     step("Lecture des associations", {done, total: tagIds.length});
@@ -68,8 +74,8 @@ export async function planSort({newOnly}) {
       {concurrency: 3},
     );
 
-    const assignments = await classify(rows, profiles);
-    const {fresh, toInsert, toDelete, extraTagIds} = planChanges(assignments, existingTags, current, {newOnly, managed});
+    const assignments = await classify(rows, profiles, themes);
+    const {fresh, toInsert, toDelete, extraTagIds} = planChanges(assignments, existingTags, current, {newOnly, managed, themes, retired});
     const upserts = planTagUpserts(existingTags, managed, toInsert, {newOnly});
 
     const byId = new Map(rows.map((r) => [r.id, r]));
@@ -90,7 +96,14 @@ export async function planSort({newOnly}) {
       extraTagIds,
       upserts,
       managed,
-      unmanaged: existingTags.filter((t) => !(t.name in managed)).map((t) => t.name),
+      renamed,
+      retired: retired.map((t) => ({name: t.name, count: current.get(t.id)?.size || 0})),
+      // Noms en attente que ce tri règle : tous en mode complet ; en mode incrémental, les étiquettes
+      // renommées et les noms qu'aucune étiquette ne porte (les étiquettes retirées attendent le retri complet)
+      settled: [...Object.keys(pending.renames), ...pending.removed].filter(
+        (name) => !newOnly || renamed.some((r) => r.from === name) || !tagRows.some((t) => t.name === name),
+      ),
+      unmanaged: existingTags.filter((t) => !(t.name in managed) && !retired.includes(t)).map((t) => t.name),
     };
     plan.insertCount = toInsert.length;
     plan.deleteCount = toDelete.reduce((n, d) => n + d.ids.length, 0);
@@ -126,6 +139,7 @@ export async function applySort(plan) {
         onProgress: ({step: s, done, total}) => step(STEP_LABELS[s], total != null ? {done, total} : null),
       });
       invalidateCollection();
+      settleThemeTags(plan.settled || []);
       const result = {...r, sorted: plan.newOnly ? plan.scopedCount : plan.total, at: Date.now(), newOnly: plan.newOnly};
       save("lastSort", result).catch(() => {});
       sortState.set({result, lastRun: result, plan: null, step: "", progress: null});

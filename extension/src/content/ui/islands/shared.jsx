@@ -5,7 +5,8 @@ import {readSession} from "../../lib/session";
 import {priceInfo, priceStatus, requestPrice, priceVersion, uncertainNote} from "../../state/prices";
 import {profiles, activeProfiles} from "../../state/profiles";
 import {Icon, Money, ThemeChip, plural} from "../components";
-import {categorize, FRIEND_PREFIX, RARITY_LABEL, RECENT_SALES} from "../../../../../core";
+import {FRIEND_PREFIX, RARITY_LABEL, RECENT_SALES} from "../../../../../core";
+import {classify} from "../../state/themes";
 
 // Ventes connues, premières ventes ignorées, dernière vente et moyenne affichée par le site
 function SalesNote({info, shiny}) {
@@ -80,7 +81,7 @@ export function PriceLine({cardId, rarity, shiny = false}) {
 export function Interest({card}) {
   useStore(profiles);
   const me = readSession()?.username;
-  const tags = categorize(
+  const tags = classify(
     {wikipedia_title: card.title, category: card.category || "", summary: card.summary || "", image_url: card.image_url},
     {profiles: activeProfiles()},
   );

@@ -5,10 +5,10 @@ import {useStore} from "../../lib/store";
 import {emit} from "../../lib/bus";
 import {readSession} from "../../lib/session";
 import {tradeState, findTradesWith} from "../../features/trades";
-import {profiles, profileFor, newId} from "../../state/profiles";
+import {profiles, profileFor} from "../../state/profiles";
 import {priceOf, priceVersion} from "../../state/prices";
 import {CardRow, Mark, Progress, Notice, fmt, timeAgo} from "../components";
-import {RARITIES, BUILTIN_PROFILES} from "../../../../../core";
+import {RARITIES} from "../../../../../core";
 
 const SHOWN = 6;
 const openTab = (tab) => emit("open-panel", {tab});
@@ -47,10 +47,6 @@ export function FriendTrades({username}) {
   const me = readSession()?.username;
   const hasMyProfile = Boolean(profileFor(me));
   const theirProfile = profileFor(username);
-  // Profil fourni avec l'extension pour ce joueur : ajouté en un clic (réglage local, rien n'est écrit sur le site)
-  const builtin = !theirProfile && BUILTIN_PROFILES.find((p) => p.name.toLowerCase() === username.toLowerCase());
-  const useBuiltin = () =>
-    profiles.set((st) => ({friends: [...st.friends.filter((f) => f.name.toLowerCase() !== username.toLowerCase()), {...builtin, id: newId(), enabled: true}]}));
 
   const start = (refresh = false) => {
     abort.current = new AbortController();
@@ -69,16 +65,10 @@ export function FriendTrades({username}) {
           </div>
         </div>
         <div class="island-actions">
-          {builtin ? (
-            <button class="btn sm" onClick={useBuiltin} title={builtin.about || ""}>
-              Utiliser son profil de la bande
+          {!theirProfile && (
+            <button class="btn sm ghost" onClick={() => openTab("profiles")}>
+              Ajouter son profil
             </button>
-          ) : (
-            !theirProfile && (
-              <button class="btn sm ghost" onClick={() => openTab("profiles")}>
-                Ajouter son profil
-              </button>
-            )
           )}
           {running ? (
             <button class="btn sm danger" onClick={() => abort.current?.abort()}>

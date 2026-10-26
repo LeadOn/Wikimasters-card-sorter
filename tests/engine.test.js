@@ -2,9 +2,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const core = require("../core");
+const {BUILTIN_PROFILES} = require("../core/builtin-profiles");
 const cards = require("../scripts/fixtures/labeled_cards.json");
 
-const categorize = (c) => core.categorize({wikipedia_title: c.title, category: c.category, summary: c.summary, image_url: c.image_url}, {profiles: core.BUILTIN_PROFILES});
+const categorize = (c) => core.categorize({wikipedia_title: c.title, category: c.category, summary: c.summary, image_url: c.image_url}, {profiles: BUILTIN_PROFILES});
 
 test("le thème générique reste au moins à 99 % sur le jeu étiqueté", () => {
   const labeled = cards.filter((c) => c.expected);

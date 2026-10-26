@@ -4,7 +4,8 @@
 //   node scripts/eval_categorize.js --verbose  → + scores détaillés des erreurs
 const core = require("../core");
 const {explain} = core;
-const categorize = (card) => core.categorize(card, {profiles: core.BUILTIN_PROFILES});
+const {BUILTIN_PROFILES} = require("../core/builtin-profiles");
+const categorize = (card) => core.categorize(card, {profiles: BUILTIN_PROFILES});
 const cards = require("./fixtures/labeled_cards.json");
 
 const verbose = process.argv.includes("--verbose");

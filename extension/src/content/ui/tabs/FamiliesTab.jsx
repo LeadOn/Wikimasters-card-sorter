@@ -23,7 +23,8 @@ import {
 } from "../../features/families";
 import {CardRow, Icon, Paged, Progress, Notice, Copyable, fmt, plural, duration} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
-import {THEME_COLORS, RARITIES, familyProgress} from "../../../../../core";
+import {RARITIES, familyProgress} from "../../../../../core";
+import {themeNames} from "../../state/themes";
 
 function Modal({title, wide, onClose, children}) {
   return (
@@ -62,7 +63,7 @@ function RuleEditor({family, onClose}) {
       <div class="field">
         <span style={{fontWeight: 600}}>Thèmes (facultatif)</span>
         <div class="chips" style={{marginTop: "6px"}}>
-          {Object.keys(THEME_COLORS).map((t) => <button key={t} class={`chip${themes.includes(t) ? " on" : ""}`} onClick={() => toggle(themes, setThemes, t)}>{t}</button>)}
+          {[...new Set([...themeNames(), ...themes])].map((t) => <button key={t} class={`chip${themes.includes(t) ? " on" : ""}`} onClick={() => toggle(themes, setThemes, t)}>{t}</button>)}
         </div>
       </div>
       <div class="field">

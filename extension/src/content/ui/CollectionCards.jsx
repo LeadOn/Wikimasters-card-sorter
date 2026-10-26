@@ -12,12 +12,13 @@ import {CardTile, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./co
 import {toast, errorMessage} from "./feedback";
 import {askSell, askSellMany} from "./SellDialog";
 import {confirmDiscardMany} from "./discard";
-import {RARITIES, RARITY_LABEL, categorize, freeCopy, soldIn} from "../../../../core";
+import {RARITIES, RARITY_LABEL, freeCopy, soldIn} from "../../../../core";
+import {themeMemo} from "../state/themes";
 
 const keyOf = (g) => `${g.card_id}|${g.rarity}`;
 // Thème d'une carte, calculé une seule fois : les listes sont recalculées à chaque prix reçu
-const themes = new Map();
-const themeOf = (card) => themes.get(card.id) ?? themes.set(card.id, categorize(card)[0]).get(card.id);
+const themes = themeMemo();
+const themeOf = (card) => themes(card.id, card);
 
 // Tranches de prix proposées pour « Vendues entre … » (WikiBidous, bornes incluses ; les prix
 // moyens sont arrondis à l'unité)

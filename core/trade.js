@@ -11,13 +11,14 @@ const {rarityRank, marketPrice} = require("./prices");
 // friendTag   : tag « Pour : <ami> », ou null (on propose alors mes doublons qu'il n'a pas)
 // rarities    : si la collection de l'ami n'a été lue que pour certaines raretés, mes propositions s'y limitent
 // prices      : Map(card_id → résumé de prix), facultatif ; priceOptions : réglages des prix (core/prices.js)
-function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Set(), pending = new Set(), wanted, friendTag, profiles = [], rarities = [], prices = new Map(), priceOptions = {}}) {
+// themes      : liste de thèmes du joueur (core/theme-set.js) ; par défaut, celle de core/themes.js
+function findTrades({mine, friendItems, summaries = new Map(), wishlist = new Set(), pending = new Set(), wanted, friendTag, profiles = [], themes = null, rarities = [], prices = new Map(), priceOptions = {}}) {
   const myCopies = new Map();
   // Une ligne peut représenter plusieurs exemplaires (`count`), comme pour l'étiquette Doublon
   for (const uc of mine) myCopies.set(uc.card_id, (myCopies.get(uc.card_id) || 0) + Math.max(1, Number(uc.count) || 1));
   const friendOwns = new Set(friendItems.map((it) => it.card_id));
   const describe = (card, summary) => {
-    const tags = categorize({...card, summary: summary || ""}, {profiles});
+    const tags = categorize({...card, summary: summary || ""}, {profiles, themes});
     return {theme: tags[0], tags};
   };
 

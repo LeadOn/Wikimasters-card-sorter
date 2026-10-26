@@ -1,7 +1,8 @@
 // Composants d'interface réutilisables.
 import {useState, useEffect} from "preact/hooks";
-import {RARITY_LABEL, THEME_COLORS} from "../../../../core";
-import {settings, isOn} from "../state/settings";
+import {RARITY_LABEL} from "../../../../core";
+import {isOn} from "../state/settings";
+import {tagColor} from "../state/themes";
 import {wikiImage, knownWikiImage} from "../features/wiki-images";
 import {siteLogo, rarityTexture} from "../features/site-assets";
 import {Icon, Mark} from "../../shared/Brand";
@@ -76,7 +77,7 @@ export const Rarity = ({r}) => (r ? <span class={`rarity ${r}`} title={RARITY_LA
 
 export function ThemeChip({theme}) {
   if (!theme) return null;
-  const color = settings.get().themeColors[theme] || THEME_COLORS[theme] || "#64748b";
+  const color = tagColor(theme);
   return (
     <span class="chip theme" style={{"--c": color}} title={theme}>
       <span class="lbl">{theme}</span>
@@ -320,5 +321,35 @@ export function Copyable({text}) {
         <span class="small muted">{fmt(text.length)} caractères</span>
       </div>
     </div>
+  );
+}
+
+// Enregistre un texte dans un fichier téléchargé (export JSON des thèmes, des profils)
+export function downloadFile(filename, text, type = "application/json") {
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Nom de fichier daté : « wikimasters-themes-2026-10-26.json »
+export const datedFilename = (kind) => `wikimasters-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
+
+// Bouton « Choisir un fichier » : onText(contenu) ou onError(message) si le fichier est trop gros
+export function FileButton({label = "Choisir un fichier", maxSize, onText, onError}) {
+  const pick = async (e) => {
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = "";
+    if (!file) return;
+    if (maxSize && file.size > maxSize) return onError?.("Fichier trop volumineux.");
+    onText(await file.text());
+  };
+  return (
+    <label class="btn" style={{marginRight: "auto"}}>
+      {label}
+      <input type="file" accept=".json,application/json" style={{display: "none"}} onChange={pick} />
+    </label>
   );
 }

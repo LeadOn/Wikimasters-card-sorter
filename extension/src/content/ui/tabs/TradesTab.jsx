@@ -7,7 +7,8 @@ import {profileFor} from "../../state/profiles";
 import {priceOf, priceVersion, loadPrices} from "../../state/prices";
 import {CardRow, Paged, Progress, Notice, fmt, plural, timeAgo} from "../components";
 import {toast, errorMessage} from "../feedback";
-import {THEME_COLORS, RARITIES, balanceOffer} from "../../../../../core";
+import {RARITIES, balanceOffer} from "../../../../../core";
+import {themeNames} from "../../state/themes";
 
 function countBy(list, key) {
   const m = new Map();
@@ -184,7 +185,7 @@ export function TradesTab() {
         </label>
         {useThemes && (
           <div class="chips">
-            {Object.keys(THEME_COLORS).map((t) => (
+            {themeNames().map((t) => (
               <button key={t} class={`chip${themes.includes(t) ? " on" : ""}`} onClick={() => setThemes(themes.includes(t) ? themes.filter((x) => x !== t) : [...themes, t])}>
                 {t}
               </button>

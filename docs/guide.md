@@ -108,7 +108,7 @@ Le bloc **Échanges avec …** cherche dans sa collection :
 - **À lui demander** : ses cartes que vous n'avez pas et qui correspondent à votre profil d'intérêts ou à votre liste de souhaits ;
 - **À lui proposer** : vos cartes qu'il n'a pas et qui correspondent à son profil ; s'il n'a pas de profil, vos doublons qui lui manquent.
 
-Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, car le site met parfois jusqu'à 30 secondes par page de 50 cartes. La collection lue est gardée 12 heures, et une lecture interrompue reprend là où elle s'était arrêtée. Si ce joueur fait partie de la bande, *Utiliser son profil de la bande* l'ajoute en un clic.
+Vous pouvez limiter la lecture à certaines raretés : c'est bien plus rapide, car le site met parfois jusqu'à 30 secondes par page de 50 cartes. La collection lue est gardée 12 heures, et une lecture interrompue reprend là où elle s'était arrêtée. Sans profil pour ce joueur, *Ajouter son profil* ouvre l'onglet Profils.
 
 ### Page Paquets
 
@@ -166,7 +166,7 @@ Deux modes, toujours précédés d'un aperçu qui n'écrit rien :
 | Mode | Cartes concernées | Quand l'utiliser |
 |---|---|---|
 | **Trier mes nouvelles cartes** | Les cartes sans thème, plus `Doublon` sur toute la collection | Après avoir ouvert des paquets. Vos corrections manuelles sont conservées |
-| **Retri complet** | Toute la collection | Après avoir modifié des profils ou mis à jour l'extension. Les étiquettes gérées qui ne correspondent plus sont retirées, **y compris celles que vous aviez corrigées à la main** : une confirmation est demandée |
+| **Retri complet** | Toute la collection | Après avoir modifié des profils ou des thèmes, ou mis à jour l'extension. Les étiquettes gérées qui ne correspondent plus sont retirées, **y compris celles que vous aviez corrigées à la main** : une confirmation est demandée |
 
 L'aperçu détaille le nombre de cartes concernées, les étiquettes ajoutées et retirées, la répartition par thème et le détail carte par carte (avec un filtre). Comptez une à deux minutes : la base de WikiMasters est lente.
 
@@ -175,7 +175,7 @@ L'aperçu détaille le nombre de cartes concernées, les étiquettes ajoutées e
 Un profil d'intérêts décrit ce que collectionne un joueur. Chaque profil actif ajoute l'étiquette « Pour : pseudo » aux cartes qui lui correspondent, et guide la recherche d'échanges.
 
 - **Mon profil** : ce que vous collectionnez. Vos amis peuvent l'importer pour savoir quoi vous proposer.
-- **Profils de mes amis** : ajoutez-les à la main, importez le code qu'un ami vous a envoyé, ou importez en un clic les **profils de la bande** fournis avec l'extension.
+- **Profils de mes amis** : ajoutez-les à la main, ou importez le code ou le fichier JSON qu'un ami vous a envoyé.
 
 L'**éditeur simple** suffit dans la plupart des cas :
 
@@ -186,7 +186,14 @@ L'**éditeur simple** suffit dans la plupart des cas :
 
 Les **règles avancées** (JSON) combinent thème, expression régulière, champ, conditions et exclusions, pour les cas précis.
 
-Chaque profil se **teste** sur votre collection (combien de cartes recevraient l'étiquette, lesquelles), se **partage** par un code `WMT-P1.…` à copier-coller, et se met en pause avec la case *actif*. Supprimer un profil ne supprime pas son étiquette existante : le prochain retri complet ne la gérera simplement plus.
+Chaque profil se **teste** sur votre collection (combien de cartes recevraient l'étiquette, lesquelles), se **partage** (*Partager* : un code `WMT-P1.…` à copier-coller, ou *Télécharger en JSON*), et se met en pause avec la case *actif*. Supprimer un profil ne supprime pas son étiquette existante : le prochain retri complet ne la gérera simplement plus.
+
+**Exporter / importer en JSON** (en haut de l'onglet) :
+
+- *Exporter* donne tous vos profils, le vôtre et ceux de vos amis, en JSON à copier ou à télécharger (`wikimasters-profils-<date>.json`) : pratique pour les retrouver dans un autre navigateur ou pour les donner à un ami ;
+- *Importer* accepte un code `WMT-P1.…`, un export JSON (un profil ou plusieurs), collé ou choisi dans un fichier. Un résumé s'affiche avant l'import : le profil qui porte votre pseudo devient le vôtre, un ami déjà présent (même pseudo) est remplacé en gardant sa case *actif*, les autres sont ajoutés. Un profil invalide (règle illisible, expression trop lente, nom en double) est écarté et signalé, sans bloquer les autres.
+
+Les profils de la bande ne sont plus fournis avec l'extension. Ceux que vous aviez déjà importés restent dans vos profils, et se partagent comme les autres par *Exporter*.
 
 ### Échanges
 
@@ -272,13 +279,34 @@ Hors de wiki-masters.com, elle propose d'ouvrir le site. Si elle demande de rech
 
 Le thème d'une carte se déduit de sa **description courte** (« footballeur danois », « commune française du département… », « espèce d'arachnides ») et de la première phrase de son article : le type de l'article est le signal le plus fiable. Chaque thème a ses mots-clés ; le thème qui obtient le meilleur score l'emporte, et une carte sans signal fiable va dans *Autre*. Les pages d'homonymie, noms de famille et prénoms vont dans *Divers & Homonymies*, et la politique se partage entre française et internationale selon la nationalité.
 
-Le moteur est vérifié sur plus de 300 cartes étiquetées à la main à chaque modification. Si une carte est mal classée, corrigez son étiquette à la main sur le site (le tri des nouvelles cartes ne la touchera plus) et signalez-la dans les [issues](https://github.com/LeadOn/Wikimasters-card-sorter/issues) pour que les règles soient corrigées pour tout le monde.
+Le moteur est vérifié sur plus de 300 cartes étiquetées à la main à chaque modification (avec les thèmes par défaut). Si une carte est mal classée, corrigez son étiquette à la main sur le site (le tri des nouvelles cartes ne la touchera plus) et signalez-la dans les [issues](https://github.com/LeadOn/Wikimasters-card-sorter/issues) pour que les règles soient corrigées pour tout le monde.
 
 ### Les thèmes
 
 Politique Française · Politique Internationale · Automobile & Transports · Pop-Culture & Divertissement · Technologie & Informatique · Sciences · Atome & Chimie · Sports · Monuments & Lieux historiques · Affaires Criminelles · Religion & Mythes · Histoire · Géographie & Territoires · Arts & Littérature · Personnalités · Faune & Flore · Astronomie & Espace · Militaire & Armement · Divers & Homonymies · Autre
 
-Leurs couleurs se changent dans les réglages ; elles sont appliquées aux étiquettes WikiMasters au tri suivant.
+C'est la liste par défaut : chacun peut la modifier, la compléter ou la réduire (voir [Personnaliser les thèmes](#personnaliser-les-thèmes)).
+
+### Personnaliser les thèmes
+
+L'onglet *Réglages* → **Thèmes de tri** liste les thèmes avec leur couleur. Pour chaque thème :
+
+- **Nom et couleur** : le nom est celui de l'étiquette WikiMasters ;
+- **Mots-clés** (bouton *Mots-clés*) : une expression par ligne, cherchée comme mot entier dans la description, la première phrase et le titre de la carte. `s?` rend une lettre facultative (`requins?`), `(?:a|b)` propose deux variantes. Les **noms ambigus** ne comptent qu'en tête de la description (« tour », « fort », « port ») ;
+- **Séparer France / international** : deux étiquettes, selon la nationalité trouvée dans la description (comme *Politique Française* et *Politique Internationale*) ;
+- **Supprimer** le thème, ou **Rétablir ce thème** s'il a été modifié.
+
+*Ajouter un thème* en crée un nouveau, *Thèmes par défaut* revient à la liste d'origine. Le champ **Essayer** montre, avant d'enregistrer, le thème qu'obtiendrait une carte à partir de sa description (« footballeur danois »). Rien ne change tant que vous ne cliquez pas sur **Enregistrer**. L'étiquette des cartes sans thème reconnu (*Autre*) et la couleur de `Doublon` se règlent au même endroit.
+
+**Partager une liste** : *Exporter* donne la liste affichée en JSON, à copier ou à télécharger (`wikimasters-themes-<date>.json`). *Importer* accepte ce JSON, collé ou choisi dans un fichier : la liste importée remplace celle de l'éditeur, vérifiée comme une saisie (noms en double, expressions invalides ou trop lentes signalés), et n'est enregistrée qu'avec **Enregistrer**. Un thème par défaut renommé dans la liste importée (« Sports » devenu « Sport ») est reconnu : votre étiquette sera renommée au prochain tri, comme si vous l'aviez renommé vous-même. La couleur de `Doublon` n'est pas exportée.
+
+Les étiquettes WikiMasters suivent **au prochain tri**, toujours précédé d'un aperçu :
+
+- **thème renommé** : son étiquette est renommée, avec ses cartes et vos corrections (le tri automatique des cartes tirées le fait aussi). Si une étiquette porte déjà le nouveau nom, l'ancienne est traitée comme celle d'un thème supprimé ;
+- **thème supprimé** : son étiquette reste en place, et ses cartes comptent comme triées, jusqu'au prochain **retri complet**, qui reclasse ces cartes dans vos thèmes et supprime l'étiquette ; l'aperçu et la confirmation l'indiquent. Pour la garder comme étiquette personnelle, cliquez sur *Garder comme étiquette personnelle* dans les réglages : le tri ne la touchera plus ;
+- **thème ajouté** ou **mots-clés modifiés** : appliqués aux nouvelles cartes ; lancez un retri complet pour reclasser toute la collection.
+
+Les profils d'intérêts et les familles qui citent un thème par son nom d'origine (« Sports ») le reconnaissent après un renommage. Supprimer *Divers & Homonymies*, *Faune & Flore* ou *Personnalités* envoie dans *Autre* les cartes que ces thèmes recevaient par une règle à part (pages d'homonymie, noms latins sans description, biographies non reconnues). Les thèmes personnalisés restent dans votre navigateur : les scripts Node utilisent toujours la liste par défaut.
 
 ### Les raretés
 
@@ -316,7 +344,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 
 **Trier automatiquement les cartes tirées** : dès l'ouverture d'un paquet, les nouveaux exemplaires reçoivent leur thème, leurs étiquettes « Pour : … » et `Doublon`. Seuls les exemplaires qui viennent d'arriver sont touchés, rien n'est supprimé.
 
-L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **nombre de ventes minimum pour un prix fiable** (3) et le **nombre de premières ventes ignorées** pour chaque carte et chaque rareté (1), le **délai de l'alerte de fin d'enchère** (2 minutes), les **couleurs des étiquettes**, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
+L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **nombre de ventes minimum pour un prix fiable** (3) et le **nombre de premières ventes ignorées** pour chaque carte et chaque rareté (1), le **délai de l'alerte de fin d'enchère** (2 minutes), les **thèmes de tri** (voir [Personnaliser les thèmes](#personnaliser-les-thèmes)) et la couleur de `Doublon`, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
 
 ---
 

@@ -1,6 +1,8 @@
-// Réglages de la Toolbox : un interrupteur par fonctionnalité, couleurs des tags.
+// Réglages de la Toolbox : un interrupteur par fonctionnalité, thèmes de tri, couleur de Doublon.
 import {persistentStore} from "../lib/storage";
 import {PRICE_DEFAULTS} from "../../../../core/prices";
+import {DOUBLON} from "../../../../core/themes";
+import {resolveThemes, storeThemes, applyTagColors} from "../../../../core/theme-set";
 
 export const FEATURES = [
   {key: "cardStyle", group: "Cartes", label: "Nouvel affichage des cartes", help: "Image sur toute la carte, cadre aux couleurs de la rareté, titre et statistiques en surimpression. Désactivez pour retrouver l'affichage du site."},
@@ -30,6 +32,9 @@ const OFF_BY_DEFAULT = new Set(["missingImages", "notificationSound", "autoSortP
 
 export const DEFAULT_SETTINGS = {
   features: Object.fromEntries(FEATURES.map((f) => [f.key, !OFF_BY_DEFAULT.has(f.key)])),
+  // Thèmes de tri modifiés par le joueur (différences avec core/themes.js, voir core/theme-set.js) ; null : par défaut
+  themes: null,
+  // Couleur de l'étiquette Doublon (celles des thèmes sont dans `themes`)
   themeColors: {},
   priceMaxAgeHours: 48,
   // Prix du marché : ventes nécessaires pour qu'il soit fiable, premières ventes de la carte ignorées
@@ -38,12 +43,22 @@ export const DEFAULT_SETTINGS = {
   bidAlertMinutes: 2,
 };
 
+// Couleurs de thèmes choisies avant l'éditeur de thèmes (v1.4) : reprises dans la liste des thèmes.
+function migrateThemeColors(saved) {
+  const themeColors = {...(saved.themeColors || {})};
+  const legacy = Object.keys(themeColors).filter((name) => name !== DOUBLON);
+  if (!legacy.length) return {themes: saved.themes || null, themeColors};
+  const themes = storeThemes(applyTagColors(resolveThemes(saved.themes), themeColors), saved.themes || null);
+  for (const name of legacy) delete themeColors[name];
+  return {themes, themeColors};
+}
+
 export const settings = persistentStore("settings", DEFAULT_SETTINGS, {
   merge: (saved) => ({
     ...DEFAULT_SETTINGS,
     ...saved,
     features: {...DEFAULT_SETTINGS.features, ...(saved.features || {})},
-    themeColors: {...(saved.themeColors || {})},
+    ...migrateThemeColors(saved),
   }),
 });
 

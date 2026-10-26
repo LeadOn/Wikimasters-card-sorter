@@ -2,14 +2,7 @@
 "use strict";
 
 const {compile, hasKeyword, firstMatch, extractFields} = require("./text");
-const {THEMES} = require("./themes");
-
-const RULES = Object.entries(THEMES).map(([name, t]) => ({
-  name,
-  kw: compile(t.kw),
-  head: t.head ? compile(t.head) : null,
-  weight: t.weight || 1,
-}));
+const {themeSetOf} = require("./theme-set");
 
 // Pondération : la description courte (`category` = description Wikidata) est le signal
 // le plus fiable, puis la définition, puis le titre ; le reste du résumé ne fait que départager.
@@ -38,7 +31,9 @@ const isShadowed = (m, others) =>
     (o) => o !== m && o.length > m.length && o.index <= m.index && o.index + o.length >= m.index + m.length,
   );
 
-function scoreThemes(f) {
+// themes : liste de thèmes compilée (core/theme-set.js) ; par défaut, celle de core/themes.js.
+function scoreThemes(f, themes) {
+  const RULES = themeSetOf(themes).rules;
   const totals = new Map(RULES.map((r) => [r, 0]));
   for (const field of ["desc", "def", "lead"]) {
     const text = f[field];
@@ -88,11 +83,13 @@ function isDisambiguation(f) {
 const FRENCH = compile(
   "français|française|françaises|france|paris|assemblée nationale française|cinquième république|ve république|ive république|iiie république",
 );
-function politicsScope(f) {
+// Étiquette d'un thème ; un thème scindé (Politique) l'est selon la nationalité.
+function tagOf(rule, f) {
+  if (!rule.split) return rule.name;
   // On cherche la nationalité dans la description / définition, pas dans tout le résumé
   // (un homme politique hongrois mort à Paris reste un homme politique hongrois).
   const strong = f.desc || f.def ? `${f.desc} ${f.def} ${f.title}` : f.all;
-  return FRENCH.test(strong) ? "Politique Française" : "Politique Internationale";
+  return FRENCH.test(strong) ? rule.split[0] : rule.split[1];
 }
 
 // Biographie non reconnue ("X, né le … à …") : à défaut de mieux, Personnalités.
@@ -118,23 +115,25 @@ function manualCategory(mapping, userCardId) {
   return manualIndex.get(mapping).get(userCardId) || null;
 }
 
-function genericCategory(f) {
-  if (isDisambiguation(f)) return {theme: "Divers & Homonymies", scores: {}, confident: true};
-  const scores = scoreThemes(f);
-  let theme = "Autre";
+// Les règles à part (homonymies, nom latin, biographie) visent le thème qui a ce rôle ;
+// sans lui (thème supprimé par le joueur), la carte suit le cas général.
+function genericCategory(f, themes) {
+  const set = themeSetOf(themes);
+  const {disambig, species, person} = set.roles;
+  if (isDisambiguation(f)) return {theme: disambig ? tagOf(disambig, f) : set.other, scores: {}, confident: true};
+  const scores = scoreThemes(f, set);
+  let rule = null;
   let best = MIN_SCORE - 0.001;
-  for (const [name, score] of Object.entries(scores)) {
-    if (score > best) [theme, best] = [name, score];
+  for (const r of set.rules) {
+    if (scores[r.name] > best) [rule, best] = [r, scores[r.name]];
   }
   // Replis quand aucun thème n'est reconnu : supposition raisonnable, mais pas fiable
-  const confident = theme !== "Autre";
+  const confident = Boolean(rule);
   if (!confident) {
-    if (!f.desc && !f.leadFull && LATIN_BINOMIAL.test(f.rawTitle) && LATIN_ENDING.test(f.rawTitle))
-      theme = "Faune & Flore";
-    else if (PERSON_LEAD.test(f.leadFull.slice(0, 250))) theme = "Personnalités";
+    if (!f.desc && !f.leadFull && LATIN_BINOMIAL.test(f.rawTitle) && LATIN_ENDING.test(f.rawTitle)) rule = species;
+    else if (PERSON_LEAD.test(f.leadFull.slice(0, 250))) rule = person;
   }
-  if (theme === "Politique") theme = politicsScope(f);
-  return {theme, scores, confident};
+  return {theme: rule ? tagOf(rule, f) : set.other, scores, confident};
 }
 
 // Album de musique : "album" en tête de la description ou de la définition ("album de Bob Dylan",

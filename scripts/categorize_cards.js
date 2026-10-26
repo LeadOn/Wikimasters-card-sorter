@@ -9,7 +9,7 @@ const core = require("../core");
 
 const MANUAL_MAPPING_FILE = path.join(__dirname, "manual_mapping_db.json");
 const manualMapping = fs.existsSync(MANUAL_MAPPING_FILE) ? JSON.parse(fs.readFileSync(MANUAL_MAPPING_FILE, "utf8")) : null;
-const PROFILES = core.BUILTIN_PROFILES;
+const PROFILES = require("../core/builtin-profiles").BUILTIN_PROFILES;
 
 // Tags gérés par ce script, avec leur couleur
 const TAG_COLORS = core.managedTags({profiles: PROFILES});

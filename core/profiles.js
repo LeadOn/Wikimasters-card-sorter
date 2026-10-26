@@ -12,18 +12,20 @@
 //   match   : prédicat prédéfini ("musicAlbum")
 "use strict";
 
-const {hasKeyword, extractFields} = require("./text");
+const {hasKeyword, patternProblem, isColor, extractFields} = require("./text");
 const {PREDICATES} = require("./engine");
 
 const FRIEND_PREFIX = "Pour : ";
 const tagForProfile = (profile) => `${FRIEND_PREFIX}${profile.name}`;
 const isFriendTag = (name) => name.startsWith(FRIEND_PREFIX);
 
+// genericCat : thème de la carte, ou ses noms possibles (nom actuel et nom d'origine d'un thème renommé)
 function ruleMatches(rule, card, f, genericCat) {
   let tested = false;
   if (rule.theme) {
     tested = true;
-    if (![].concat(rule.theme).includes(genericCat)) return false;
+    const names = [].concat(genericCat);
+    if (![].concat(rule.theme).some((t) => names.includes(t))) return false;
   }
   if (rule.match) {
     tested = true;
@@ -85,12 +87,7 @@ function simpleToProfile(simple) {
   return {name: simple.name.trim(), color: simple.color, about: simple.about || "", rules, simple};
 }
 
-// Un profil importé est appliqué à chaque carte de la collection : une expression trop longue,
-// ou à quantificateurs imbriqués (« (a+)+ », temps d'exécution explosif), figerait la page.
-const MAX_PATTERN = 5000;
-const NESTED_QUANTIFIER = /\((?:[^()\\]|\\.)*[+*}](?:[^()\\]|\\.)*\)[+*{]/;
 const MAX_NAME = 60;
-const isColor = (c) => typeof c === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(c);
 
 // Vérifie un profil (importé ou saisi) ; renvoie la liste des problèmes.
 function validateProfile(profile) {
@@ -108,23 +105,120 @@ function validateProfile(profile) {
     }
     for (const key of ["kw", "with", "unless"]) {
       if (rule[key] == null) continue;
-      if (typeof rule[key] !== "string") {
-        problems.push(`Expression invalide (${key}) : texte attendu.`);
-        continue;
-      }
-      if (rule[key].length > MAX_PATTERN) problems.push(`Expression trop longue (${key}) : ${MAX_PATTERN} caractères au plus.`);
-      else if (NESTED_QUANTIFIER.test(rule[key])) problems.push(`Expression refusée (${key}) : quantificateurs imbriqués, trop lente à évaluer.`);
-      try {
-        new RegExp(rule[key]);
-      } catch (e) {
-        problems.push(`Expression invalide (${key}) : ${e.message}`);
-      }
+      const problem = patternProblem(rule[key]);
+      if (problem) problems.push(`Expression invalide (${key}) : ${problem}.`);
     }
     if (rule.theme != null && ![].concat(rule.theme).every((t) => typeof t === "string")) problems.push("Thème invalide : texte ou liste de textes attendu.");
     if (rule.field != null && rule.field !== "title" && rule.field !== "focus") problems.push(`Champ inconnu : ${rule.field}`);
     if (rule.match && !Object.prototype.hasOwnProperty.call(PREDICATES, rule.match)) problems.push(`Prédicat inconnu : ${rule.match}`);
   }
   return problems;
+}
+
+// ---------------------------------------------------------------------------
+// Import / export en JSON
+// ---------------------------------------------------------------------------
+
+const PROFILES_FORMAT = "wikimasters-toolbox/profiles";
+const MAX_PROFILES = 200;
+const MAX_PROFILES_IMPORT = 1000000;
+const RULE_KEYS = ["theme", "kw", "field", "with", "unless", "image", "match"];
+
+// Profil réduit à ce qui se partage (ni id, ni état local)
+function shareableProfile(p) {
+  const out = {name: p.name, color: p.color, about: p.about || "", rules: p.rules};
+  if (p.simple) out.simple = p.simple;
+  if (p.enabled === false) out.enabled = false;
+  return out;
+}
+
+// profiles : [profil] (le mien sous mon pseudo, puis ceux des amis) → objet à enregistrer en JSON
+function exportProfiles(profiles) {
+  return {format: PROFILES_FORMAT, version: 1, profiles: profiles.map(shareableProfile)};
+}
+
+// Profil lu dans un fichier : seulement les champs connus. Un profil de l'éditeur simple est
+// reconstruit depuis sa saisie, pour que ses règles correspondent toujours à ce qu'affiche l'éditeur.
+function cleanProfile(raw) {
+  const str = (v) => (typeof v === "string" ? v : "");
+  const name = str(raw.name).trim();
+  const color = raw.color == null ? undefined : raw.color;
+  let profile;
+  if (raw.simple && typeof raw.simple === "object" && !Array.isArray(raw.simple)) {
+    const s = raw.simple;
+    const themes = Array.isArray(s.themes) ? s.themes.filter((t) => typeof t === "string") : [];
+    profile = simpleToProfile({name, color, about: str(raw.about), themes, keywords: str(s.keywords), exclude: str(s.exclude), imageOnly: s.imageOnly === true});
+  } else {
+    const rules = Array.isArray(raw.rules)
+      ? raw.rules.map((r) => (r && typeof r === "object" && !Array.isArray(r) ? Object.fromEntries(RULE_KEYS.filter((k) => r[k] != null).map((k) => [k, r[k]])) : r))
+      : raw.rules;
+    profile = {name, color, about: str(raw.about), rules};
+  }
+  if (raw.enabled === false) profile.enabled = false;
+  return profile;
+}
+
+// Texte JSON → {profiles, rejected: [{name, problems}], error}. Accepte un export de la Toolbox,
+// une liste de profils ou un profil seul. Un profil invalide est écarté, les autres sont gardés.
+function importProfiles(text) {
+  const fail = (error) => ({profiles: [], rejected: [], error});
+  if (typeof text !== "string" || !text.trim()) return fail("Fichier vide.");
+  if (text.length > MAX_PROFILES_IMPORT) return fail("Fichier trop volumineux pour des profils.");
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return fail("JSON illisible.");
+  }
+  if (!data || typeof data !== "object") return fail("Ce fichier ne contient pas de profils.");
+  if (data.format != null && data.format !== PROFILES_FORMAT) return fail("Ce fichier n'est pas un export de profils de la Toolbox.");
+  const list = Array.isArray(data) ? data : Array.isArray(data.profiles) ? data.profiles : data.rules || data.simple ? [data] : null;
+  if (!list) return fail("Ce fichier ne contient pas de profils.");
+  if (list.length > MAX_PROFILES) return fail(`Trop de profils (${MAX_PROFILES} au plus).`);
+
+  const profiles = [];
+  const rejected = [];
+  const seen = new Set();
+  list.forEach((raw, i) => {
+    const label = typeof raw?.name === "string" && raw.name.trim() ? raw.name.trim() : `Profil n° ${i + 1}`;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return rejected.push({name: label, problems: ["Profil illisible."]});
+    const profile = cleanProfile(raw);
+    const problems = validateProfile(profile);
+    if (!problems.length && seen.has(profile.name.toLowerCase())) problems.push("Nom en double dans le fichier.");
+    if (problems.length) return rejected.push({name: label, problems});
+    seen.add(profile.name.toLowerCase());
+    profiles.push(profile);
+  });
+  return {profiles, rejected, error: null};
+}
+
+// Ajoute des profils importés : celui qui porte mon pseudo devient mon profil, un ami déjà présent
+// (même nom) est remplacé en gardant son id, les autres sont ajoutés.
+// state : {mine, friends} ; renvoie {state, added, replaced, mine: "added" | "replaced" | null}.
+function mergeProfiles(state, imported, me, newId) {
+  const lower = (s) => (s || "").toLowerCase();
+  let mine = state.mine;
+  let mineChange = null;
+  const friends = [...state.friends];
+  const added = [];
+  const replaced = [];
+  for (const p of imported) {
+    if (me && lower(p.name) === lower(me)) {
+      mineChange = mine ? "replaced" : "added";
+      const {enabled, ...rest} = p;
+      mine = {...rest, id: mine?.id || newId()};
+      continue;
+    }
+    const i = friends.findIndex((f) => lower(f.name) === lower(p.name));
+    if (i >= 0) {
+      friends[i] = {...p, id: friends[i].id, enabled: p.enabled ?? friends[i].enabled ?? true};
+      replaced.push(p.name);
+    } else {
+      friends.push({...p, id: newId(), enabled: p.enabled ?? true});
+      added.push(p.name);
+    }
+  }
+  return {state: {mine, friends}, added, replaced, mine: mineChange};
 }
 
 module.exports = {
@@ -137,4 +231,7 @@ module.exports = {
   keywordsToPattern,
   simpleToProfile,
   validateProfile,
+  exportProfiles,
+  importProfiles,
+  mergeProfiles,
 };

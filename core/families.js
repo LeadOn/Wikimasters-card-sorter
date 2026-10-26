@@ -3,20 +3,26 @@
 "use strict";
 
 const {categorize} = require("./categorize");
+const {themeSetOf, themeAliases} = require("./theme-set");
 const {hasKeyword, normalize} = require("./text");
 const {keywordsToPattern} = require("./profiles");
 const {RARITIES} = require("./prices");
 
 // rule : {query, themes: [], keywords: "…", exclude: "…", rarities: []}
 // Une carte du catalogue entre dans une famille intelligente si elle passe tous les filtres présents.
-function matchesFamilyRule(card, rule) {
+// themes : liste de thèmes du joueur (core/theme-set.js) ; par défaut, celle de core/themes.js.
+function matchesFamilyRule(card, rule, {themes = null} = {}) {
   if (rule.rarities?.length && !rule.rarities.includes(card.rarity)) return false;
   const text = normalize(`${card.wikipedia_title || ""} ${card.category || ""} ${(card.summary || "").split(/\n/)[0].slice(0, 400)}`);
   const kw = keywordsToPattern(rule.keywords);
   if (kw && !hasKeyword(text, kw)) return false;
   const ex = keywordsToPattern(rule.exclude);
   if (ex && hasKeyword(text, ex)) return false;
-  if (rule.themes?.length && !rule.themes.includes(categorize(card)[0])) return false;
+  if (rule.themes?.length) {
+    const set = themeSetOf(themes);
+    const names = themeAliases(set, categorize(card, {themes: set})[0]);
+    if (!rule.themes.some((t) => names.includes(t))) return false;
+  }
   return true;
 }
 

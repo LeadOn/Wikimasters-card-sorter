@@ -9,7 +9,8 @@ import {CardRow, Money, Paged, Progress, Notice, fmt, plural} from "../component
 import {CollectionFilters, CollectionCards} from "../CollectionCards";
 import {DEFAULT_FILTER} from "../../features/collection-view";
 import {toast, errorMessage} from "../feedback";
-import {RARITIES, RARITY_LABEL, RECENT_SALES, categorize} from "../../../../../core";
+import {RARITIES, RARITY_LABEL, RECENT_SALES} from "../../../../../core";
+import {themeMemo} from "../../state/themes";
 
 export function PricesTab() {
   useStore(priceVersion);
@@ -52,8 +53,8 @@ export function PricesTab() {
     return {r, copies: list.reduce((n, c) => n + c.count, 0), priced: list.filter((c) => c.price != null).length, value: list.reduce((n, c) => n + (c.price || 0) * c.count, 0)};
   });
   // Thème de chaque carte, calculé une seule fois (le classement est recalculé à chaque prix reçu)
-  const themeCache = useMemo(() => new Map(), [copies]);
-  const themeOf = (card) => themeCache.get(card.id) ?? themeCache.set(card.id, categorize(card)[0]).get(card.id);
+  const themeCache = useMemo(() => themeMemo(), [copies]);
+  const themeOf = (card) => themeCache(card.id, card);
   const ranking = useMemo(
     () =>
       valued

@@ -9,6 +9,7 @@ import {on} from "../lib/bus";
 import {loadMyCollection} from "../state/collection";
 import {activeProfiles, profileFor} from "../state/profiles";
 import {priceOptions, priceMap} from "../state/prices";
+import {themeSet} from "../state/themes";
 import {findTrades, tagForProfile} from "../../../../core";
 
 const MAX_AGE_H = 12;
@@ -169,6 +170,7 @@ export async function findTradesWith(friend, {themes = null, rarities = [], refr
       wanted,
       friendTag,
       profiles,
+      themes: themeSet(),
       rarities,
       prices: priceMap(),
       priceOptions: priceOptions(),

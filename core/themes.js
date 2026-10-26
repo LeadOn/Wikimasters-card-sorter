@@ -9,14 +9,22 @@
 //          description ou de la définition ("fort à l'Île-d'Yeu", pas "un fort courant").
 // `weight` : multiplicateur du score (Personnalités ne sert qu'à défaut d'un domaine précis :
 //          "avocat et homme d'État" → Politique).
+// `role`  : thème qui reçoit aussi une carte sans score reconnu par une règle à part :
+//          "disambig" (pages d'homonymie, noms de famille, prénoms), "species" (nom latin sans
+//          description), "person" (biographie non reconnue).
+// `split` : [étiquette française, étiquette internationale] : le thème est scindé selon la
+//          nationalité trouvée dans la description ou la définition.
 // L'ordre ne sert qu'à départager deux scores strictement égaux.
-// "Politique" est scindé ensuite en Politique Française / Internationale.
+// Chaque joueur peut modifier cette liste dans l'extension (core/theme-set.js) ; les scripts
+// Node utilisent toujours celle-ci.
 
 const THEMES = {
   "Divers & Homonymies": {
+    role: "disambig",
     kw: "pages? d'homonymie|homonymies?|mois de \\d{4}|pages? de liste|listes? (?:de|des|d')|glossaires?|chronologies? (?:de|des|du|d')|bilans? saison par saison|palmarès|décennies?|événements (?:survenus|liés)|faits marquants|répertoires?|annuaires?|nomenclatures?",
   },
   "Faune & Flore": {
+    role: "species",
     kw: "espèces?|sous-espèces?|taxons?|plantes?|végéta(?:l|le|les|ux)|flore|faune|botanique|zoologie|animal|animaux|insectes?|araignées?|aranéomorphes?|mygalomorphes?|mygales?|tarentules?|arachnides?|scorpions?|pseudoscorpions?|acariens?|diptères?|coléoptères?|lépidoptères?|hyménoptères?|hémiptères?|orthoptères?|papillons?|fourmis?|abeilles?|guêpes?|frelons?|moustiques?|oiseaux|oiseau|passereaux|rapaces?|poissons?|requins?|mammifères?|rongeurs?|chauves-souris|chauve-souris|primates?|singes?|félins?|canidés?|cétacés?|baleines?|dauphins?|marsupiaux|marsupial|reptiles?|sauriens?|lézards?|serpents?|tortues?|crocodiles?|amphibiens?|grenouilles?|crapauds?|salamandres?|mollusques?|gastéropodes?|escargots?|bivalves?|crustacés?|anémones? de mer|coraux|tardigrades?|nématodes?|bactéries?|micro-organismes?|fleurs?|arbres?|arbustes?|orchidées?|rosiers?|cultivars?|algues?|champignons?|lichens?|fougères?|graminées?|conifères?|fongiques?|mycologie|races? (?:de|d') (?:chevaux|chiens?|chats?|bovins?|vaches?|moutons?|poules?|porcs?|chèvres?|lapins?|poneys?)|races? (?:bovine|ovine|chevaline|canine|féline|porcine|caprine)s?|poneys?|chevaux|cheval|bovins?|variétés? (?:d'|de )(?:avocats?|pommes?|poires?|raisins?|vignes?|blé|riz|tomates?|pommes? de terre|olives?|agrumes?|bananes?|mangues?|cerises?|prunes?|pêches?|abricots?|oranges?|citrons?|figues?)|parcs? zoologiques?|zoos?|famille des [a-zà-ÿ]+(?:idés|acées|idae|aceae)|[a-z]{3,}idae|[a-z]{3,}aceae",
   },
   "Monuments & Lieux historiques": {
@@ -24,6 +32,7 @@ const THEMES = {
     head: "tour|fort|place|rue|pont|stade|arena|salle|hôtel|maison|porte|cinéma|immeuble",
   },
   Politique: {
+    split: ["Politique Française", "Politique Internationale"],
     kw: "politiques?|politiciens?|politiciennes?|hommes? d'état|femmes? d'état|élections?|électora(?:l|le|les|ux)|scrutins?|référendums?|partis? (?:politiques?|socialiste|communiste|vert|conservateur|libéral|démocrate|républicain|travailliste|populaire|nationaliste|écologiste|social-démocrate|démocrate-chrétien|du travail|du peuple)|travaillistes?|député(?:e)?s?|sénat(?:eur|rice)s?|sénat|ministres?|ministères?|gouvernements?(?! local)|gouvernementa(?:l|le|les|ux)|parlements?|parlementaires?|législatures?|législati(?:f|fs|ve|ves)|droit de vote|suffrage universel|constitution(?:nel|nelle)?s?|diplomates?|diplomatiques?|diplomatie|ambassadeurs?|ambassadrices?|ambassades?|consulats?|présidents? de la république|chefs? d'état|chef du gouvernement|premiers? ministres?|maires?|conseill(?:er|ère)s? (?:municipa(?:l|ux)|généra(?:l|ux)|régiona(?:l|ux))|assemblée nationale|nations unies|onu|otan|union européenne|traités? internationa(?:l|ux)|sommets? (?:de|du|des) (?:l'otan|g7|g8|g20)|circonscriptions? électorales?|divisions? électorales?|districts? sénatoria(?:l|ux)|mandats? (?:du|de) parlement|syndica(?:l|le|les|ux|lisme|listes?|ts?)|militante?s? (?:politiques?|anarchistes?|anarcho-syndicalistes?|communistes?|socialistes?|féministes?|écologistes?|indépendantistes?)|anarchis(?:me|tes?)|anarcho-syndicalis(?:me|tes?)|communis(?:me|tes?)|socialis(?:me|tes?)|nationalis(?:me|tes?)|irrédentismes?|sionis(?:me|tes?)|fascis(?:me|tes?)|extrême[ -](?:gauche|droite)|idéologies?|mouvances?|droits (?:de l'homme|humains|des peuples)|déclarations? (?:des droits|universelle)|opposants? politiques?|dissidents?|coups? d'état|pronunciamiento|commissions? nationales?|administrations? nationales?",
   },
   "Arts & Littérature": {
@@ -76,10 +85,11 @@ const THEMES = {
     // Noms aussi adjectifs ("zone industrielle", "rue commerçante", "navigateur web")
     head: "industriel|industrielle|marchand|marchande|commerçant|commerçante|fonctionnaire|navigateur|navigatrice",
     weight: 0.6,
+    role: "person",
   },
 };
 
-// Couleur de chaque tag de thème ; l'ordre est celui de l'affichage.
+// Couleur de chaque tag de thème ; l'ordre est celui de l'affichage. `Autre` : cartes sans thème reconnu.
 const THEME_COLORS = {
   "Politique Française": "#2563eb",
   "Politique Internationale": "#7c3aed",
@@ -103,7 +113,8 @@ const THEME_COLORS = {
   Autre: "#6b7280",
 };
 
+const OTHER = "Autre";
 const DOUBLON = "Doublon";
 const DOUBLON_COLOR = "#ef4444";
 
-module.exports = {THEMES, THEME_COLORS, DOUBLON, DOUBLON_COLOR};
+module.exports = {THEMES, THEME_COLORS, OTHER, DOUBLON, DOUBLON_COLOR};
