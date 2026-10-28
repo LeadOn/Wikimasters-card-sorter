@@ -151,11 +151,15 @@ function PnlChart({periods, unit, metric, selected, onSelect}) {
         )}
       </div>
       <div class="pnl-x" style={{gridTemplateColumns: `repeat(${periods.length}, minmax(0, 1fr))`}} aria-hidden="true">
-        {periods.map((p, i) => (
-          <span key={p.key} class={p.key === selected ? "on" : ""}>
-            {(periods.length - 1 - i) % every === 0 ? tick(p, unit) : ""}
-          </span>
-        ))}
+        {periods.map((p, i) => {
+          const n = periods.length - 1 - i;
+          // Une graduation sur deux (alt) disparaît sur un écran étroit
+          return (
+            <span key={p.key} class={`${p.key === selected ? "on" : ""}${n % (2 * every) === every ? " alt" : ""}`}>
+              {n % every === 0 ? tick(p, unit) : ""}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -306,17 +310,17 @@ function Operations({ops, period, unit, cards, byId}) {
                 const sale = op.side === "buy" && op.soldId ? byId.get(op.soldId) : null;
                 return (
                   <tr key={op.id}>
-                    <td class="num muted">{when(op.at, unit)}</td>
-                    <td>
+                    <td class="num muted" data-k={unit === "day" ? "Heure" : "Date"}>{when(op.at, unit)}</td>
+                    <td class="op-main">
                       <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                     </td>
-                    <td>
+                    <td data-k="Opération">
                       <span class={`chip side ${op.side}`}>{op.side === "buy" ? "Achat" : op.cost != null ? "Revente" : "Vente"}</span>
                     </td>
-                    <td class="num">
+                    <td class="num" data-k="Prix">
                       <Money v={op.price} />
                     </td>
-                    <td class="num">
+                    <td class="num" data-k="Prix d'achat">
                       {op.side === "sell" ? (
                         op.cost != null ? (
                           <Money v={op.cost} />
@@ -327,7 +331,7 @@ function Operations({ops, period, unit, cards, byId}) {
                         )
                       ) : null}
                     </td>
-                    <td class="num">
+                    <td class="num" data-k="Plus-value">
                       {op.side === "sell" ? (
                         op.cost != null ? (
                           <span class="stack-num">
@@ -346,7 +350,7 @@ function Operations({ops, period, unit, cards, byId}) {
                         <span class="muted small">en stock</span>
                       )}
                     </td>
-                    <td class="num muted">{op.side === "sell" ? held(op.heldMs) : sale ? held(sale.heldMs) : ""}</td>
+                    <td class="num muted" data-k="Détention">{op.side === "sell" ? held(op.heldMs) : sale ? held(sale.heldMs) : ""}</td>
                   </tr>
                 );
               })}
@@ -389,24 +393,24 @@ function Resales({ops, period, unit, cards}) {
             <tbody>
               {sorted.slice(0, shownRows).map((op) => (
                 <tr key={op.id}>
-                  <td class="num muted">{when(op.at, unit)}</td>
-                  <td>
+                  <td class="num muted" data-k={unit === "day" ? "Vendue à" : "Vendue le"}>{when(op.at, unit)}</td>
+                  <td class="op-main">
                     <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                   </td>
-                  <td class="num muted">{when(op.boughtAt, "week")}</td>
-                  <td class="num">
+                  <td class="num muted" data-k="Achetée le">{when(op.boughtAt, "week")}</td>
+                  <td class="num" data-k="Prix d'achat">
                     <Money v={op.cost} />
                   </td>
-                  <td class="num">
+                  <td class="num" data-k="Prix de vente">
                     <Money v={op.price} />
                   </td>
-                  <td class="num">
+                  <td class="num" data-k="Plus-value">
                     <span class="stack-num">
                       <Gain v={op.profit} />
                       <span class="muted small">{percent(op.cost ? op.profit / op.cost : null)}</span>
                     </span>
                   </td>
-                  <td class="num muted">{held(op.heldMs)}</td>
+                  <td class="num muted" data-k="Détention">{held(op.heldMs)}</td>
                 </tr>
               ))}
             </tbody>
@@ -467,18 +471,18 @@ function Positions({open, error, cards}) {
             <tbody>
               {rows.slice(0, shownRows).map(({op, p, latent: l}) => (
                 <tr key={op.id}>
-                  <td class="num muted">{when(op.at, "week")}</td>
-                  <td>
+                  <td class="num muted" data-k="Achetée">{when(op.at, "week")}</td>
+                  <td class="op-main">
                     <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                   </td>
-                  <td class="num">
+                  <td class="num" data-k="Prix d'achat">
                     <Money v={op.price} />
                   </td>
-                  <td class="num">{p.price != null ? <Money v={p.price} approx={Boolean(p.uncertain)} title={p.uncertain} /> : <span class="muted">—</span>}</td>
-                  <td class="num">
+                  <td class="num" data-k="Prix du marché">{p.price != null ? <Money v={p.price} approx={Boolean(p.uncertain)} title={p.uncertain} /> : <span class="muted">—</span>}</td>
+                  <td class="num" data-k="Plus-value latente">
                     <Gain v={l} />
                   </td>
-                  <td class="num muted">{held(Date.now() - op.at)}</td>
+                  <td class="num muted" data-k="Depuis">{held(Date.now() - op.at)}</td>
                 </tr>
               ))}
             </tbody>

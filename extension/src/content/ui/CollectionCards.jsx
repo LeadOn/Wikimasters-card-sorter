@@ -411,7 +411,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
             />
             Tout ({fmt(choosable.length)})
           </label>
-          <span class="small muted" style={{flex: 1}}>
+          <span class="small muted pick-hint">
             {chosen.length
               ? plural(chosen.length, "carte cochée", "cartes cochées")
               : onOpen

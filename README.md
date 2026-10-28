@@ -20,6 +20,8 @@ Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-m
 - **Images** : n'afficher que vos cartes sans image, ou celles dont l'image est un GIF, sur toute la collection (onglet Images et page Collection).
 - **Sur les cartes** : un nouvel affichage, avec l'image sur toute la carte et un cadre aux couleurs de la rareté ; les images manquantes cherchées sur Wikimedia (Wikipédia, Wikidata et ses éléments liés), sinon la carte sans image du site ; thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
 
+L'interface s'adapte aux petits écrans (navigateur mobile qui accepte les extensions, fenêtre étroite) : panneau en plein écran, fenêtres ouvertes depuis le bas, boutons à la taille du doigt.
+
 Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part, et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
 
 **Tout est expliqué dans le [guide de l'utilisateur](docs/guide.md).**
@@ -84,6 +86,8 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 - **Packs**: a recap after each pack (new cards, duplicates, prices, total value) where each card can be put up for auction or discarded for 1 WikiBidou, drop rates, and "Open all" on your click.
 - **Families**: sets of cards to complete, hand-picked or filled from a search.
 - **Cards**: a new card layout with a full-bleed image and a rarity-colored frame; missing images looked up on Wikimedia (Wikipedia, Wikidata and its linked items).
+
+The interface adapts to small screens (mobile browsers that support extensions, narrow windows).
 
 Every feature can be turned off. Nothing is written to your account without a click, there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface and documentation are in French: see the [user guide](docs/guide.md).
 

@@ -33,7 +33,7 @@ Le nom et le résumé viennent du manifeste (`extension/build.mjs`) : ils ne se 
 ```
 Extension non officielle, faite par des joueurs pour des joueurs. Elle n'est ni éditée ni approuvée par WikiMasters.
 
-WikiMasters Toolbox ajoute à wiki-masters.com les outils qui manquent pour gérer une grosse collection : directement dans les pages du site, et dans un panneau « Toolbox » ouvert depuis le menu.
+WikiMasters Toolbox ajoute à wiki-masters.com les outils qui manquent pour gérer une grosse collection : directement dans les pages du site, et dans un panneau « Toolbox » ouvert depuis le menu. L'interface s'adapte aussi aux petits écrans.
 
 UN NOUVEL AFFICHAGE DES CARTES
 • L'image occupe toute la carte, encadrée aux couleurs de sa rareté ; titre, étiquettes et statistiques passent en surimpression.
