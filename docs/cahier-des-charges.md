@@ -20,7 +20,8 @@ Toute l'implémentation est originale : aucune ligne n'est reprise d'une autre e
 ## 2. Principes
 
 1. **Aucune écriture sans clic explicite** du joueur (tags, ventes, enchères, paquets). Toute écriture
-   importante est précédée d'un aperçu.
+   importante est précédée d'un aperçu. Exceptions : les options désactivées par défaut que le joueur
+   active lui-même (tri des cartes tirées, réclamation des succès).
 2. **Pas de token à manipuler** : la session est lue dans les cookies du site, la clé publique Supabase
    est observée dans les requêtes du site.
 3. **Respect du serveur** : concurrence limitée, réessais avec délai croissant, réponses 429 respectées,
@@ -96,6 +97,7 @@ Remplacent les règles codées en dur pour chaque ami.
 | P5 | **Mes doublons** : liste des exemplaires en trop triés par valeur (un exemplaire est toujours conservé), mise en vente ou défausse (1 WikiBidou) en un clic avec confirmation | P2 |
 | P6 | **Mes enchères** : enchères en cours, temps restant, surenchère en un clic avec confirmation, alerte quand une enchère se termine bientôt | P2 |
 | P7 | **Stonks** : page du menu du site, historique de mes achats et ventes aux enchères par jour, semaine ou mois ; plus-value de l'achat-revente, flux net, cartes achetées encore en stock ; vue « achat-revente » limitée aux cartes achetées puis revendues. Historique seulement, aucune action | P2 |
+| P8 | **Enchère dans le titre de l'onglet** : sur la page d'une enchère, temps restant, position (en tête, surenchéri), mise actuelle ; signal visible depuis un autre onglet à chaque nouvelle mise | P2 |
 
 ### 3.6 Paquets
 
@@ -123,6 +125,7 @@ Remplacent les règles codées en dur pour chaque ami.
 | C2 | Badge « possédée / manquante » sur les cartes vues hors de ma collection | P2 |
 | C3 | Image de remplacement (Wikipédia / Wikimedia Commons) pour les cartes sans image | P3 |
 | C4 | Son discret à l'arrivée d'une notification | P3 |
+| C5 | **Succès** : liste et progression des succès du site, réclamation de toutes les récompenses disponibles en un clic ; option (désactivée par défaut) de réclamation automatique | P2 |
 
 ### 3.9 Intégration dans les pages du site
 
@@ -142,7 +145,7 @@ partage son état avec l'onglet correspondant du panneau.
 
 - Ouverture automatique des paquets sans clic, ou tout ce qui imite un comportement humain.
 - Serveur partagé (instantanés de collection, bibliothèque publique de familles) : reporté.
-- Toute action déclenchée sans geste du joueur.
+- Toute action déclenchée sans geste du joueur, hors options désactivées par défaut qu'il active lui-même (tri des cartes tirées, réclamation des succès).
 
 ## 5. Architecture
 
@@ -172,6 +175,8 @@ Toutes les fonctionnalités des sections 3.1 à 3.9 sont implémentées. Écarts
 | P1-P2 | Prix calculés à partir des ventes conclues (table `auctions`), lues par lots : toute une collection (~7 600 cartes) en ~5 min, au lieu de ~12 s par carte avec la route du site, gardée en dernier recours. Médiane plutôt que moyenne : sur 75 000 ventes (600 cartes, octobre 2026), elle prédit mieux la vente suivante (écart typique ×1,56 contre ×1,72, 1 cas sur 10 au-delà de ×4,1 contre ×5,7). Le site exclut les ventes shiny de sa moyenne : la Toolbox aussi, avec un prix shiny à part. Remplacer un prix peu fiable par celui de la rareté a été écarté : il prédit plus mal, la carte comptant bien plus que sa rareté. |
 | P4 | Classement filtrable par thème calculé (lire les étiquettes de 7 000 cartes à chaque affichage serait trop lent). |
 | P6 | Alerte par message et son ; vérification toutes les 60 s (20 s dans les 5 dernières minutes) tant qu'une enchère est en cours et l'onglet visible. |
+| P8 | Le site ne relit pas l'enchère affichée : l'extension la relit toutes les 30 s, 15 s dans les 10 dernières minutes, 5 s dans les 2 dernières, et au retour sur l'onglet. Symbole en tête du titre (✓ en tête, ✗ surenchéri, ↑ nouvelle mise) pour rester lisible dans un onglet étroit ; le titre clignote jusqu'à ce que l'onglet soit revu. Titre du site rendu en quittant la page. |
+| C5 | Lecture dans Supabase (`achievements`, `user_achievements`) après la synchronisation du site (`POST /api/achievements/check`, que sa page Succès fait à chaque visite). Réclamations une à une sous le verrou `achievements`, arrêt à la première erreur. Option automatique : au chargement, toutes les 15 min (onglet visible), 5 s après un paquet ou un échange (au plus une passe par minute). |
 | P7 | Ventes rapprochées des achats « premier entré, premier sorti », par carte, rareté et version shiny (un exemplaire n'a pas d'identifiant propre : `user_cards` regroupe les exemplaires par `count`). Une vente sans achat correspondant compte dans les ventes et le flux net, pas dans la plus-value. Page ouverte par `#stonks` sur la page en cours, faute de route sur le site. |
 | E3 | Valeur des échanges : encart flottant sur la page Échanges + détail dans l'onglet Échanges (le rendu des échanges du site varie trop pour y greffer des badges). |
 | F2 | Le catalogue compte ~2,8 millions de cartes : une famille intelligente part d'une recherche du site (10 pages de 50 cartes au plus), filtrée ensuite par mots-clés, exclusions, thèmes et raretés. |

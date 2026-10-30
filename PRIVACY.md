@@ -1,6 +1,6 @@
 # Politique de confidentialité — WikiMasters Toolbox
 
-*Dernière mise à jour : 13 octobre 2026*
+*Dernière mise à jour : 30 octobre 2026*
 
 WikiMasters Toolbox est une extension de navigateur **non officielle** pour le jeu [WikiMasters](https://www.wiki-masters.com/). Elle n'est ni éditée ni approuvée par WikiMasters. Son code source est public : <https://github.com/LeadOn/Wikimasters-card-sorter>.
 
@@ -14,7 +14,7 @@ WikiMasters Toolbox est une extension de navigateur **non officielle** pour le j
 
 | Donnée | Usage | Où elle va |
 |---|---|---|
-| **Session WikiMasters** (jeton de connexion lu dans les cookies du site) | Authentifier les requêtes que l'extension fait à WikiMasters pour vous : lire votre collection, vos étiquettes et les prix du marché, poser des étiquettes, mettre en vente, enchérir, défausser une carte ou ouvrir des paquets quand vous cliquez sur le bouton correspondant | Uniquement wiki-masters.com et sa base de données (`cyrxjeppjqsxxjayfrur.supabase.co`). Jamais enregistrée par l'extension |
+| **Session WikiMasters** (jeton de connexion lu dans les cookies du site) | Authentifier les requêtes que l'extension fait à WikiMasters pour vous : lire votre collection, vos étiquettes et les prix du marché, poser des étiquettes, mettre en vente, enchérir, défausser une carte, ouvrir des paquets ou réclamer les récompenses de vos succès quand vous cliquez sur le bouton correspondant (ou, pour le tri des cartes tirées et la réclamation des succès, d'elle-même si vous activez l'option correspondante, désactivée par défaut) | Uniquement wiki-masters.com et sa base de données (`cyrxjeppjqsxxjayfrur.supabase.co`). Jamais enregistrée par l'extension |
 | **Contenu du site** (cartes, collection, étiquettes, enchères, échanges, collection d'un ami consultée) | Afficher les outils (thèmes, prix, doublons, échanges…) | Gardé en cache dans le stockage local de l'extension, sur votre appareil |
 | **Vos réglages**, profils d'intérêts, familles, statistiques de tirage | Fonctionnement de l'extension | Stockage local de l'extension, sur votre appareil |
 | **Titre d'une carte sans image** (option « Images manquantes », désactivée par défaut) | Chercher une illustration de l'article | Requêtes anonymes (sans cookie ni référent) aux services de Wikimedia : `fr.wikipedia.org`, `en.wikipedia.org`, `www.wikidata.org` et, pour l'article dans une autre langue, d'autres éditions de Wikipédia (`de.wikipedia.org`, `es.wikipedia.org`…) ; l'image trouvée est chargée depuis Wikimedia Commons |
@@ -37,4 +37,4 @@ Questions ou problèmes : <https://github.com/LeadOn/Wikimasters-card-sorter/iss
 
 ## Privacy policy (English summary)
 
-WikiMasters Toolbox is an **unofficial** extension for WikiMasters. It has no server and sends nothing to its author or to any third party: no account, no ads, no analytics. It only talks to WikiMasters (wiki-masters.com and its Supabase database), using your existing WikiMasters session to read your collection and market prices and, only when you click, to tag cards, list or bid on auctions, discard a card, or open packs. Settings, caches and your data stay in the extension's local storage on your device until you clear them or uninstall the extension. The optional "missing images" feature (off by default) sends the title of a card without an image to Wikimedia services (Wikipedia, Wikidata), anonymously; the image found is loaded from Wikimedia Commons. Contact: <https://github.com/LeadOn/Wikimasters-card-sorter/issues>.
+WikiMasters Toolbox is an **unofficial** extension for WikiMasters. It has no server and sends nothing to its author or to any third party: no account, no ads, no analytics. It only talks to WikiMasters (wiki-masters.com and its Supabase database), using your existing WikiMasters session to read your collection and market prices and, only when you click, to tag cards, list or bid on auctions, discard a card, open packs or claim achievement rewards (sorting pulled cards and claiming achievements can also run on their own if you turn on the matching option, off by default). Settings, caches and your data stay in the extension's local storage on your device until you clear them or uninstall the extension. The optional "missing images" feature (off by default) sends the title of a card without an image to Wikimedia services (Wikipedia, Wikidata), anonymously; the image found is loaded from Wikimedia Commons. Contact: <https://github.com/LeadOn/Wikimasters-card-sorter/issues>.

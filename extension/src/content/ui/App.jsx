@@ -19,6 +19,7 @@ import {MarketTab} from "./tabs/MarketTab";
 import {PacksTab} from "./tabs/PacksTab";
 import {FamiliesTab} from "./tabs/FamiliesTab";
 import {ImagesTab} from "./tabs/ImagesTab";
+import {AchievementsTab, claimedMessage} from "./tabs/AchievementsTab";
 import {SettingsTab} from "./tabs/SettingsTab";
 import {SellDialogHost} from "./SellDialog";
 
@@ -32,6 +33,7 @@ const TABS = [
   {id: "packs", label: "Paquets", Comp: PacksTab},
   {id: "families", label: "Familles", Comp: FamiliesTab},
   {id: "images", label: "Images", Comp: ImagesTab},
+  {id: "achievements", label: "Succès", Comp: AchievementsTab},
   {id: "settings", label: "Réglages", Comp: SettingsTab},
 ];
 
@@ -209,6 +211,7 @@ export function App() {
           action: {label: "Voir", run: () => openPanel("market")},
         }),
       ),
+      on("achievements-claimed", (r) => toast(claimedMessage(r), {type: "ok", action: {label: "Voir", run: () => openPanel("achievements")}})),
       // Sans récapitulatif (désactivé), un message propose de trier les nouvelles cartes
       on("cards-added", ({count, recap, sorted}) => {
         if (recap || sorted || !isOn("sortAfterPack") || sortState.get().running) return;

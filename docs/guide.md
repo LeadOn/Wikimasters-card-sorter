@@ -268,6 +268,18 @@ Les cartes de toute votre collection classées selon leur image :
 
 Chaque carte apparaît une fois par rareté, avec le nombre d'exemplaires. La liste se filtre par rareté et par titre ou description. La collection lue est gardée quelques minutes, comme pour les autres onglets.
 
+### Succès
+
+Les succès du site (*Posséder 1000 cartes*, *Conclure 5 échanges*…) et leurs récompenses en WikiBidous :
+
+- **Indicateurs** : succès débloqués, nombre et montant des récompenses à réclamer, récompenses déjà reçues.
+- **Tout réclamer** : réclame d'un clic la récompense de chaque succès débloqué qui ne l'a pas encore été, l'un après l'autre. Le solde affiché par le site se met à jour. À la première erreur, la réclamation s'arrête et la liste est relue.
+- **Liste**, filtrable (*Tous*, *À réclamer*, *En cours*, *Réclamés*) : les succès à réclamer d'abord, puis ceux en cours, les plus avancés en premier (avec leur progression, par exemple 10 081 / 30 000), puis ceux déjà réclamés.
+
+À l'ouverture de l'onglet (et avec *Actualiser*), la Toolbox fait la même synchronisation que la page *Succès* du site à chaque visite : les succès atteints sont débloqués et la progression des autres est mise à jour.
+
+Avec l'option **Réclamer les succès automatiquement** (désactivée par défaut), les récompenses sont réclamées sans clic : au chargement d'une page WikiMasters, toutes les 15 minutes tant que l'onglet est visible, et quelques secondes après l'ouverture d'un paquet ou un échange. Un message indique ce qui a été reçu.
+
 ### Réglages
 
 Voir [Réglages](#réglages) ci-dessous.
@@ -340,6 +352,7 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 | Pages du site | Barre Toolbox sur la collection | activée |
 | Pages du site | Infos dans la fiche d'une carte | activée |
 | Pages du site | Analyse des enchères | activée |
+| Pages du site | Enchère dans le titre de l'onglet | activée |
 | Pages du site | Bonnes affaires du marché | activée |
 | Pages du site | Échanges sur le profil d'un ami | activée |
 | Paquets | Récapitulatif après un paquet | activée |
@@ -351,9 +364,12 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 | Échanges | Valeur des échanges | activée |
 | Marché | Alerte de fin d'enchère | activée |
 | Marché | Page Stonks | activée |
+| Succès | Réclamer les succès automatiquement | désactivée |
 | Confort | Son de notification | désactivée |
 
 **Trier automatiquement les cartes tirées** : dès l'ouverture d'un paquet, les nouveaux exemplaires reçoivent leur thème, leurs étiquettes « Pour : … » et `Doublon`. Seuls les exemplaires qui viennent d'arriver sont touchés, rien n'est supprimé.
+
+**Réclamer les succès automatiquement** : la récompense de chaque succès débloqué est réclamée sans clic (voir [Succès](#succès)).
 
 L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **nombre de ventes minimum pour un prix fiable** (3) et le **nombre de premières ventes ignorées** pour chaque carte et chaque rareté (1), le **délai de l'alerte de fin d'enchère** (2 minutes), les **thèmes de tri** (voir [Personnaliser les thèmes](#personnaliser-les-thèmes)) et la couleur de `Doublon`, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
 
@@ -361,7 +377,7 @@ L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défau
 
 ## Sécurité et vie privée
 
-- **Aucune écriture sans clic.** Poser des étiquettes, enchérir, mettre en vente, défausser, ouvrir des paquets : rien ne se fait sans que vous cliquiez, et les actions importantes demandent une confirmation.
+- **Aucune écriture sans clic.** Poser des étiquettes, enchérir, mettre en vente, défausser, ouvrir des paquets : rien ne se fait sans que vous cliquiez, et les actions importantes demandent une confirmation. Seules exceptions, les options que vous activez vous-même : *Trier automatiquement les cartes tirées* et *Réclamer les succès automatiquement*.
 - **Pas d'ouverture automatique de paquets** ni de comportement qui imite un joueur. Si le site demande une vérification anti-robot, la Toolbox s'arrête et vous laisse la faire.
 - **Vos étiquettes personnelles ne sont jamais modifiées** : seuls les thèmes, les « Pour : … » et `Doublon` sont gérés par la Toolbox.
 - **Le serveur est ménagé** : peu de requêtes en parallèle, pauses en cas de surcharge, et une écriture restée sans réponse n'est jamais renvoyée automatiquement (elle est signalée comme « peut-être prise en compte »).

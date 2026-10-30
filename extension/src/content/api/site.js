@@ -42,6 +42,9 @@ export const site = {
   auction: (id) => siteGet(`/api/marketplace/${id}`),
   wikibidous: () => siteGet("/api/wikibidous"),
   trades: () => siteGet("/api/trades"),
+  // Synchronisation des succès (appelée par la page Succès du site à chaque visite) : débloque les
+  // succès atteints, renvoie {unlocked, progress: [{code, current, target}]}
+  achievementsCheck: () => sitePost("/api/achievements/check", {event: "achievements_sync"}),
   // Écritures : chacune est déclenchée par un clic du joueur
   // Malgré son nom, card_id attend l'id de l'EXEMPLAIRE (user_cards.id), comme le formulaire du site
   createAuction: ({userCardId, baseAmount, durationMinutes}) =>
@@ -49,6 +52,8 @@ export const site = {
   bid: (auctionId, amount) => sitePost(`/api/marketplace/${auctionId}/bid`, {amount}),
   // Défausse d'un exemplaire (id de user_cards) contre 1 WikiBidou ; refusée pour un favori ou une carte en échange
   discard: (userCardId) => sitePost(`/api/user-cards/${encodeURIComponent(userCardId)}/discard`),
+  // Récompense d'un succès débloqué : {claimed_at, amount} ou {already_claimed}
+  claimAchievement: (achievementId) => sitePost("/api/achievements/claim", {achievement_id: achievementId}),
   openPack: () => sitePost("/api/packs/open", undefined, {timeout: 60000}),
 };
 

@@ -72,6 +72,15 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `POST /api/packs/open` (sans corps), `/api/packs/pro-daily`, `/api/packs/special` | `{cards: [{…carte, summary, user_card_id}], packs_remaining, owned_copies}` ou `{error, human_verification_required}`. La page révèle les cartes une à une ; le bouton du bas affiche « Encore N cartes » puis « Continuer ». |
 | `POST /api/packs/open` trop tôt (relevé le 13/10/2026) | moins de 2 s après l'ouverture précédente : **429** `{error: "Ouverture trop rapide…", rate_limited: true, rate_limit_daily, retry_after: <date ISO>, packs_remaining}` + `Retry-After: 1`, sans consommer de paquet. Une ouverture en série espacée de 2,4 s a reçu un **403** `{human_verification_required: true}` au 2e paquet ; la page affiche alors une vérification Turnstile (`POST /api/human-check {token}`) puis relance l'ouverture. Une fois la vérification faite par le joueur, 7 paquets ont été ouverts à la suite, 2,4 s d'écart, sans nouvelle demande. |
 
+## Succès
+
+| Route | Réponse |
+|---|---|
+| Supabase `achievements?select=*` | `[{id, code, title, description, icon, wikibidous_reward}]` — 51 succès (relevé le 30/10/2026) |
+| Supabase `user_achievements?select=*&user_id=eq.{moi}` | `[{user_id, achievement_id, unlocked_at, claimed_at}]` : une ligne par succès débloqué ; `claimed_at` nul tant que la récompense n'est pas réclamée |
+| `POST /api/achievements/check {event: "achievements_sync"}` | `{unlocked: [...], progress: [{code, current, target}]}` (succès pas encore débloqués). Appelée par la page `/achievements` à chaque visite : débloque les succès atteints |
+| `POST /api/achievements/claim {achievement_id}` | `{claimed_at, amount}` ; `{already_claimed: true, claimed_at}` si déjà réclamée (idempotente). La page relit ensuite le solde (`wikimasters:wikibidous-balance-refresh`) |
+
 ## Interface (pour les badges)
 
 - Une carte affichée : `div` dont la classe contient `glow-<rareté>` (`glow-l`, `glow-ur`, …) et
@@ -91,4 +100,4 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 - Solde de WikiBidous : pastille fixée en haut à droite (38 px de haut).
 - Solde de WikiBidous affiché : le site le relit quand `window` reçoit l'événement
   `wikimasters:wikibidous-balance-refresh` (`window.dispatchEvent(new CustomEvent(…))`, ce qu'il fait
-  lui-même après une défausse). L'extension l'émet après chaque défausse.
+  lui-même après une défausse ou la réclamation d'un succès). L'extension l'émet après chaque défausse et chaque réclamation.

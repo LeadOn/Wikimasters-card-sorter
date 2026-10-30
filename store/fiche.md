@@ -6,7 +6,7 @@ Le nom et le résumé viennent du manifeste (`extension/build.mjs`) : ils ne se 
 | Champ | Valeur |
 |---|---|
 | Nom (manifeste) | WikiMasters Toolbox |
-| Résumé (manifeste, 132 car. max) | Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets et familles. |
+| Résumé (manifeste, 132 car. max) | Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès. |
 | Catégorie | Mode de vie › Jeux |
 | Langue | Français |
 | Icône du store | `extension/static/icons/128.png` (128 × 128, marge de 16 px) |
@@ -55,6 +55,7 @@ FILTRES DE TOUTE LA COLLECTION
 PRIX ET MARCHÉ
 • Prix du marché de chaque carte dans sa rareté : médiane des dernières ventes, prix à part pour les shiny, « ≈ » quand la carte s'est trop peu vendue.
 • Sur la page d'une enchère : écart entre la mise et le prix du marché.
+• Le titre de l'onglet d'une enchère affiche le temps restant et si vous êtes en tête (✓) ou surenchéri (✗), et clignote quand quelqu'un surenchérit : surveillez l'enchère depuis un autre onglet.
 • Pastilles « bonne affaire » et « trop cher » sur le marché.
 • Valeur de votre collection et vos cartes les plus chères.
 • Suivi de vos enchères, surenchère en un clic (avec confirmation), alerte avant la fin.
@@ -79,10 +80,15 @@ PAQUETS
 FAMILLES
 • Groupes de cartes à compléter, choisies une à une ou remplies par une recherche, avec les cartes manquantes en vente. Partageables par code.
 
+SUCCÈS
+• Tous vos succès, leur progression (ex. 10 081 / 30 000 cartes) et leurs récompenses en WikiBidous.
+• « Tout réclamer » : toutes les récompenses disponibles en un clic.
+• En option : réclamation automatique dès qu'un succès est débloqué.
+
 VOS DONNÉES
 • Tout reste dans votre navigateur : aucun serveur, aucun compte, aucune publicité, aucune statistique d'usage.
 • L'extension utilise votre session WikiMasters pour lire votre collection et les prix, uniquement auprès de WikiMasters.
-• Rien n'est écrit sur votre compte sans un clic de votre part.
+• Rien n'est écrit sur votre compte sans un clic de votre part, sauf les options automatiques que vous activez vous-même (tri des cartes tirées, réclamation des succès).
 • Chaque fonction se désactive dans les réglages.
 
 Guide complet, code source et politique de confidentialité : https://github.com/LeadOn/Wikimasters-card-sorter

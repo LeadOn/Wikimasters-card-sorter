@@ -7,7 +7,7 @@ onglet et `PRIVACY.md` avant de publier la nouvelle version.
 ## Objectif unique
 
 ```
-Compléter le jeu WikiMasters (wiki-masters.com) avec des outils de gestion de collection : affichage des cartes, classement en étiquettes, doublons, filtres de la collection, prix du marché, échanges entre amis, suivi des enchères et des paquets. L'extension n'agit que sur wiki-masters.com.
+Compléter le jeu WikiMasters (wiki-masters.com) avec des outils de gestion de collection : affichage des cartes, classement en étiquettes, doublons, filtres de la collection, prix du marché, échanges entre amis, suivi des enchères et des paquets, succès. L'extension n'agit que sur wiki-masters.com.
 ```
 
 ## Justification des autorisations

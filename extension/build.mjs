@@ -32,7 +32,7 @@ function manifest(target) {
     name: "WikiMasters Toolbox",
     version: pkg.version,
     // 132 caractères au plus (Chrome Web Store)
-    description: "Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets et familles.",
+    description: "Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès.",
     icons: {16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png"},
     action: {default_popup: "popup.html", default_title: "WikiMasters Toolbox", default_icon: {16: "icons/16.png", 32: "icons/32.png"}},
     permissions: ["storage", "unlimitedStorage"],

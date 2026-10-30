@@ -2,7 +2,7 @@
 
 ![WikiMasters Toolbox](store/images/promo-440x280.png)
 
-Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-masters.com/), faite par des joueurs pour des joueurs : tri automatique des cartes, prix du marché, échanges, paquets et familles, directement dans les pages du site.
+Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-masters.com/), faite par des joueurs pour des joueurs : tri automatique des cartes, prix du marché, échanges, paquets, familles et succès, directement dans les pages du site.
 
 *[English summary below](#english)*
 
@@ -17,12 +17,13 @@ Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-m
 - **Échanges** : profils d'intérêts partageables par code ou en JSON ; sur le profil d'un ami, ses cartes qui vous intéressent, les vôtres qui l'intéressent, et une offre équilibrée en prix du marché. Bilan de l'offre en cours de composition (valeur de chaque côté, différence) et valeur de chaque côté des échanges en cours.
 - **Paquets** : récapitulatif après chaque paquet (nouveautés, doublons, prix, valeur totale) où les cartes cochées se défaussent ensemble pour 1 WikiBidou chacune et où chaque carte se met aux enchères, « Ouvrir le prochain » pour enchaîner les paquets, taux de drop par rareté, « Tout ouvrir » sur votre clic.
 - **Familles** : groupes de cartes à compléter, choisies une à une ou remplies par une recherche, avec les cartes manquantes en vente.
+- **Succès** : vos succès, leur progression et leurs récompenses, toutes réclamées en un clic, ou automatiquement dès qu'un succès est débloqué (option).
 - **Images** : n'afficher que vos cartes sans image, ou celles dont l'image est un GIF, sur toute la collection (onglet Images et page Collection).
 - **Sur les cartes** : un nouvel affichage, avec l'image sur toute la carte et un cadre aux couleurs de la rareté ; les images manquantes cherchées sur Wikimedia (Wikipédia, Wikidata et ses éléments liés), sinon la carte sans image du site ; thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
 
 L'interface s'adapte aux petits écrans (navigateur mobile qui accepte les extensions, fenêtre étroite) : panneau en plein écran, fenêtres ouvertes depuis le bas, boutons à la taille du doigt.
 
-Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part, et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
+Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part (sauf les options automatiques que vous activez : tri des cartes tirées, réclamation des succès), et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
 
 **Tout est expliqué dans le [guide de l'utilisateur](docs/guide.md).**
 
@@ -80,15 +81,16 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 
 - **Automatic sorting**: one theme per card stored as a WikiMasters tag, a `Doublon` tag on cards you own more than once, and a "Pour : name" tag for each friend a card would interest. The theme list is yours to edit and share as JSON. Every sort is previewed first; your own tags and manual fixes are never touched.
 - **Prices**: average sale price of each card in its rarity, on cards, in their detail window and on auctions; collection value and most valuable cards.
-- **Market**: "good deal" and "overpriced" badges, your auctions with one-click outbid and an ending alert, selling or discarding your duplicates.
+- **Market**: "good deal" and "overpriced" badges, your auctions with one-click outbid and an ending alert, time left and whether you lead or were outbid in an auction's browser tab title, selling or discarding your duplicates.
 - **Stonks**: a page in the site menu with your auction purchases and sales by day, week or month, the profit of each resale (every sale matched with its purchase, with a view limited to cards bought then resold), net cash flow, and the cards you bought and still hold with their unrealized profit.
 - **Trades**: interest profiles shareable by code or JSON; on a friend's profile, the cards you want from them, the cards they want from you, and a balanced offer.
 - **Packs**: a recap after each pack (new cards, duplicates, prices, total value) where each card can be put up for auction or discarded for 1 WikiBidou, drop rates, and "Open all" on your click.
 - **Families**: sets of cards to complete, hand-picked or filled from a search.
+- **Achievements**: your achievements, their progress and rewards, all claimed in one click, or automatically as soon as one is unlocked (option).
 - **Cards**: a new card layout with a full-bleed image and a rarity-colored frame; missing images looked up on Wikimedia (Wikipedia, Wikidata and its linked items).
 
 The interface adapts to small screens (mobile browsers that support extensions, narrow windows).
 
-Every feature can be turned off. Nothing is written to your account without a click, there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface and documentation are in French: see the [user guide](docs/guide.md).
+Every feature can be turned off. Nothing is written to your account without a click (except the automatic options you turn on: sorting pulled cards, claiming achievements), there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface and documentation are in French: see the [user guide](docs/guide.md).
 
 To build from source: `npm install && npm run build`, then load `dist/chrome` as an unpacked extension (`chrome://extensions`, developer mode) or `dist/firefox/manifest.json` as a temporary add-on in Firefox 128+.

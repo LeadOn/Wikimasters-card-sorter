@@ -9,6 +9,7 @@ import {profiles} from "./state/profiles";
 import {packsStatus} from "./features/packs";
 import {startBidAlerts} from "./features/market";
 import {startAuctionTab} from "./features/auction-tab";
+import {startAchievements} from "./features/achievements";
 import {startSiteDom, watchRoute} from "./features/site-dom";
 import {startNotificationSound} from "./features/notify";
 import {startStonksRoute} from "./features/stonks";
@@ -46,6 +47,7 @@ if (!window.__wmtContent) {
     startStonksRoute();
     startBidAlerts();
     startAuctionTab();
+    startAchievements();
   };
   // Après le chargement complet : le site (React) doit avoir fini d'hydrater la page avant
   // qu'on y ajoute quoi que ce soit, sinon React signale un décalage et re-rend tout.

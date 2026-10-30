@@ -47,6 +47,7 @@ export const ICONS = {
   packs: `<path d="M4.75 4.5 6.5 3l1.75 1.5L10 3l1.75 1.5L13.5 3l1.75 1.5v11L13.5 17l-1.75-1.5L10 17l-1.75-1.5L6.5 17l-1.75-1.5z"/><path ${F} d="M10 7.5 12.5 10 10 12.5 7.5 10z"/>`,
   families: `<path ${F} d="M2.75 2.75h6v7h-6zM11.25 2.75h6v7h-6z"/><path d="M3.5 11h4.5v5.5H3.5zM12 11h4.5v5.5H12z"/>`,
   images: `<path d="M2.75 3.75h14.5v12.5H2.75z"/><path d="M2.75 14l4.5-4.5 3.25 3.25 2-2 4.75 4.75"/><path ${F} d="M12.5 6h2.25v2.25H12.5z"/>`,
+  achievements: '<path d="M6.25 3.25h7.5v4.5a3.75 3.75 0 0 1-7.5 0z"/><path d="M6.25 5H3.25v1.25a3 3 0 0 0 3.25 3M13.75 5h3v1.25a3 3 0 0 1-3.25 3"/><path d="M10 11.5v3.25M6.5 16.75h7"/>',
   settings: '<path d="M2.75 6.5h3.5M10.25 6.5h7M2.75 13.5h8.5M15.25 13.5h2"/><path d="M6.25 4.5h4v4h-4zM11.25 11.5h4v4h-4z"/>',
   // Actions et états
   close: '<path d="M5 5l10 10M15 5 5 15"/>',

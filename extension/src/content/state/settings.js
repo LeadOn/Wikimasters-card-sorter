@@ -26,10 +26,11 @@ export const FEATURES = [
   {key: "tradeValues", group: "Échanges", label: "Valeur des échanges", help: "Prix du marché de chaque carte et total de chaque côté des échanges en cours."},
   {key: "bidAlerts", group: "Marché", label: "Alerte de fin d'enchère", help: "Prévient quand une enchère où vous êtes dépassé se termine bientôt."},
   {key: "stonks", group: "Marché", label: "Page Stonks", help: "Entrée « Stonks » dans le menu du site : vos achats et ventes au marché par jour, semaine ou mois, et la plus-value de l'achat-revente. Historique seulement."},
+  {key: "autoClaimAchievements", group: "Succès", label: "Réclamer les succès automatiquement", help: "Réclame d'elle-même la récompense de chaque succès débloqué : au chargement d'une page WikiMasters, toutes les 15 minutes et après un paquet ou un échange. Sans cette option, le bouton « Tout réclamer » de l'onglet Succès le fait en un clic."},
   {key: "notificationSound", group: "Confort", label: "Son de notification", help: "Joue un son discret quand une nouvelle notification arrive."},
 ];
 
-const OFF_BY_DEFAULT = new Set(["missingImages", "notificationSound", "autoSortPulls"]);
+const OFF_BY_DEFAULT = new Set(["missingImages", "notificationSound", "autoSortPulls", "autoClaimAchievements"]);
 
 export const DEFAULT_SETTINGS = {
   features: Object.fromEntries(FEATURES.map((f) => [f.key, !OFF_BY_DEFAULT.has(f.key)])),
