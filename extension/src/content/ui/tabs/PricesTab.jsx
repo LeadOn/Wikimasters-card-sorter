@@ -11,6 +11,7 @@ import {DEFAULT_FILTER} from "../../features/collection-view";
 import {toast, errorMessage} from "../feedback";
 import {RARITIES, RARITY_LABEL, RECENT_SALES} from "../../../../../core";
 import {themeMemo} from "../../state/themes";
+import {L} from "../../../shared/i18n";
 
 export function PricesTab() {
   useStore(priceVersion);
@@ -67,12 +68,12 @@ export function PricesTab() {
 
   const startBulk = async () => {
     const items = unique.filter((c) => rarities.includes(c.rarity) && (!onlyMissing || !hasFreshPrice(c.card_id))).map((c) => ({id: c.card_id, rarity: c.rarity}));
-    if (!items.length) return toast("Tous les prix de ces raretés sont déjà à jour.", {type: "ok"});
+    if (!items.length) return toast(L("Tous les prix de ces raretés sont déjà à jour.", "All prices for these rarities are already up to date."), {type: "ok"});
     abort.current = new AbortController();
     setBulk({done: 0, total: new Set(items.map((x) => x.id)).size});
     try {
       await loadPrices(items, {force: !onlyMissing, signal: abort.current.signal, onProgress: (done, t) => setBulk({done, total: t})});
-      toast("Prix chargés.", {type: "ok"});
+      toast(L("Prix chargés.", "Prices loaded."), {type: "ok"});
     } catch (e) {
       toast(errorMessage(e), {type: "error"});
     } finally {
@@ -87,23 +88,25 @@ export function PricesTab() {
     <div class="stack">
       <div class="page-head">
         <div>
-          <h2>Prix</h2>
+          <h2>{L("Prix", "Prices")}</h2>
           <p>
-            Prix du marché de chaque exemplaire dans sa rareté : médiane des {RECENT_SALES} dernières ventes, hors shiny (une carte shiny a son propre prix). Un prix n'est retenu qu'à partir de {plural(priceOptions().minSales, "vente")}
-            {priceOptions().skipFirst ? `, sans compter ${priceOptions().skipFirst > 1 ? `les ${priceOptions().skipFirst} premières` : "la première"} de chaque carte` : ""} (onglet Réglages). Les prix sont gardés en cache et affichés sur les cartes du site.
+            {L(
+              `Prix du marché de chaque exemplaire dans sa rareté : médiane des ${RECENT_SALES} dernières ventes, hors shiny (une carte shiny a son propre prix). Un prix n'est retenu qu'à partir de ${plural(priceOptions().minSales, "vente")}${priceOptions().skipFirst ? `, sans compter ${priceOptions().skipFirst > 1 ? `les ${priceOptions().skipFirst} premières` : "la première"} de chaque carte` : ""} (onglet Réglages). Les prix sont gardés en cache et affichés sur les cartes du site.`,
+              `Market price of each copy in its rarity: median of the last ${RECENT_SALES} sales, excluding shiny ones (a shiny card has its own price). A price is only used from ${plural(priceOptions().minSales, "sale")}${priceOptions().skipFirst ? `, not counting ${priceOptions().skipFirst > 1 ? `the first ${priceOptions().skipFirst}` : "the first one"} of each card` : ""} (Settings tab). Prices are cached and shown on the site's cards.`,
+            )}
           </p>
         </div>
       </div>
       {error && <Notice type="error">{error}</Notice>}
-      {!copies && !error && <Progress label="Lecture de votre collection" done={0} />}
+      {!copies && !error && <Progress label={L("Lecture de votre collection", "Reading your collection")} done={0} />}
       {copies && (
         <>
           <div class="grid-stats">
-            <div class="stat"><div class="k">Valeur estimée</div><div class="v"><Money v={total} /></div></div>
-            <div class="stat"><div class="k">Exemplaires avec un prix</div><div class="v">{fmt(pricedCopies)} / {fmt(allCopies)}</div></div>
+            <div class="stat"><div class="k">{L("Valeur estimée", "Estimated value")}</div><div class="v"><Money v={total} /></div></div>
+            <div class="stat"><div class="k">{L("Exemplaires avec un prix", "Copies with a price")}</div><div class="v">{fmt(pricedCopies)} / {fmt(allCopies)}</div></div>
             {fewCopies > 0 && (
-              <div class="stat" title="Vendus trop peu de fois pour un prix fiable : ils ne comptent pas dans la valeur estimée">
-                <div class="k">Prix incertain</div>
+              <div class="stat" title={L("Vendus trop peu de fois pour un prix fiable : ils ne comptent pas dans la valeur estimée", "Sold too few times for a reliable price: not counted in the estimated value")}>
+                <div class="k">{L("Prix incertain", "Uncertain price")}</div>
                 <div class="v">{fmt(fewCopies)}</div>
               </div>
             )}
@@ -113,8 +116,8 @@ export function PricesTab() {
           </div>
 
           <div class="box stack">
-            <h3>Charger les prix</h3>
-            <p class="help">Les ventes sont lues par lots de cartes : toute la collection se charge en quelques minutes.</p>
+            <h3>{L("Charger les prix", "Load prices")}</h3>
+            <p class="help">{L("Les ventes sont lues par lots de cartes : toute la collection se charge en quelques minutes.", "Sales are read in batches of cards: the whole collection loads in a few minutes.")}</p>
             <div class="chips">
               {RARITIES.map((r) => (
                 <button key={r} class={`chip${rarities.includes(r) ? " on" : ""}`} onClick={() => setRarities(rarities.includes(r) ? rarities.filter((x) => x !== r) : [...rarities, r])}>
@@ -123,27 +126,27 @@ export function PricesTab() {
               ))}
             </div>
             <label class="check">
-              <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.currentTarget.checked)} /> Seulement les cartes sans prix récent
+              <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.currentTarget.checked)} /> {L("Seulement les cartes sans prix récent", "Only cards without a recent price")}
             </label>
             <div class="row">
               {!bulk ? (
-                <button class="btn primary" disabled={!todo} onClick={startBulk}>Charger {plural(todo, "prix", "prix")}</button>
+                <button class="btn primary" disabled={!todo} onClick={startBulk}>{L(`Charger ${plural(todo, "prix", "prix")}`, `Load ${plural(todo, "price")}`)}</button>
               ) : (
-                <button class="btn danger" onClick={() => abort.current?.abort()}>Arrêter</button>
+                <button class="btn danger" onClick={() => abort.current?.abort()}>{L("Arrêter", "Stop")}</button>
               )}
             </div>
-            {bulk && <Progress done={bulk.done} total={bulk.total} label="Chargement des prix" />}
+            {bulk && <Progress done={bulk.done} total={bulk.total} label={L("Chargement des prix", "Loading prices")} />}
           </div>
 
           <div class="box stack">
             <div class="row">
-              <h3 style={{flex: 1}}>{view === "filter" ? "Filtrer ma collection" : "Mes cartes les plus chères"}</h3>
+              <h3 style={{flex: 1}}>{view === "filter" ? L("Filtrer ma collection", "Filter my collection") : L("Mes cartes les plus chères", "My most valuable cards")}</h3>
               <div class="seg" role="tablist">
                 <button role="tab" aria-selected={view === "top"} class={view === "top" ? "on" : ""} onClick={() => setView("top")}>
-                  Les plus chères
+                  {L("Les plus chères", "Most valuable")}
                 </button>
                 <button role="tab" aria-selected={view === "filter"} class={view === "filter" ? "on" : ""} onClick={() => setView("filter")}>
-                  Filtrer
+                  {L("Filtrer", "Filter")}
                 </button>
               </div>
             </div>
@@ -164,7 +167,7 @@ export function PricesTab() {
                 <Paged
                   items={theme ? ranking.filter((c) => c.theme === theme) : ranking}
                   pageSize={30}
-                  empty="Aucun prix chargé pour l'instant."
+                  empty={L("Aucun prix chargé pour l'instant.", "No prices loaded yet.")}
                   render={(c) => (
                     <CardRow
                       key={`${c.card_id}|${c.rarity}|${c.is_shiny ? 1 : 0}`}

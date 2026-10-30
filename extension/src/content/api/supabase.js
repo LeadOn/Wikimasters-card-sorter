@@ -2,6 +2,7 @@
 import {request, createLimiter, HttpError} from "../lib/http";
 import {ensureSession, decodeJwt} from "../lib/session";
 import {on} from "../lib/bus";
+import {L} from "../../shared/i18n";
 
 const BASE = "https://cyrxjeppjqsxxjayfrur.supabase.co/rest/v1/";
 // Clé publique « anon » du site (présente dans son code client). Remplacée par celle observée
@@ -57,7 +58,7 @@ export async function fetchAll(query, {pageSize = 1000, onPage, signal, key = nu
   const sep = query.includes("?") ? "&" : "?";
   for (let page = 0; ; page++) {
     const batch = await rest(`${query}${sep}limit=${pageSize}&offset=${page * pageSize}`, {signal});
-    if (!Array.isArray(batch)) throw new HttpError("Réponse inattendue de la base WikiMasters.", {code: "bad_response"});
+    if (!Array.isArray(batch)) throw new HttpError(L("Réponse inattendue de la base WikiMasters.", "Unexpected response from the WikiMasters database."), {code: "bad_response"});
     for (const row of batch) {
       const k = key ? row?.[key] : null;
       if (k != null) {
@@ -79,7 +80,7 @@ export async function restIn(path, column, ids, {size = 100, ...opts} = {}) {
   const rows = [];
   for (let i = 0; i < unique.length; i += size) {
     const batch = await rest(`${path}${sep}${column}=in.(${unique.slice(i, i + size).join(",")})`, opts);
-    if (!Array.isArray(batch)) throw new HttpError("Réponse inattendue de la base WikiMasters.", {code: "bad_response"});
+    if (!Array.isArray(batch)) throw new HttpError(L("Réponse inattendue de la base WikiMasters.", "Unexpected response from the WikiMasters database."), {code: "bad_response"});
     rows.push(...batch);
   }
   return rows;

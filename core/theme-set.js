@@ -18,6 +18,7 @@
 
 const {compile, patternProblem, isColor} = require("./text");
 const {THEMES, THEME_COLORS, OTHER, DOUBLON} = require("./themes");
+const {L} = require("./i18n");
 
 const FALLBACK_COLOR = "#64748b";
 const MAX_NAME = 60;
@@ -146,7 +147,7 @@ function settleThemes(stored, names) {
 }
 
 // Thème ajouté par le joueur.
-function newTheme(name = "Nouveau thème", color = "#0ea5e9") {
+function newTheme(name = L("Nouveau thème", "New theme"), color = "#0ea5e9") {
   return {id: `t-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, color, kw: "", head: ""};
 }
 
@@ -204,36 +205,37 @@ function validateThemes(list) {
   const seen = new Map();
   const checkName = (id, name, label) => {
     const n = typeof name === "string" ? name.trim() : "";
-    if (!n) return problems.push({id, message: `${label} : nom manquant.`});
-    if (n !== name) problems.push({id, message: `${label} : espace en début ou en fin de nom.`});
-    if (n.length > MAX_NAME) problems.push({id, message: `${label} : nom trop long (${MAX_NAME} caractères au plus).`});
-    if (n === DOUBLON || n.startsWith("Pour :")) problems.push({id, message: `« ${n} » est réservé à une autre étiquette de la Toolbox.`});
-    if (seen.has(n)) problems.push({id, message: `« ${n} » est utilisé deux fois.`});
+    if (!n) return problems.push({id, message: L(`${label} : nom manquant.`, `${label}: missing name.`)});
+    if (n !== name) problems.push({id, message: L(`${label} : espace en début ou en fin de nom.`, `${label}: leading or trailing space in the name.`)});
+    if (n.length > MAX_NAME) problems.push({id, message: L(`${label} : nom trop long (${MAX_NAME} caractères au plus).`, `${label}: name too long (${MAX_NAME} characters max).`)});
+    if (n === DOUBLON || n.startsWith("Pour :")) problems.push({id, message: L(`« ${n} » est réservé à une autre étiquette de la Toolbox.`, `"${n}" is reserved for another Toolbox tag.`)});
+    if (seen.has(n)) problems.push({id, message: L(`« ${n} » est utilisé deux fois.`, `"${n}" is used twice.`)});
     seen.set(n, id);
   };
-  const checkColor = (id, color, label) => !isColor(color) && problems.push({id, message: `${label} : couleur invalide.`});
-  if (!list?.themes?.length) problems.push({id: null, message: "Il faut au moins un thème."});
+  const checkColor = (id, color, label) => !isColor(color) && problems.push({id, message: L(`${label} : couleur invalide.`, `${label}: invalid color.`)});
+  if (!list?.themes?.length) problems.push({id: null, message: L("Il faut au moins un thème.", "At least one theme is required.")});
   for (const t of list?.themes || []) {
-    const label = t.name || "Thème sans nom";
+    const label = t.name || L("Thème sans nom", "Unnamed theme");
     if (t.split) {
       checkName(t.id, t.split.fr.name, `${label} (France)`);
       checkName(t.id, t.split.intl.name, `${label} (international)`);
       checkColor(t.id, t.split.fr.color, label);
       checkColor(t.id, t.split.intl.color, label);
-      if (!t.name?.trim()) problems.push({id: t.id, message: "Thème sans nom."});
+      if (!t.name?.trim()) problems.push({id: t.id, message: L("Thème sans nom.", "Unnamed theme.")});
     } else {
       checkName(t.id, t.name, label);
       checkColor(t.id, t.color, label);
     }
-    if (!t.kw) problems.push({id: t.id, message: `${label} : aucun mot-clé.`});
+    if (!t.kw) problems.push({id: t.id, message: L(`${label} : aucun mot-clé.`, `${label}: no keywords.`)});
     for (const key of ["kw", "head"]) {
       if (!t[key]) continue;
       const problem = patternProblem(t[key]);
-      if (problem) problems.push({id: t.id, message: `${label} : expression invalide (${problem}).`});
+      if (problem) problems.push({id: t.id, message: L(`${label} : expression invalide (${problem}).`, `${label}: invalid expression (${problem}).`)});
     }
   }
-  checkName(null, list?.other?.name, "Cartes sans thème");
-  checkColor(null, list?.other?.color, "Cartes sans thème");
+  const otherLabel = L("Cartes sans thème", "Cards without a theme");
+  checkName(null, list?.other?.name, otherLabel);
+  checkColor(null, list?.other?.color, otherLabel);
   return problems;
 }
 
@@ -265,19 +267,19 @@ function exportThemes(list) {
 // invalide…) sont ceux de validateThemes : la liste est alors chargée pour être corrigée.
 function importThemes(text) {
   const fail = (message) => ({list: null, problems: [message]});
-  if (typeof text !== "string" || !text.trim()) return fail("Fichier vide.");
-  if (text.length > MAX_IMPORT) return fail("Fichier trop volumineux pour une liste de thèmes.");
+  if (typeof text !== "string" || !text.trim()) return fail(L("Fichier vide.", "Empty file."));
+  if (text.length > MAX_IMPORT) return fail(L("Fichier trop volumineux pour une liste de thèmes.", "File too large for a theme list."));
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    return fail("JSON illisible.");
+    return fail(L("JSON illisible.", "Unreadable JSON."));
   }
   if (Array.isArray(data)) data = {themes: data};
-  if (!data || typeof data !== "object") return fail("Ce fichier n'est pas une liste de thèmes.");
-  if (data.format != null && data.format !== EXPORT_FORMAT) return fail("Ce fichier n'est pas une liste de thèmes de la Toolbox.");
-  if (!Array.isArray(data.themes)) return fail("Aucune liste « themes » dans ce fichier.");
-  if (data.themes.length > MAX_THEMES) return fail(`Trop de thèmes (${MAX_THEMES} au plus).`);
+  if (!data || typeof data !== "object") return fail(L("Ce fichier n'est pas une liste de thèmes.", "This file is not a theme list."));
+  if (data.format != null && data.format !== EXPORT_FORMAT) return fail(L("Ce fichier n'est pas une liste de thèmes de la Toolbox.", "This file is not a Toolbox theme list."));
+  if (!Array.isArray(data.themes)) return fail(L("Aucune liste « themes » dans ce fichier.", 'No "themes" list in this file.'));
+  if (data.themes.length > MAX_THEMES) return fail(L(`Trop de thèmes (${MAX_THEMES} au plus).`, `Too many themes (${MAX_THEMES} max).`));
 
   const problems = [];
   const str = (v) => (typeof v === "string" ? v : "");
@@ -285,7 +287,7 @@ function importThemes(text) {
   const ids = new Set();
   const themes = [];
   data.themes.forEach((t, i) => {
-    if (!t || typeof t !== "object" || Array.isArray(t)) return problems.push(`Thème n° ${i + 1} illisible.`);
+    if (!t || typeof t !== "object" || Array.isArray(t)) return problems.push(L(`Thème n° ${i + 1} illisible.`, `Theme #${i + 1} is unreadable.`));
     let id = typeof t.id === "string" && t.id.trim() && t.id.length <= 100 ? t.id : null;
     if (!id || ids.has(id)) id = newTheme().id + i;
     ids.add(id);
@@ -293,7 +295,7 @@ function importThemes(text) {
     if (typeof t.weight === "number" && t.weight >= 0.1 && t.weight <= 3) theme.weight = t.weight;
     if (ROLES.includes(t.role)) theme.role = t.role;
     if (t.split) {
-      if (typeof t.split !== "object" || !t.split.fr || !t.split.intl) problems.push(`${theme.name || `Thème n° ${i + 1}`} : séparation France / international illisible.`);
+      if (typeof t.split !== "object" || !t.split.fr || !t.split.intl) problems.push(L(`${theme.name || `Thème n° ${i + 1}`} : séparation France / international illisible.`, `${theme.name || `Theme #${i + 1}`}: unreadable France / international split.`));
       else theme.split = {fr: part(t.split.fr), intl: part(t.split.intl)};
     }
     themes.push(theme);

@@ -7,9 +7,13 @@
 // la carte dans cette rareté (réglages `minSales` et `skipFirst`).
 "use strict";
 
+const {L} = require("./i18n");
+
 const RARITIES = ["L", "UR", "SR", "R", "PC", "C"];
 const RARITY_RANK = {L: 5, UR: 4, SR: 3, R: 2, PC: 1, C: 0};
-const RARITY_LABEL = {L: "Légendaire", UR: "Ultra Rare", SR: "Super Rare", R: "Rare", PC: "Peu commune", C: "Commune"};
+// Nom de chaque rareté dans la langue courante (core/i18n.js)
+const RARITY_NAMES = {L: ["Légendaire", "Legendary"], UR: ["Ultra Rare", "Ultra Rare"], SR: ["Super Rare", "Super Rare"], R: ["Rare", "Rare"], PC: ["Peu commune", "Uncommon"], C: ["Commune", "Common"]};
+const RARITY_LABEL = Object.defineProperties({}, Object.fromEntries(Object.entries(RARITY_NAMES).map(([r, [fr, en]]) => [r, {get: () => L(fr, en), enumerable: true}])));
 // Couleurs des raretés sur wiki-masters.com (badges, filtres et lueur des cartes), relevées le 13/10/2026.
 // Reprises telles quelles dans extension/src/content/ui/panel.css (--r-L, …) et le rapport de trade_finder.js.
 const RARITY_COLORS = {L: "#ffe144", UR: "#fa9931", SR: "#ed6fa3", R: "#c6a7f2", PC: "#b1cff2", C: "#b8f2d5"};

@@ -7,15 +7,16 @@ import {priceOf, priceVersion} from "../../state/prices";
 import {auctionById, auctionVersion, loadAuction, nextBid, isLeading} from "../../features/market";
 import {Icon, Mark, Money, fmt} from "../components";
 import {PriceLine, Interest} from "./shared";
+import {L} from "../../../shared/i18n";
 
 // Écart d'une mise au prix du marché (fiable seulement), en %
 const gapOf = (amount, avg) => (avg ? Math.round((100 * (amount - avg)) / avg) : null);
 
 function Gap({gap}) {
   if (gap == null) return null;
-  if (gap <= -20) return <span class="chip ok">{-gap} % sous le prix du marché</span>;
-  if (gap >= 20) return <span class="chip warn">{gap} % au-dessus du prix du marché</span>;
-  return <span class="chip">proche du prix du marché ({gap > 0 ? "+" : ""}{gap} %)</span>;
+  if (gap <= -20) return <span class="chip ok">{L(`${-gap} % sous le prix du marché`, `${-gap}% below market price`)}</span>;
+  if (gap >= 20) return <span class="chip warn">{L(`${gap} % au-dessus du prix du marché`, `${gap}% above market price`)}</span>;
+  return <span class="chip">{L(`proche du prix du marché (${gap > 0 ? "+" : ""}${gap} %)`, `close to market price (${gap > 0 ? "+" : ""}${gap}%)`)}</span>;
 }
 
 export function AuctionInsight({auctionId}) {
@@ -34,7 +35,7 @@ export function AuctionInsight({auctionId}) {
       <section class="island compact">
         <div class="row">
           <div class="spinner" />
-          <span class="muted small">Analyse de l'enchère…</span>
+          <span class="muted small">{L("Analyse de l'enchère…", "Analyzing the auction…")}</span>
         </div>
       </section>
     );
@@ -45,32 +46,32 @@ export function AuctionInsight({auctionId}) {
   const avg = priceOf(cardId, rarity, {shiny: a.is_shiny});
   const ownedCard = loadedAt ? ids.has(cardId) : null;
   return (
-    <section class="island compact" aria-label="Analyse WikiMasters Toolbox">
+    <section class="island compact" aria-label={L("Analyse WikiMasters Toolbox", "WikiMasters Toolbox analysis")}>
       <div class="island-head">
         <Mark size={20} />
-        <span class="island-title">Analyse Toolbox</span>
-        {isLeading(a) && <span class="chip ok">Vous êtes en tête</span>}
+        <span class="island-title">{L("Analyse Toolbox", "Toolbox analysis")}</span>
+        {isLeading(a) && <span class="chip ok">{L("Vous êtes en tête", "You are leading")}</span>}
       </div>
       <PriceLine cardId={cardId} rarity={rarity} shiny={Boolean(a.is_shiny)} />
       {avg != null && current != null && (
         <div class="kv">
-          <span class="k">{a.current_bid != null ? "Enchère actuelle" : "Mise de départ"}</span>
+          <span class="k">{a.current_bid != null ? L("Enchère actuelle", "Current bid") : L("Mise de départ", "Starting bid")}</span>
           <strong>
             <Money v={current} />
           </strong>
           <Gap gap={gapOf(current, avg)} />
-          {next !== current && <span class="muted small">prochaine mise : {fmt(next)} ₩ ({gapOf(next, avg) > 0 ? "+" : ""}{gapOf(next, avg)} %)</span>}
+          {next !== current && <span class="muted small">{L(`prochaine mise : ${fmt(next)} ₩ (${gapOf(next, avg) > 0 ? "+" : ""}${gapOf(next, avg)} %)`, `next bid: ${fmt(next)} ₩ (${gapOf(next, avg) > 0 ? "+" : ""}${gapOf(next, avg)}%)`)}</span>}
         </div>
       )}
       {ownedCard != null && (
         <div class="kv">
-          <span class="k">Collection</span>
+          <span class="k">{L("Collection", "Collection")}</span>
           {ownedCard ? (
             <span class="chip">
-              <Icon name="check" size={12} /> Vous l'avez déjà
+              <Icon name="check" size={12} /> {L("Vous l'avez déjà", "You already have it")}
             </span>
           ) : (
-            <span class="chip ok">Nouvelle pour vous</span>
+            <span class="chip ok">{L("Nouvelle pour vous", "New for you")}</span>
           )}
         </div>
       )}

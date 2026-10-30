@@ -14,6 +14,7 @@
 
 const {hasKeyword, patternProblem, isColor, extractFields} = require("./text");
 const {PREDICATES} = require("./engine");
+const {L} = require("./i18n");
 
 const FRIEND_PREFIX = "Pour : ";
 const tagForProfile = (profile) => `${FRIEND_PREFIX}${profile.name}`;
@@ -92,25 +93,25 @@ const MAX_NAME = 60;
 // Vérifie un profil (importé ou saisi) ; renvoie la liste des problèmes.
 function validateProfile(profile) {
   const problems = [];
-  if (!profile || typeof profile !== "object") return ["Profil illisible."];
+  if (!profile || typeof profile !== "object") return [L("Profil illisible.", "Unreadable profile.")];
   const name = typeof profile.name === "string" ? profile.name.trim() : "";
-  if (!name) problems.push("Le profil n'a pas de nom.");
-  else if (name.length > MAX_NAME) problems.push(`Nom trop long (${MAX_NAME} caractères au plus).`);
-  if (profile.color != null && !isColor(profile.color)) problems.push("Couleur invalide (format #rrggbb attendu).");
-  if (!Array.isArray(profile.rules) || !profile.rules.length) problems.push("Le profil n'a aucune règle.");
+  if (!name) problems.push(L("Le profil n'a pas de nom.", "The profile has no name."));
+  else if (name.length > MAX_NAME) problems.push(L(`Nom trop long (${MAX_NAME} caractères au plus).`, `Name too long (${MAX_NAME} characters max).`));
+  if (profile.color != null && !isColor(profile.color)) problems.push(L("Couleur invalide (format #rrggbb attendu).", "Invalid color (expected #rrggbb format)."));
+  if (!Array.isArray(profile.rules) || !profile.rules.length) problems.push(L("Le profil n'a aucune règle.", "The profile has no rules."));
   for (const rule of Array.isArray(profile.rules) ? profile.rules : []) {
     if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
-      problems.push("Règle illisible : chaque règle doit être un objet.");
+      problems.push(L("Règle illisible : chaque règle doit être un objet.", "Unreadable rule: each rule must be an object."));
       continue;
     }
     for (const key of ["kw", "with", "unless"]) {
       if (rule[key] == null) continue;
       const problem = patternProblem(rule[key]);
-      if (problem) problems.push(`Expression invalide (${key}) : ${problem}.`);
+      if (problem) problems.push(L(`Expression invalide (${key}) : ${problem}.`, `Invalid expression (${key}): ${problem}.`));
     }
-    if (rule.theme != null && ![].concat(rule.theme).every((t) => typeof t === "string")) problems.push("Thème invalide : texte ou liste de textes attendu.");
-    if (rule.field != null && rule.field !== "title" && rule.field !== "focus") problems.push(`Champ inconnu : ${rule.field}`);
-    if (rule.match && !Object.prototype.hasOwnProperty.call(PREDICATES, rule.match)) problems.push(`Prédicat inconnu : ${rule.match}`);
+    if (rule.theme != null && ![].concat(rule.theme).every((t) => typeof t === "string")) problems.push(L("Thème invalide : texte ou liste de textes attendu.", "Invalid theme: expected a string or a list of strings."));
+    if (rule.field != null && rule.field !== "title" && rule.field !== "focus") problems.push(L(`Champ inconnu : ${rule.field}`, `Unknown field: ${rule.field}`));
+    if (rule.match && !Object.prototype.hasOwnProperty.call(PREDICATES, rule.match)) problems.push(L(`Prédicat inconnu : ${rule.match}`, `Unknown predicate: ${rule.match}`));
   }
   return problems;
 }
@@ -162,29 +163,29 @@ function cleanProfile(raw) {
 // une liste de profils ou un profil seul. Un profil invalide est écarté, les autres sont gardés.
 function importProfiles(text) {
   const fail = (error) => ({profiles: [], rejected: [], error});
-  if (typeof text !== "string" || !text.trim()) return fail("Fichier vide.");
-  if (text.length > MAX_PROFILES_IMPORT) return fail("Fichier trop volumineux pour des profils.");
+  if (typeof text !== "string" || !text.trim()) return fail(L("Fichier vide.", "Empty file."));
+  if (text.length > MAX_PROFILES_IMPORT) return fail(L("Fichier trop volumineux pour des profils.", "File too large for profiles."));
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    return fail("JSON illisible.");
+    return fail(L("JSON illisible.", "Unreadable JSON."));
   }
-  if (!data || typeof data !== "object") return fail("Ce fichier ne contient pas de profils.");
-  if (data.format != null && data.format !== PROFILES_FORMAT) return fail("Ce fichier n'est pas un export de profils de la Toolbox.");
+  if (!data || typeof data !== "object") return fail(L("Ce fichier ne contient pas de profils.", "This file contains no profiles."));
+  if (data.format != null && data.format !== PROFILES_FORMAT) return fail(L("Ce fichier n'est pas un export de profils de la Toolbox.", "This file is not a Toolbox profile export."));
   const list = Array.isArray(data) ? data : Array.isArray(data.profiles) ? data.profiles : data.rules || data.simple ? [data] : null;
-  if (!list) return fail("Ce fichier ne contient pas de profils.");
-  if (list.length > MAX_PROFILES) return fail(`Trop de profils (${MAX_PROFILES} au plus).`);
+  if (!list) return fail(L("Ce fichier ne contient pas de profils.", "This file contains no profiles."));
+  if (list.length > MAX_PROFILES) return fail(L(`Trop de profils (${MAX_PROFILES} au plus).`, `Too many profiles (${MAX_PROFILES} max).`));
 
   const profiles = [];
   const rejected = [];
   const seen = new Set();
   list.forEach((raw, i) => {
-    const label = typeof raw?.name === "string" && raw.name.trim() ? raw.name.trim() : `Profil n° ${i + 1}`;
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return rejected.push({name: label, problems: ["Profil illisible."]});
+    const label = typeof raw?.name === "string" && raw.name.trim() ? raw.name.trim() : L(`Profil n° ${i + 1}`, `Profile #${i + 1}`);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return rejected.push({name: label, problems: [L("Profil illisible.", "Unreadable profile.")]});
     const profile = cleanProfile(raw);
     const problems = validateProfile(profile);
-    if (!problems.length && seen.has(profile.name.toLowerCase())) problems.push("Nom en double dans le fichier.");
+    if (!problems.length && seen.has(profile.name.toLowerCase())) problems.push(L("Nom en double dans le fichier.", "Duplicate name in the file."));
     if (problems.length) return rejected.push({name: label, problems});
     seen.add(profile.name.toLowerCase());
     profiles.push(profile);

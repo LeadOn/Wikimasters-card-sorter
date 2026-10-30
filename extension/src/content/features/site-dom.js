@@ -28,6 +28,7 @@ import {StonksPage} from "../ui/islands/StonksPage";
 import {readSession} from "../lib/session";
 import {themeMemo, tagColor, otherTheme} from "../state/themes";
 import {iconSvg, markSvg, markOutlineSvg, stonksOutlineSvg} from "../../shared/brand.mjs";
+import {L, LOCALE} from "../../shared/i18n";
 import fontsCss from "../../shared/fonts.css";
 import siteCss from "../ui/site.css";
 
@@ -411,13 +412,13 @@ function decorateTile(tile, version) {
   // Marché : l'enchère est retrouvée par le lien de la carte ; une carte shiny a son propre prix
   const auction = path.startsWith("/marketplace") ? auctionById(AUCTION_PATH.exec(tile.closest("a[href]")?.getAttribute("href") || "")?.[1]) : null;
   const shiny = Boolean(auction?.is_shiny) || isShinyTile(tile);
-  const fmt = (n) => n.toLocaleString("fr-FR");
+  const fmt = (n) => n.toLocaleString(LOCALE);
   if (info.id && isOn("priceBadges")) {
     const p = priceInfo(info.id, rarity, {shiny});
     if (p?.price != null)
       box.append(
         p.reliable
-          ? chip("wmt-chip-price", `${fmt(p.price)} ₩`, `Prix du marché${shiny ? " shiny" : ""} pour cette rareté`)
+          ? chip("wmt-chip-price", `${fmt(p.price)} ₩`, L(`Prix du marché${shiny ? " shiny" : ""} pour cette rareté`, `Market price${shiny ? " (shiny)" : ""} for this rarity`))
           : chip("wmt-chip-price wmt-chip-approx", `≈ ${fmt(p.price)} ₩`, uncertainNote(p)),
       );
     else if (visible.has(tile)) requestPrice(info.id, {rarity});
@@ -433,15 +434,15 @@ function decorateTile(tile, version) {
       const gap = Math.round((100 * (bid - avg)) / avg);
       const left = msLeft(auction);
       if (gap <= -25 && left > 0 && left < DEAL_WINDOW)
-        box.append(chip("wmt-chip-deal", `−${-gap} %`, `Bonne affaire : se termine dans ${Math.ceil(left / 60000)} min, mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`));
-      else if (gap >= 50) box.append(chip("wmt-chip-pricey", `+${gap} %`, `Mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`));
+        box.append(chip("wmt-chip-deal", L(`−${-gap} %`, `−${-gap}%`), L(`Bonne affaire : se termine dans ${Math.ceil(left / 60000)} min, mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`, `Deal: ends in ${Math.ceil(left / 60000)} min, minimum bid ${fmt(bid)} ₩ for a market price of ${fmt(avg)} ₩`)));
+      else if (gap >= 50) box.append(chip("wmt-chip-pricey", L(`+${gap} %`, `+${gap}%`), L(`Mise minimale ${fmt(bid)} ₩ pour un prix du marché de ${fmt(avg)} ₩`, `Minimum bid ${fmt(bid)} ₩ for a market price of ${fmt(avg)} ₩`)));
     }
   }
   // La collection globale affiche déjà « Possédée » : badge inutile là-bas
   if (isOn("ownedBadges") && !onMyCollection && !path.startsWith("/global-collection")) {
     const isOwned = info.owned ?? (info.id ? owned.get().ids.has(info.id) : undefined);
-    if (isOwned === true) box.append(chip("wmt-chip-owned", "", "Vous possédez cette carte", "check"));
-    else if (isOwned === false && (path.startsWith("/marketplace") || path.startsWith("/profile"))) box.append(chip("wmt-chip-new", "Nouvelle", "Vous n'avez pas cette carte"));
+    if (isOwned === true) box.append(chip("wmt-chip-owned", "", L("Vous possédez cette carte", "You own this card"), "check"));
+    else if (isOwned === false && (path.startsWith("/marketplace") || path.startsWith("/profile"))) box.append(chip("wmt-chip-new", L("Nouvelle", "New"), L("Vous n'avez pas cette carte", "You don't have this card")));
   }
   if (isOn("themeBadges") && !onMyCollection && (info.category || info.summary)) {
     const theme = themeOf(info);
@@ -455,7 +456,7 @@ function decorateTile(tile, version) {
     const a = document.createElement("a");
     a.className = "wmt-chip wmt-chip-wiki";
     a.textContent = "W";
-    a.title = "Ouvrir l'article Wikipédia";
+    a.title = L("Ouvrir l'article Wikipédia", "Open the Wikipedia article");
     a.href = info.wikipedia_url || `https://fr.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
@@ -480,7 +481,7 @@ function ensureOpenAllButton() {
     btn.type = "button";
     btn.className = "wmt-open-all";
     btn.append(svgElement(markSvg({size: 16})), document.createElement("span"));
-    btn.title = "WikiMasters Toolbox : ouvre tous les paquets disponibles, sans animation";
+    btn.title = L("WikiMasters Toolbox : ouvre tous les paquets disponibles, sans animation", "WikiMasters Toolbox: opens all available packs, without animation");
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       emit("confirm-open-all", {});
@@ -489,7 +490,7 @@ function ensureOpenAllButton() {
   }
   // Progression : le site impose un délai entre deux paquets, l'ouverture prend quelques secondes par paquet
   const {running, opened} = openAllState.get();
-  const label = running ? `Ouverture… (${opened})` : "Tout ouvrir";
+  const label = running ? L(`Ouverture… (${opened})`, `Opening… (${opened})`) : L("Tout ouvrir", "Open all");
   if (btn.lastChild.textContent !== label) btn.lastChild.textContent = label;
   btn.disabled = running;
 }
@@ -517,7 +518,7 @@ const revealBlock = (button) => sectionOf(button, button.closest("main"));
 // du site, qui garde son animation et, s'il la demande, sa vérification anti-robot.
 export async function openNextPack() {
   const reveal = findButton((t) => t === "Continuer");
-  if (!reveal) throw new Error("Bouton « Continuer » introuvable : terminez la révélation des cartes sur la page.");
+  if (!reveal) throw new Error(L("Bouton « Continuer » introuvable : terminez la révélation des cartes sur la page.", '"Continuer" button not found: finish revealing the cards on the page.'));
   reveal.click();
   // L'écran d'accueil revient aussitôt ; son bouton « Ouvrir » reste désactivé le temps de relire les paquets
   for (let waited = 0; waited < 8000; waited += 100) {
@@ -525,7 +526,7 @@ export async function openNextPack() {
     const open = findButton((t) => t === "Ouvrir");
     if (open && !open.disabled) return open.click();
   }
-  throw new Error("Le bouton « Ouvrir » du site n'est pas disponible : ouvrez le paquet depuis la page.");
+  throw new Error(L("Le bouton « Ouvrir » du site n'est pas disponible : ouvrez le paquet depuis la page.", 'The site\'s "Ouvrir" button is not available: open the pack from the page.'));
 }
 
 // Élément de l'écran d'accueil sous lequel on s'insère : le compteur de paquets qui suit « Ouvrir »
@@ -636,7 +637,7 @@ function ensureCollectionBar() {
 // masquée) ; la recherche reprend ensuite sa valeur, la fenêtre du site restant ouverte.
 export async function openCardOnSite({title, rarity}) {
   const input = document.querySelector(SEL.collectionSearch);
-  if (!input) throw new Error("Ouvrez la page Collection pour afficher cette carte.");
+  if (!input) throw new Error(L("Ouvrez la page Collection pour afficher cette carte.", "Open the Collection page to show this card."));
   const wanted = normTitle(title);
   const find = () => [...document.querySelectorAll(`main ${SEL.tile}`)].find((t) => normTitle(t.querySelector(SEL.tileTitle)?.textContent || "") === wanted && (!rarity || tileRarity(t) === rarity));
   const previous = input.value;
@@ -650,7 +651,7 @@ export async function openCardOnSite({title, rarity}) {
   }
   tile?.click();
   if (input.value !== previous) typeInto(input, previous);
-  if (!tile) throw new Error(`« ${title} » n'apparaît pas dans la grille du site : un filtre de rareté du site est peut-être actif.`);
+  if (!tile) throw new Error(L(`« ${title} » n'apparaît pas dans la grille du site : un filtre de rareté du site est peut-être actif.`, `"${title}" is not in the site's grid: a rarity filter may be active on the site.`));
 }
 
 // Saisie dans un champ du site (React) : valeur posée par le setter natif, puis événement input,

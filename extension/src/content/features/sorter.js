@@ -10,6 +10,7 @@ import {activeProfiles} from "../state/profiles";
 import {settings} from "../state/settings";
 import {themeSet, pendingThemeTags, settleThemeTags} from "../state/themes";
 import {invalidateCollection} from "../state/collection";
+import {L} from "../../shared/i18n";
 import {managedTags, planThemeTags, countCopies, computeAssignments, managedTagIds, planChanges, planTagUpserts, countByTag, applyPlan, DOUBLON} from "../../../../core";
 
 export const sortState = createStore({running: false, step: "", progress: null, plan: null, result: null, error: null, lastRun: null});
@@ -25,7 +26,7 @@ async function classify(rows, profiles, themes) {
   const out = [];
   for (let i = 0; i < rows.length; i += 400) {
     out.push(...computeAssignments(rows.slice(i, i + 400), {profiles, themes, copies}));
-    step("Classement des cartes", {done: Math.min(i + 400, rows.length), total: rows.length});
+    step(L("Classement des cartes", "Sorting cards"), {done: Math.min(i + 400, rows.length), total: rows.length});
     await yieldToUi();
   }
   return out;
@@ -40,7 +41,7 @@ export async function planSort({newOnly}) {
     const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes});
     const pending = pendingThemeTags();
 
-    step("Lecture de vos étiquettes");
+    step(L("Lecture de vos étiquettes", "Reading your tags"));
     const tagRows = await rest(`tags?select=*&user_id=eq.${session.userId}`);
     // Thèmes renommés ou supprimés dans les réglages : anciennes étiquettes renommées, ou retirées
     // (retri complet seulement). Le plan est calculé avec les nouveaux noms.
@@ -49,10 +50,10 @@ export async function planSort({newOnly}) {
     // Pagination triée de façon stable (`id` départage les cartes d'un même paquet), lignes
     // dédoublonnées : une carte lue deux fois serait prise pour un doublon, une carte manquée
     // resterait non triée.
-    step("Lecture de votre collection", {done: 0, total: null});
+    step(L("Lecture de votre collection", "Reading your collection"), {done: 0, total: null});
     const rows = await fetchAll(`user_cards?select=id,card_id,count,cards(id,wikipedia_title,category,summary,image_url)&order=obtained_at.desc,id.asc`, {
       key: "id",
-      onPage: (n) => step("Lecture de votre collection", {done: n, total: null}),
+      onPage: (n) => step(L("Lecture de votre collection", "Reading your collection"), {done: n, total: null}),
     });
 
     // Les doublons se calculent sur toute la collection ; le classement est nécessaire partout en
@@ -63,13 +64,13 @@ export async function planSort({newOnly}) {
     const tagIds = [...Object.values(ids).flat(), ...retired.map((t) => t.id)];
     const current = new Map();
     let done = 0;
-    step("Lecture des associations", {done, total: tagIds.length});
+    step(L("Lecture des associations", "Reading tag links"), {done, total: tagIds.length});
     await runAll(
       tagIds,
       async (id) => {
         const links = await fetchAll(`user_card_tags?select=user_card_id&tag_id=eq.${id}&order=user_card_id.asc`);
         current.set(id, new Set(links.map((l) => l.user_card_id)));
-        step("Lecture des associations", {done: ++done, total: tagIds.length});
+        step(L("Lecture des associations", "Reading tag links"), {done: ++done, total: tagIds.length});
       },
       {concurrency: 3},
     );
@@ -117,19 +118,26 @@ export async function planSort({newOnly}) {
   }
 }
 
-const STEP_LABELS = {tags: "Mise à jour des étiquettes", insert: "Ajout des étiquettes", delete: "Retrait des étiquettes obsolètes"};
+const STEP_LABELS = {
+  tags: L("Mise à jour des étiquettes", "Updating tags"),
+  insert: L("Ajout des étiquettes", "Adding tags"),
+  delete: L("Retrait des étiquettes obsolètes", "Removing outdated tags"),
+};
 
 // Message d'une écriture interrompue : ce qui a été fait, et comment terminer.
 function interruptedMessage(e) {
   const base = e?.message || String(e);
   const p = e?.partial;
   if (!p) return base;
-  const done = [p.inserted && `${p.inserted} ajout(s)`, p.deleted && `${p.deleted} retrait(s)`].filter(Boolean).join(", ");
-  return `${base} Écriture interrompue${done ? ` après ${done}` : ""} : cliquez à nouveau sur « Appliquer » pour terminer, rien ne sera écrit en double.`;
+  const done = [p.inserted && L(`${p.inserted} ajout(s)`, `${p.inserted} addition(s)`), p.deleted && L(`${p.deleted} retrait(s)`, `${p.deleted} removal(s)`)].filter(Boolean).join(", ");
+  return L(
+    `${base} Écriture interrompue${done ? ` après ${done}` : ""} : cliquez à nouveau sur « Appliquer » pour terminer, rien ne sera écrit en double.`,
+    `${base} Write interrupted${done ? ` after ${done}` : ""}: click "Apply" again to finish; nothing will be written twice.`,
+  );
 }
 
 export async function applySort(plan) {
-  if (Date.now() - plan.createdAt > 15 * 60 * 1000) throw new Error("Cet aperçu date de plus de 15 minutes : relancez l'aperçu avant d'appliquer.");
+  if (Date.now() - plan.createdAt > 15 * 60 * 1000) throw new Error(L("Cet aperçu date de plus de 15 minutes : relancez l'aperçu avant d'appliquer.", "This preview is more than 15 minutes old: run the preview again before applying."));
   sortState.set({running: true, error: null, result: null});
   try {
     return await withLock("sort", async () => {

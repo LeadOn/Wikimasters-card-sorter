@@ -11,11 +11,12 @@ import {priceMap, priceOptions} from "../state/prices";
 import {sellCard} from "./market";
 import {imageKind} from "./card-images";
 import {marketPrice, freeCopy, groupCopies, unsoldCopies, rarityRank} from "../../../../core";
+import {L} from "../../shared/i18n";
 
 // Critères cumulables (une carte doit les remplir tous) ; « Toutes » : aucun critère
 export const KINDS = [
-  {id: "doubles", label: "Doublons"},
-  {id: "none", label: "Sans image"},
+  {id: "doubles", label: L("Doublons", "Duplicates")},
+  {id: "none", label: L("Sans image", "No image")},
   {id: "gif", label: "GIF"},
 ];
 
@@ -31,7 +32,7 @@ export const collectionView = createStore({open: false, ...DEFAULT_FILTER});
 // copies : exemplaires de ma collection (instantané, mis à jour après chaque action)
 export const cardsState = createStore({copies: null, loading: false, progress: 0, error: null});
 
-export const LOCKED = "Tous vos exemplaires sont en favori : le site les verrouille.";
+export const LOCKED = L("Tous vos exemplaires sont en favori : le site les verrouille.", "All your copies are favorites: the site locks them.");
 
 export async function loadCards({force = false} = {}) {
   if (cardsState.get().loading) return;
@@ -169,7 +170,7 @@ function target(group, keepOne) {
   const copies = cardsState.get().copies || [];
   const copy = freeCopy(copies.filter((c) => c.card_id === group.card_id && c.rarity === group.rarity));
   if (!copy) throw new Error(LOCKED);
-  if (keepOne && copiesByCard(copies).get(group.card_id) < 2) throw new Error(`Dernier exemplaire de « ${group.card?.wikipedia_title || "cette carte"} » : il est conservé.`);
+  if (keepOne && copiesByCard(copies).get(group.card_id) < 2) throw new Error(L(`Dernier exemplaire de « ${group.card?.wikipedia_title || "cette carte"} » : il est conservé.`, `Last copy of "${group.card?.wikipedia_title || "this card"}": it is kept.`));
   return copy;
 }
 

@@ -5,9 +5,10 @@
 import {createStore} from "../lib/store";
 import {loadMyCollection} from "../state/collection";
 import {rarityRank} from "../../../../core";
+import {L} from "../../shared/i18n";
 
 export const IMAGE_FILTERS = [
-  {id: "none", label: "Sans image"},
+  {id: "none", label: L("Sans image", "No image")},
   {id: "gif", label: "GIF"},
 ];
 

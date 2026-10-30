@@ -14,6 +14,7 @@ import {askSell, askSellMany} from "./SellDialog";
 import {confirmDiscardMany} from "./discard";
 import {RARITIES, RARITY_LABEL, freeCopy, soldIn} from "../../../../core";
 import {themeMemo} from "../state/themes";
+import {L} from "../../shared/i18n";
 
 const keyOf = (g) => `${g.card_id}|${g.rarity}`;
 // Thème d'une carte, calculé une seule fois : les listes sont recalculées à chaque prix reçu
@@ -88,10 +89,10 @@ export function CollectionFilters({filter, onChange, active = true, aside}) {
   return (
     <div class="filters">
       <div class="filter-row">
-        <span class="filter-k">Cartes</span>
-        <div class="chips" role="group" aria-label="Cartes (critères cumulables)">
+        <span class="filter-k">{L("Cartes", "Cards")}</span>
+        <div class="chips" role="group" aria-label={L("Cartes (critères cumulables)", "Cards (filters can be combined)")}>
           <button class={`chip${active && !kinds.length ? " on" : ""}`} aria-pressed={active && !kinds.length} onClick={() => onChange({kinds: []})}>
-            Toutes <Count n={views?.all.length} />
+            {L("Toutes", "All")} <Count n={views?.all.length} />
           </button>
           {KINDS.map((k) => {
             const on = kinds.includes(k.id);
@@ -106,36 +107,36 @@ export function CollectionFilters({filter, onChange, active = true, aside}) {
         {aside && <div class="filter-aside">{aside}</div>}
       </div>
       <div class="filter-row">
-        <span class="filter-k">Ventes</span>
-        <div class="seg" role="group" aria-label="Ventes">
+        <span class="filter-k">{L("Ventes", "Sales")}</span>
+        <div class="seg" role="group" aria-label={L("Ventes", "Sales")}>
           <button class={sale === null ? "on" : ""} aria-pressed={sale === null} onClick={() => onChange({sale: null})}>
-            Tous les prix
+            {L("Tous les prix", "Any price")}
           </button>
           <button class={sale === "never" ? "on" : ""} aria-pressed={sale === "never"} onClick={() => onChange({sale: "never"})}>
-            Jamais vendues <Count n={saleCount({sale: "never"})} />
+            {L("Jamais vendues", "Never sold")} <Count n={saleCount({sale: "never"})} />
           </button>
           <button class={sale === "range" ? "on" : ""} aria-pressed={sale === "range"} onClick={() => onChange({sale: "range"})}>
-            Vendues entre…
+            {L("Vendues entre…", "Sold between…")}
           </button>
         </div>
         {sale === "never" && (
-          <select class="mini-select" aria-label="Portée" value={filter.anyRarity ? "any" : "own"} onChange={(e) => onChange({anyRarity: e.currentTarget.value === "any"})}>
-            <option value="any">dans aucune rareté</option>
-            <option value="own">dans la rareté de mon exemplaire</option>
+          <select class="mini-select" aria-label={L("Portée", "Scope")} value={filter.anyRarity ? "any" : "own"} onChange={(e) => onChange({anyRarity: e.currentTarget.value === "any"})}>
+            <option value="any">{L("dans aucune rareté", "in any rarity")}</option>
+            <option value="own">{L("dans la rareté de mon exemplaire", "in my copy's rarity")}</option>
           </select>
         )}
       </div>
       {sale === "range" && (
         <div class="filter-row">
           <span class="filter-k" aria-hidden="true" />
-          <div class={`chip price-range${custom ? " on" : ""}`} role="group" aria-label="Prix du marché, bornes incluses">
-            <span>de</span>
-            <PriceInput value={filter.min} onValue={(min) => onChange({min})} label="Prix minimum, en WikiBidous" placeholder="min" />
-            <span>à</span>
-            <PriceInput value={filter.max} onValue={(max) => onChange({max})} label="Prix maximum, en WikiBidous" placeholder="max" />
+          <div class={`chip price-range${custom ? " on" : ""}`} role="group" aria-label={L("Prix du marché, bornes incluses", "Market price, bounds included")}>
+            <span>{L("de", "from")}</span>
+            <PriceInput value={filter.min} onValue={(min) => onChange({min})} label={L("Prix minimum, en WikiBidous", "Minimum price, in WikiBidous")} placeholder="min" />
+            <span>{L("à", "to")}</span>
+            <PriceInput value={filter.max} onValue={(max) => onChange({max})} label={L("Prix maximum, en WikiBidous", "Maximum price, in WikiBidous")} placeholder="max" />
             <span>₩</span>
           </div>
-          <div class="chips" role="group" aria-label="Tranches de prix">
+          <div class="chips" role="group" aria-label={L("Tranches de prix", "Price ranges")}>
             {RANGES.map((r) => (
               <button key={r.label} class={`chip${isRange(r) ? " on" : ""}`} aria-pressed={isRange(r)} onClick={() => onChange({min: r.min, max: r.max})}>
                 {r.label} <Count n={saleCount({sale: "range", min: r.min, max: r.max})} />
@@ -219,7 +220,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
 
   const loadMissing = async () => {
     abort.current = new AbortController();
-    const label = "Chargement des prix";
+    const label = L("Chargement des prix", "Loading prices");
     setRunning({label, done: 0, total: uncheckedCards});
     try {
       await loadPrices(
@@ -237,7 +238,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
   const withoutLast = (targets) => {
     if (!keepOne) return targets;
     const {groups, skipped} = keepOnePerCard(targets, s.copies || []);
-    if (skipped) toast(`${plural(skipped, "carte cochée écartée", "cartes cochées écartées")} : vous en gardez toujours un exemplaire.`);
+    if (skipped) toast(L(`${plural(skipped, "carte cochée écartée", "cartes cochées écartées")} : vous en gardez toujours un exemplaire.`, `${plural(skipped, "selected card", "selected cards")} skipped: you always keep one copy.`));
     return groups;
   };
 
@@ -251,17 +252,21 @@ export function CollectionCards({filter, onOpen, mini = false}) {
     if (!(await confirmDiscardMany(items))) return;
     abort.current = new AbortController();
     const total = targets.length;
-    setRunning({label: "Défausse", done: 0, total});
+    const label = L("Défausse", "Discarding");
+    setRunning({label, done: 0, total});
     try {
-      const n = await discardGroups(targets, {keepOne, signal: abort.current.signal, onProgress: (done) => setRunning({label: "Défausse", done, total})});
+      const n = await discardGroups(targets, {keepOne, signal: abort.current.signal, onProgress: (done) => setRunning({label, done, total})});
       toast(
         total === 1 && n === 1
-          ? `${targets[0].card.wikipedia_title} défaussée : +1 WikiBidou.`
-          : `${plural(n, "carte défaussée", "cartes défaussées")}${n < total ? ", puis arrêt" : ""} : +${fmt(n)} ${n > 1 ? "WikiBidous" : "WikiBidou"}.`,
+          ? L(`${targets[0].card.wikipedia_title} défaussée : +1 WikiBidou.`, `${targets[0].card.wikipedia_title} discarded: +1 WikiBidou.`)
+          : L(
+              `${plural(n, "carte défaussée", "cartes défaussées")}${n < total ? ", puis arrêt" : ""} : +${fmt(n)} ${n > 1 ? "WikiBidous" : "WikiBidou"}.`,
+              `${plural(n, "card discarded", "cards discarded")}${n < total ? ", then stopped" : ""}: +${fmt(n)} ${n === 1 ? "WikiBidou" : "WikiBidous"}.`,
+            ),
         {type: "ok"},
       );
     } catch (e) {
-      const before = e.done ? `${plural(e.done, "carte défaussée", "cartes défaussées")}, puis arrêt : ` : "";
+      const before = e.done ? L(`${plural(e.done, "carte défaussée", "cartes défaussées")}, puis arrêt : `, `${plural(e.done, "card discarded", "cards discarded")}, then stopped: `) : "";
       toast(before + errorMessage(e), {type: "error", duration: 10000});
     } finally {
       setRunning(null);
@@ -271,14 +276,14 @@ export function CollectionCards({filter, onOpen, mini = false}) {
 
   const sellOne = async (g) => {
     const copy = copyFor(g, {keepOne});
-    if (!copy) return toast(keepOne ? "Vous gardez toujours un exemplaire de chaque carte." : LOCKED, {type: "error"});
+    if (!copy) return toast(keepOne ? L("Vous gardez toujours un exemplaire de chaque carte.", "You always keep one copy of each card.") : LOCKED, {type: "error"});
     const result = await askSell({
       card: g.card,
       userCardId: copy.id,
       rarity: g.rarity,
       shiny: copy.is_shiny,
       badges: [g.count > 1 && {label: `×${g.count}`, type: "ok"}],
-      note: sale === "never" ? "Cette carte n'a jamais été vendue : aucun prix de référence. L'exemplaire est mis en réserve pendant l'enchère." : undefined,
+      note: sale === "never" ? L("Cette carte n'a jamais été vendue : aucun prix de référence. L'exemplaire est mis en réserve pendant l'enchère.", "This card has never been sold: no reference price. The copy is held back during the auction.") : undefined,
     });
     afterSell(copy.id, result);
   };
@@ -302,34 +307,34 @@ export function CollectionCards({filter, onOpen, mini = false}) {
   };
 
   if (s.error) return <Notice type="error">{s.error}</Notice>;
-  if (!s.copies) return <Progress label="Lecture de votre collection" done={s.progress} />;
+  if (!s.copies) return <Progress label={L("Lecture de votre collection", "Reading your collection")} done={s.progress} />;
 
   const empty = !views.all.length
-    ? "Votre collection est vide."
+    ? L("Votre collection est vide.", "Your collection is empty.")
     : candidates.length && unknownCount === candidates.length
-      ? "Aucun prix chargé pour l'instant : chargez les prix pour filtrer vos cartes par vente."
-      : "Aucune carte ne correspond à ces filtres.";
+      ? L("Aucun prix chargé pour l'instant : chargez les prix pour filtrer vos cartes par vente.", "No prices loaded yet: load prices to filter your cards by sale.")
+      : L("Aucune carte ne correspond à ces filtres.", "No cards match these filters.");
 
   return (
     <div class="stack">
       <div class="filter-row">
-        <span class="filter-k">Mots-clés</span>
+        <span class="filter-k">{L("Mots-clés", "Keywords")}</span>
         <div class="kw-box">
           {words.map((w) => (
             <span key={normText(w.text)} class={`chip kw${w.out ? " out" : ""}`}>
-              <button type="button" class="kw-t" title={w.out ? "Exclu : cliquer pour l'inclure" : "Inclus : cliquer pour l'exclure"} onClick={() => flipWord(w)}>
+              <button type="button" class="kw-t" title={w.out ? L("Exclu : cliquer pour l'inclure", "Excluded: click to include") : L("Inclus : cliquer pour l'exclure", "Included: click to exclude")} onClick={() => flipWord(w)}>
                 <span class="kw-sign">{w.out ? "−" : "+"}</span>
                 {w.text}
               </button>
-              <button type="button" class="kw-x" aria-label={`Retirer « ${w.text} »`} onClick={() => removeWord(w)}>
+              <button type="button" class="kw-x" aria-label={L(`Retirer « ${w.text} »`, `Remove "${w.text}"`)} onClick={() => removeWord(w)}>
                 <Icon name="close" size={12} />
               </button>
             </span>
           ))}
           <input
             type="search"
-            placeholder={words.length ? "Autre mot…" : "Un mot du titre ou de la description, puis Entrée (-mot pour l'exclure)"}
-            aria-label="Mot-clé du titre ou de la description"
+            placeholder={words.length ? L("Autre mot…", "Another word…") : L("Un mot du titre ou de la description, puis Entrée (-mot pour l'exclure)", "A word from the title or description, then Enter (-word to exclude it)")}
+            aria-label={L("Mot-clé du titre ou de la description", "Keyword from the title or description")}
             value={query}
             onInput={(e) => setQuery(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -343,25 +348,25 @@ export function CollectionCards({filter, onOpen, mini = false}) {
           />
         </div>
         <button class="btn sm" disabled={!live} onClick={() => addWord(false)}>
-          <Icon name="plus" size={14} /> Inclure
+          <Icon name="plus" size={14} /> {L("Inclure", "Include")}
         </button>
         <button class="btn sm" disabled={!live} onClick={() => addWord(true)}>
-          Exclure
+          {L("Exclure", "Exclude")}
         </button>
         {included > 1 && (
-          <div class="seg" role="group" aria-label="Mots inclus">
+          <div class="seg" role="group" aria-label={L("Mots inclus", "Included words")}>
             <button class={allWords ? "" : "on"} aria-pressed={!allWords} onClick={() => setAllWords(false)}>
-              Un des mots
+              {L("Un des mots", "Any word")}
             </button>
             <button class={allWords ? "on" : ""} aria-pressed={allWords} onClick={() => setAllWords(true)}>
-              Tous les mots
+              {L("Tous les mots", "All words")}
             </button>
           </div>
         )}
       </div>
       <div class="filter-row">
-        <span class="filter-k">Affiner</span>
-        <div class="chips" role="group" aria-label="Raretés">
+        <span class="filter-k">{L("Affiner", "Refine")}</span>
+        <div class="chips" role="group" aria-label={L("Raretés", "Rarities")}>
           {RARITIES.filter((r) => rarityCount(r) || rarities.includes(r)).map((r) => (
             <button
               key={r}
@@ -375,8 +380,8 @@ export function CollectionCards({filter, onOpen, mini = false}) {
           ))}
         </div>
         {themeCounts.length > 1 && (
-          <select class={`mini-select${theme ? " on" : ""}`} aria-label="Thème" value={theme} onChange={(e) => setTheme(e.currentTarget.value)}>
-            <option value="">Tous les thèmes</option>
+          <select class={`mini-select${theme ? " on" : ""}`} aria-label={L("Thème", "Theme")} value={theme} onChange={(e) => setTheme(e.currentTarget.value)}>
+            <option value="">{L("Tous les thèmes", "All themes")}</option>
             {themeCounts.map(([t, n]) => (
               <option key={t} value={t}>
                 {t} · {fmt(n)}
@@ -384,21 +389,24 @@ export function CollectionCards({filter, onOpen, mini = false}) {
             ))}
           </select>
         )}
-        <span class="filter-aside small muted">{plural(shown.length, "carte")}</span>
+        <span class="filter-aside small muted">{plural(shown.length, L("carte", "card"))}</span>
       </div>
       {uncheckedCards > 0 && !running && (
         <div class="row">
           <Notice type={unknownCount ? "warn" : "info"}>
             {unknownCount
-              ? `${plural(unknownCount, "carte n'a", "cartes n'ont")} encore aucun prix chargé : ${unknownCount > 1 ? "elles ne figurent" : "elle ne figure"} pas dans la liste.`
-              : "Certains prix ne sont plus récents : une carte a pu se vendre depuis."}
+              ? L(
+                  `${plural(unknownCount, "carte n'a", "cartes n'ont")} encore aucun prix chargé : ${unknownCount > 1 ? "elles ne figurent" : "elle ne figure"} pas dans la liste.`,
+                  `${plural(unknownCount, "card has", "cards have")} no price loaded yet: ${unknownCount === 1 ? "it is" : "they are"} not in the list.`,
+                )
+              : L("Certains prix ne sont plus récents : une carte a pu se vendre depuis.", "Some prices are out of date: a card may have sold since.")}
           </Notice>
           <button class="btn sm" onClick={loadMissing}>
-            Charger {plural(uncheckedCards, "prix", "prix")}
+            {L(`Charger ${plural(uncheckedCards, "prix", "prix")}`, `Load ${plural(uncheckedCards, "price")}`)}
           </button>
         </div>
       )}
-      {keepOne && <p class="help small">Doublons : vous gardez toujours un exemplaire de chaque carte, le dernier n'est jamais vendu ni défaussé.</p>}
+      {keepOne && <p class="help small">{L("Doublons : vous gardez toujours un exemplaire de chaque carte, le dernier n'est jamais vendu ni défaussé.", "Duplicates: you always keep one copy of each card; the last one is never sold or discarded.")}</p>}
       {choosable.length > 0 && (
         <div class="row">
           <label class="check">
@@ -409,20 +417,20 @@ export function CollectionCards({filter, onOpen, mini = false}) {
               disabled={busy}
               onChange={() => setPicked(new Set(chosen.length === choosable.length ? [] : choosable.map(keyOf)))}
             />
-            Tout ({fmt(choosable.length)})
+            {L(`Tout (${fmt(choosable.length)})`, `All (${fmt(choosable.length)})`)}
           </label>
           <span class="small muted pick-hint">
             {chosen.length
-              ? plural(chosen.length, "carte cochée", "cartes cochées")
+              ? L(plural(chosen.length, "carte cochée", "cartes cochées"), plural(chosen.length, "card selected", "cards selected"))
               : onOpen
-                ? "Cliquez sur une carte pour la cocher, sur son nom pour l'ouvrir sur le site"
-                : "Cliquez sur une carte pour la cocher"}
+                ? L("Cliquez sur une carte pour la cocher, sur son nom pour l'ouvrir sur le site", "Click a card to select it, or its name to open it on the site")
+                : L("Cliquez sur une carte pour la cocher", "Click a card to select it")}
           </span>
           <button class="btn sm" disabled={!chosen.length || busy} onClick={() => sellMany(chosen)}>
-            <Icon name="market" size={14} /> Mettre aux enchères
+            <Icon name="market" size={14} /> {L("Mettre aux enchères", "Put up for auction")}
           </button>
           <button class="btn sm" disabled={!chosen.length || busy} onClick={() => discard(chosen)}>
-            <Icon name="discard" size={14} /> Défausser{chosen.length ? ` (+${fmt(chosen.length)} ₩)` : ""}
+            <Icon name="discard" size={14} /> {L("Défausser", "Discard")}{chosen.length ? ` (+${fmt(chosen.length)} ₩)` : ""}
           </button>
         </div>
       )}
@@ -432,7 +440,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
             <Progress label={running.label} done={running.done} total={running.total} />
           </div>
           <button class="btn sm danger" onClick={() => abort.current?.abort()}>
-            Arrêter
+            {L("Arrêter", "Stop")}
           </button>
         </div>
       )}
@@ -456,20 +464,20 @@ export function CollectionCards({filter, onOpen, mini = false}) {
               onClick={free && !busy ? () => toggle(g) : undefined}
               onTitle={onOpen && (() => !opening && open(g))}
               badges={[
-                opening === key && {label: "Ouverture…", type: "accent"},
+                opening === key && {label: L("Ouverture…", "Opening…"), type: "accent"},
                 g.count > 1 && {label: `×${g.count}`, type: "ok"},
-                keepOne && owned.get(g.card_id) > g.count && {label: `${owned.get(g.card_id)} au total`},
-                soldInRarities.length > 0 && {label: `vendue en ${soldInRarities.join(", ")}`},
-                kinds.includes("none") && g.card.hide_image && {label: "masquée par le site", type: "warn"},
+                keepOne && owned.get(g.card_id) > g.count && {label: L(`${owned.get(g.card_id)} au total`, `${owned.get(g.card_id)} in total`)},
+                soldInRarities.length > 0 && {label: L(`vendue en ${soldInRarities.join(", ")}`, `sold in ${soldInRarities.join(", ")}`)},
+                kinds.includes("none") && g.card.hide_image && {label: L("masquée par le site", "hidden by the site"), type: "warn"},
                 free?.is_shiny && {label: "shiny", type: "warn", icon: "shine"},
-                !free && {label: "favori", type: "warn", icon: "star"},
+                !free && {label: L("favori", "favorite"), type: "warn", icon: "star"},
               ]}
               action={
                 <span class="row" style={{gap: "2px"}}>
-                  <button class="btn sm" disabled={busy || !free} title={free ? "Mettre aux enchères" : LOCKED} onClick={() => sellOne(g)}>
-                    Vendre
+                  <button class="btn sm" disabled={busy || !free} title={free ? L("Mettre aux enchères", "Put up for auction") : LOCKED} onClick={() => sellOne(g)}>
+                    {L("Vendre", "Sell")}
                   </button>
-                  <button class="btn sm ghost" disabled={busy || !free} title={free ? "Défausser contre 1 WikiBidou" : LOCKED} aria-label="Défausser" onClick={() => discard([g])}>
+                  <button class="btn sm ghost" disabled={busy || !free} title={free ? L("Défausser contre 1 WikiBidou", "Discard for 1 WikiBidou") : LOCKED} aria-label={L("Défausser", "Discard")} onClick={() => discard([g])}>
                     <Icon name="discard" size={14} />
                   </button>
                 </span>

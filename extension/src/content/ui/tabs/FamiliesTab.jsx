@@ -25,6 +25,7 @@ import {CardRow, Icon, Paged, Progress, Notice, Copyable, fmt, plural, duration}
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {RARITIES, familyProgress} from "../../../../../core";
 import {themeNames} from "../../state/themes";
+import {L} from "../../../shared/i18n";
 
 function Modal({title, wide, onClose, children}) {
   return (
@@ -46,34 +47,39 @@ function RuleEditor({family, onClose}) {
   const [rarities, setRarities] = useState(r.rarities || []);
   const toggle = (list, set, x) => set(list.includes(x) ? list.filter((y) => y !== x) : [...list, x]);
   return (
-    <Modal title={`Règle de « ${family.name} »`} wide onClose={onClose}>
+    <Modal title={L(`Règle de « ${family.name} »`, `Rule for "${family.name}"`)} wide onClose={onClose}>
       <label class="field">
-        <span>Recherche dans le catalogue</span>
-        <input type="text" value={query} onInput={(e) => setQuery(e.currentTarget.value)} placeholder="ex. Star Wars" />
-        <span class="small">Envoyée à la recherche du site (titre, description). Le catalogue compte des millions de cartes : la recherche est obligatoire.</span>
+        <span>{L("Recherche dans le catalogue", "Catalog search")}</span>
+        <input type="text" value={query} onInput={(e) => setQuery(e.currentTarget.value)} placeholder={L("ex. Star Wars", "e.g. Star Wars")} />
+        <span class="small">
+          {L(
+            "Envoyée à la recherche du site (titre, description). Le catalogue compte des millions de cartes : la recherche est obligatoire.",
+            "Sent to the site's search (title, description). The catalog has millions of cards: a search is required.",
+          )}
+        </span>
       </label>
       <label class="field">
-        <span>Mots-clés obligatoires (facultatif)</span>
-        <input type="text" value={keywords} onInput={(e) => setKeywords(e.currentTarget.value)} placeholder="ex. jedi, sith, skywalker" />
+        <span>{L("Mots-clés obligatoires (facultatif)", "Required keywords (optional)")}</span>
+        <input type="text" value={keywords} onInput={(e) => setKeywords(e.currentTarget.value)} placeholder={L("ex. jedi, sith, skywalker", "e.g. jedi, sith, skywalker")} />
       </label>
       <label class="field">
-        <span>Exclusions (facultatif)</span>
-        <input type="text" value={exclude} onInput={(e) => setExclude(e.currentTarget.value)} placeholder="ex. jeu vidéo" />
+        <span>{L("Exclusions (facultatif)", "Exclusions (optional)")}</span>
+        <input type="text" value={exclude} onInput={(e) => setExclude(e.currentTarget.value)} placeholder={L("ex. jeu vidéo", "e.g. jeu vidéo")} />
       </label>
       <div class="field">
-        <span style={{fontWeight: 600}}>Thèmes (facultatif)</span>
+        <span style={{fontWeight: 600}}>{L("Thèmes (facultatif)", "Themes (optional)")}</span>
         <div class="chips" style={{marginTop: "6px"}}>
           {[...new Set([...themeNames(), ...themes])].map((t) => <button key={t} class={`chip${themes.includes(t) ? " on" : ""}`} onClick={() => toggle(themes, setThemes, t)}>{t}</button>)}
         </div>
       </div>
       <div class="field">
-        <span style={{fontWeight: 600}}>Raretés (facultatif)</span>
+        <span style={{fontWeight: 600}}>{L("Raretés (facultatif)", "Rarities (optional)")}</span>
         <div class="chips" style={{marginTop: "6px"}}>
           {RARITIES.map((x) => <button key={x} class={`chip${rarities.includes(x) ? " on" : ""}`} onClick={() => toggle(rarities, setRarities, x)}>{x}</button>)}
         </div>
       </div>
       <div class="actions">
-        <button class="btn ghost" onClick={onClose}>Annuler</button>
+        <button class="btn ghost" onClick={onClose}>{L("Annuler", "Cancel")}</button>
         <button
           class="btn primary"
           disabled={!query.trim()}
@@ -82,7 +88,7 @@ function RuleEditor({family, onClose}) {
             onClose();
           }}
         >
-          Enregistrer
+          {L("Enregistrer", "Save")}
         </button>
       </div>
     </Modal>
@@ -109,33 +115,33 @@ function AddCards({family, onClose}) {
     }
   };
   return (
-    <Modal title={`Ajouter des cartes à « ${fam.name} »`} wide onClose={onClose}>
+    <Modal title={L(`Ajouter des cartes à « ${fam.name} »`, `Add cards to "${fam.name}"`)} wide onClose={onClose}>
       <form class="row" onSubmit={(e) => (e.preventDefault(), search(0))}>
-        <input type="search" style={{flex: 1}} placeholder="Titre, description…" value={q} onInput={(e) => setQ(e.currentTarget.value)} />
-        <button class="btn primary" disabled={busy || q.trim().length < 2}>Rechercher</button>
+        <input type="search" style={{flex: 1}} placeholder={L("Titre, description…", "Title, description…")} value={q} onInput={(e) => setQ(e.currentTarget.value)} />
+        <button class="btn primary" disabled={busy || q.trim().length < 2}>{L("Rechercher", "Search")}</button>
       </form>
-      {busy && <Progress label="Recherche" done={0} />}
+      {busy && <Progress label={L("Recherche", "Searching")} done={0} />}
       {res && (
         <div class="cards" style={{maxHeight: "55vh", overflow: "auto"}}>
           {res.cards.map((c) => (
             <CardRow
               key={c.id}
               card={c}
-              action={inFamily.has(c.id) ? <button class="btn sm ghost" onClick={() => removeCard(fam.id, c.id)}>Retirer</button> : <button class="btn sm primary" onClick={() => addCard(fam.id, c)}>Ajouter</button>}
+              action={inFamily.has(c.id) ? <button class="btn sm ghost" onClick={() => removeCard(fam.id, c.id)}>{L("Retirer", "Remove")}</button> : <button class="btn sm primary" onClick={() => addCard(fam.id, c)}>{L("Ajouter", "Add")}</button>}
             />
           ))}
         </div>
       )}
       {res && (
         <div class="row">
-          <button class="btn sm" disabled={!page || busy} onClick={() => search(page - 1)}>Précédent</button>
-          <span class="small muted">Page {page + 1}</span>
-          <button class="btn sm" disabled={!res.hasMore || busy} onClick={() => search(page + 1)}>Suivant</button>
+          <button class="btn sm" disabled={!page || busy} onClick={() => search(page - 1)}>{L("Précédent", "Previous")}</button>
+          <span class="small muted">{L("Page", "Page")} {page + 1}</span>
+          <button class="btn sm" disabled={!res.hasMore || busy} onClick={() => search(page + 1)}>{L("Suivant", "Next")}</button>
           <span class="spacer" />
-          <span class="small muted">{plural(fam.cards.length, "carte")} dans la famille</span>
+          <span class="small muted">{L(`${plural(fam.cards.length, "carte")} dans la famille`, `${plural(fam.cards.length, "card")} in the family`)}</span>
         </div>
       )}
-      <div class="actions"><button class="btn" onClick={onClose}>Terminé</button></div>
+      <div class="actions"><button class="btn" onClick={onClose}>{L("Terminé", "Done")}</button></div>
     </Modal>
   );
 }
@@ -151,10 +157,10 @@ function MarketDialog({family, onClose}) {
     return () => abort.current.abort();
   }, []);
   return (
-    <Modal title={`Cartes manquantes en vente · ${family.name}`} wide onClose={onClose}>
-      {!state.offers && !state.error && <Progress label="Recherche sur le marché" done={state.progress.done} total={state.progress.total} />}
+    <Modal title={L(`Cartes manquantes en vente · ${family.name}`, `Missing cards for sale · ${family.name}`)} wide onClose={onClose}>
+      {!state.offers && !state.error && <Progress label={L("Recherche sur le marché", "Searching the market")} done={state.progress.done} total={state.progress.total} />}
       {state.error && <Notice type="error">{state.error}</Notice>}
-      {state.offers && !state.offers.length && <p class="help">Aucune carte manquante en vente pour l'instant.</p>}
+      {state.offers && !state.offers.length && <p class="help">{L("Aucune carte manquante en vente pour l'instant.", "No missing cards for sale right now.")}</p>}
       {state.offers?.length > 0 && (
         <div class="cards" style={{maxHeight: "55vh", overflow: "auto"}}>
           {state.offers.map(({card, auction}) => (
@@ -163,13 +169,15 @@ function MarketDialog({family, onClose}) {
               card={{...auction.card, wikipedia_title: card.title}}
               rarity={auction.snapshot_rarity}
               badges={[{label: `${fmt(auction.current_bid ?? auction.base_amount)} ₩`, type: "accent"}, {label: duration(new Date(auction.end_at) - Date.now())}]}
-              action={<a class="btn sm" href={`/marketplace/${auction.id}`}>Voir</a>}
+              action={<a class="btn sm" href={`/marketplace/${auction.id}`}>{L("Voir", "View")}</a>}
             />
           ))}
         </div>
       )}
-      <p class="small muted">Recherche limitée aux 40 premières cartes manquantes, pour ne pas surcharger le site.</p>
-      <div class="actions"><button class="btn" onClick={onClose}>Fermer</button></div>
+      <p class="small muted">
+        {L("Recherche limitée aux 40 premières cartes manquantes, pour ne pas surcharger le site.", "Search limited to the first 40 missing cards, so as not to overload the site.")}
+      </p>
+      <div class="actions"><button class="btn" onClick={onClose}>{L("Fermer", "Close")}</button></div>
     </Modal>
   );
 }
@@ -187,7 +195,7 @@ function FamilyDetail({family, onBack}) {
     setRefresh({page: 0, maxPages: 10, found: 0});
     try {
       const n = await refreshSmartFamily(family.id, {onProgress: setRefresh});
-      toast(`${plural(n, "carte trouvée", "cartes trouvées")}.`, {type: "ok"});
+      toast(`${plural(n, L("carte trouvée", "card found"), L("cartes trouvées", "cards found"))}.`, {type: "ok"});
     } catch (e) {
       toast(errorMessage(e), {type: "error"});
     } finally {
@@ -196,14 +204,23 @@ function FamilyDetail({family, onBack}) {
   };
   const toTag = async () => {
     const ok = await confirmAction({
-      title: `Créer l'étiquette « ${family.name} » ?`,
-      body: `Vos ${plural(p.owned, "exemplaire")} des cartes de cette famille recevront une étiquette personnelle « ${family.name} » sur WikiMasters. Le tri automatique ne la modifiera jamais.`,
-      confirm: "Créer l'étiquette",
+      title: L(`Créer l'étiquette « ${family.name} » ?`, `Create the tag "${family.name}"?`),
+      body: L(
+        `Vos ${plural(p.owned, "exemplaire")} des cartes de cette famille recevront une étiquette personnelle « ${family.name} » sur WikiMasters. Le tri automatique ne la modifiera jamais.`,
+        `Your ${plural(p.owned, "copy", "copies")} of this family's cards will get a personal tag "${family.name}" on WikiMasters. Automatic sorting will never change it.`,
+      ),
+      confirm: L("Créer l'étiquette", "Create tag"),
     });
     if (!ok) return;
     try {
       const r = await familyToTag(family);
-      toast(`Étiquette « ${r.tag} » ajoutée à ${plural(r.count, "exemplaire")}${r.failed ? ` (${r.failed} refusé(s) par le serveur)` : ""}.`, {type: r.failed ? "error" : "ok"});
+      toast(
+        L(
+          `Étiquette « ${r.tag} » ajoutée à ${plural(r.count, "exemplaire")}${r.failed ? ` (${r.failed} refusé(s) par le serveur)` : ""}.`,
+          `Tag "${r.tag}" added to ${plural(r.count, "copy", "copies")}${r.failed ? ` (${r.failed} rejected by the server)` : ""}.`,
+        ),
+        {type: r.failed ? "error" : "ok"},
+      );
     } catch (e) {
       toast(errorMessage(e), {type: "error"});
     }
@@ -213,63 +230,77 @@ function FamilyDetail({family, onBack}) {
     <div class="stack">
       <div class="row">
         <button class="btn ghost" onClick={onBack}>
-          <Icon name="back" size={16} /> Familles
+          <Icon name="back" size={16} /> {L("Familles", "Families")}
         </button>
         <h2 class="section-title" style={{flex: 1, fontSize: "20px"}}>{family.name}</h2>
-        <span class="chip accent">{family.kind === "smart" ? "Intelligente" : "Manuelle"}</span>
+        <span class="chip accent">{family.kind === "smart" ? L("Intelligente", "Smart") : L("Manuelle", "Manual")}</span>
       </div>
       <div class="box stack">
         <div class="row">
-          <strong style={{flex: 1}}>{fmt(p.owned)} / {fmt(p.total)} possédées ({p.percent} %)</strong>
+          <strong style={{flex: 1}}>
+            {fmt(p.owned)} / {fmt(p.total)} {L(`possédées (${p.percent} %)`, `owned (${p.percent}%)`)}
+          </strong>
           {family.kind === "smart" ? (
             <>
-              <button class="btn sm" onClick={() => setModal("rule")}>Règle</button>
-              <button class="btn sm primary" disabled={Boolean(refresh) || !family.rule?.query} onClick={doRefresh}>Actualiser</button>
+              <button class="btn sm" onClick={() => setModal("rule")}>{L("Règle", "Rule")}</button>
+              <button class="btn sm primary" disabled={Boolean(refresh) || !family.rule?.query} onClick={doRefresh}>{L("Actualiser", "Refresh")}</button>
             </>
           ) : (
-            <button class="btn sm primary" onClick={() => setModal("add")}>Ajouter des cartes</button>
+            <button class="btn sm primary" onClick={() => setModal("add")}>{L("Ajouter des cartes", "Add cards")}</button>
           )}
-          <button class="btn sm" disabled={!p.missing} onClick={() => setModal("market")}>Manquantes en vente</button>
-          <button class="btn sm" disabled={!p.owned} onClick={toTag}>En faire une étiquette</button>
-          <button class="btn sm" onClick={() => setModal("export")}>Partager</button>
+          <button class="btn sm" disabled={!p.missing} onClick={() => setModal("market")}>{L("Manquantes en vente", "Missing for sale")}</button>
+          <button class="btn sm" disabled={!p.owned} onClick={toTag}>{L("En faire une étiquette", "Turn into a tag")}</button>
+          <button class="btn sm" onClick={() => setModal("export")}>{L("Partager", "Share")}</button>
           <button
             class="btn sm ghost"
             onClick={async () => {
-              const name = prompt("Nouveau nom de la famille", family.name);
+              const name = prompt(L("Nouveau nom de la famille", "New family name"), family.name);
               if (name?.trim()) renameFamily(family.id, name.trim());
             }}
           >
-            Renommer
+            {L("Renommer", "Rename")}
           </button>
-          <button class="btn sm ghost" onClick={async () => (await confirmAction({title: `Supprimer « ${family.name} » ?`, confirm: "Supprimer", danger: true})) && (deleteFamily(family.id), onBack())}>
-            Supprimer
+          <button
+            class="btn sm ghost"
+            onClick={async () =>
+              (await confirmAction({title: L(`Supprimer « ${family.name} » ?`, `Delete "${family.name}"?`), confirm: L("Supprimer", "Delete"), danger: true})) && (deleteFamily(family.id), onBack())
+            }
+          >
+            {L("Supprimer", "Delete")}
           </button>
         </div>
         <div class="progress"><div style={{width: `${p.percent}%`}} /></div>
-        {family.kind === "smart" && family.rule?.query && <p class="small muted">Recherche « {family.rule.query} »{family.rule.keywords ? ` · mots-clés : ${family.rule.keywords}` : ""}{family.rule.themes?.length ? ` · thèmes : ${family.rule.themes.join(", ")}` : ""}{family.rule.rarities?.length ? ` · raretés : ${family.rule.rarities.join(", ")}` : ""}</p>}
-        {refresh && <Progress label={`Recherche dans le catalogue · ${plural(refresh.found, "carte retenue", "cartes retenues")}`} done={refresh.page} total={refresh.maxPages} />}
+        {family.kind === "smart" && family.rule?.query && (
+          <p class="small muted">
+            {L(`Recherche « ${family.rule.query} »`, `Search "${family.rule.query}"`)}
+            {family.rule.keywords ? L(` · mots-clés : ${family.rule.keywords}`, ` · keywords: ${family.rule.keywords}`) : ""}
+            {family.rule.themes?.length ? L(` · thèmes : ${family.rule.themes.join(", ")}`, ` · themes: ${family.rule.themes.join(", ")}`) : ""}
+            {family.rule.rarities?.length ? L(` · raretés : ${family.rule.rarities.join(", ")}`, ` · rarities: ${family.rule.rarities.join(", ")}`) : ""}
+          </p>
+        )}
+        {refresh && <Progress label={L(`Recherche dans le catalogue · ${plural(refresh.found, "carte retenue", "cartes retenues")}`, `Searching the catalog · ${plural(refresh.found, "card kept", "cards kept")}`)} done={refresh.page} total={refresh.maxPages} />}
       </div>
       <div class="chips">
-        {[["all", `Toutes (${p.total})`], ["owned", `Possédées (${p.owned})`], ["missing", `Manquantes (${p.missing})`]].map(([k, label]) => (
+        {[["all", L(`Toutes (${p.total})`, `All (${p.total})`)], ["owned", L(`Possédées (${p.owned})`, `Owned (${p.owned})`)], ["missing", L(`Manquantes (${p.missing})`, `Missing (${p.missing})`)]].map(([k, label]) => (
           <button key={k} class={`chip${filter === k ? " on" : ""}`} onClick={() => setFilter(k)}>{label}</button>
         ))}
       </div>
       <Paged
         items={cards}
-        empty={family.kind === "smart" ? "Définissez la règle puis cliquez sur « Actualiser »." : "Ajoutez des cartes depuis le catalogue."}
+        empty={family.kind === "smart" ? L("Définissez la règle puis cliquez sur « Actualiser ».", "Set the rule, then click \"Refresh\".") : L("Ajoutez des cartes depuis le catalogue.", "Add cards from the catalog.")}
         render={(c) => (
           <CardRow
             key={c.id}
             card={{...c, wikipedia_title: c.title}}
             {...pricing(c.id, c.rarity)}
-            badges={[ids.has(c.id) ? {label: "possédée", type: "ok", icon: "check"} : {label: "manquante", type: "warn"}, family.cover === c.id && {label: "couverture", type: "accent", icon: "star"}]}
+            badges={[ids.has(c.id) ? {label: L("possédée", "owned"), type: "ok", icon: "check"} : {label: L("manquante", "missing"), type: "warn"}, family.cover === c.id && {label: L("couverture", "cover"), type: "accent", icon: "star"}]}
             action={
               <span class="row" style={{gap: "2px"}}>
-                <button class="btn sm ghost" title="Image de la famille" aria-label="Image de la famille" onClick={() => setCover(family.id, c.id)}>
+                <button class="btn sm ghost" title={L("Image de la famille", "Family image")} aria-label={L("Image de la famille", "Family image")} onClick={() => setCover(family.id, c.id)}>
                   <Icon name="star" size={14} />
                 </button>
                 {family.kind === "manual" && (
-                  <button class="btn sm ghost" title="Retirer" aria-label="Retirer" onClick={() => removeCard(family.id, c.id)}>
+                  <button class="btn sm ghost" title={L("Retirer", "Remove")} aria-label={L("Retirer", "Remove")} onClick={() => removeCard(family.id, c.id)}>
                     <Icon name="close" size={14} />
                   </button>
                 )}
@@ -295,10 +326,15 @@ function ExportFamily({family, onClose}) {
       .catch((e) => setError(errorMessage(e)));
   }, []);
   return (
-    <Modal title={`Partager « ${family.name} »`} onClose={onClose}>
-      <p class="help">Le code contient la liste des cartes (et la règle d'une famille intelligente), pas vos possessions.</p>
+    <Modal title={L(`Partager « ${family.name} »`, `Share "${family.name}"`)} onClose={onClose}>
+      <p class="help">
+        {L(
+          "Le code contient la liste des cartes (et la règle d'une famille intelligente), pas vos possessions.",
+          "The code contains the list of cards (and a smart family's rule), not what you own.",
+        )}
+      </p>
       {error ? <Notice type="error">{error}</Notice> : code ? <Copyable text={code} /> : <div class="spinner" />}
-      <div class="actions"><button class="btn" onClick={onClose}>Fermer</button></div>
+      <div class="actions"><button class="btn" onClick={onClose}>{L("Fermer", "Close")}</button></div>
     </Modal>
   );
 }
@@ -307,18 +343,20 @@ function CreateDialog({onClose, onCreated}) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("manual");
   return (
-    <Modal title="Nouvelle famille" onClose={onClose}>
+    <Modal title={L("Nouvelle famille", "New family")} onClose={onClose}>
       <label class="field">
-        <span>Nom</span>
-        <input type="text" value={name} onInput={(e) => setName(e.currentTarget.value)} placeholder="ex. Star Wars, Grands peintres…" />
+        <span>{L("Nom", "Name")}</span>
+        <input type="text" value={name} onInput={(e) => setName(e.currentTarget.value)} placeholder={L("ex. Star Wars, Grands peintres…", "e.g. Star Wars, Great painters…")} />
       </label>
       <div class="stack" style={{gap: "8px"}}>
-        <label class="check"><input type="radio" name="kind" checked={kind === "manual"} onChange={() => setKind("manual")} /> Manuelle : je choisis les cartes une à une</label>
-        <label class="check"><input type="radio" name="kind" checked={kind === "smart"} onChange={() => setKind("smart")} /> Intelligente : remplie par une recherche et des filtres</label>
+        <label class="check"><input type="radio" name="kind" checked={kind === "manual"} onChange={() => setKind("manual")} /> {L("Manuelle : je choisis les cartes une à une", "Manual: I pick cards one by one")}</label>
+        <label class="check"><input type="radio" name="kind" checked={kind === "smart"} onChange={() => setKind("smart")} /> {L("Intelligente : remplie par une recherche et des filtres", "Smart: filled by a search and filters")}</label>
       </div>
       <div class="actions">
-        <button class="btn ghost" onClick={onClose}>Annuler</button>
-        <button class="btn primary" disabled={!name.trim()} onClick={() => onCreated(createFamily({name, kind, rule: kind === "smart" ? {query: name.trim()} : null}))}>Créer</button>
+        <button class="btn ghost" onClick={onClose}>{L("Annuler", "Cancel")}</button>
+        <button class="btn primary" disabled={!name.trim()} onClick={() => onCreated(createFamily({name, kind, rule: kind === "smart" ? {query: name.trim()} : null}))}>
+          {L("Créer", "Create")}
+        </button>
       </div>
     </Modal>
   );
@@ -328,11 +366,11 @@ function ImportDialog({onClose, onCreated}) {
   const [code, setCode] = useState("");
   const [error, setError] = useState(null);
   return (
-    <Modal title="Importer une famille" onClose={onClose}>
+    <Modal title={L("Importer une famille", "Import a family")} onClose={onClose}>
       <textarea class="mono" rows={5} placeholder="WMT-F1.…" value={code} onInput={(e) => setCode(e.currentTarget.value)} />
       {error && <Notice type="error">{error}</Notice>}
       <div class="actions">
-        <button class="btn ghost" onClick={onClose}>Annuler</button>
+        <button class="btn ghost" onClick={onClose}>{L("Annuler", "Cancel")}</button>
         <button
           class="btn primary"
           disabled={!code.trim()}
@@ -344,7 +382,7 @@ function ImportDialog({onClose, onCreated}) {
             }
           }}
         >
-          Importer
+          {L("Importer", "Import")}
         </button>
       </div>
     </Modal>
@@ -358,8 +396,8 @@ function FromTagDialog({onClose, onCreated}) {
     myTags().then(setTags).catch((e) => toast(errorMessage(e), {type: "error"}));
   }, []);
   return (
-    <Modal title="Famille à partir d'une étiquette" onClose={onClose}>
-      {!tags && <Progress label="Lecture de vos étiquettes" done={0} />}
+    <Modal title={L("Famille à partir d'une étiquette", "Family from a tag")} onClose={onClose}>
+      {!tags && <Progress label={L("Lecture de vos étiquettes", "Reading your tags")} done={0} />}
       {tags && (
         <div class="chips">
           {tags.map((t) => (
@@ -383,8 +421,8 @@ function FromTagDialog({onClose, onCreated}) {
           ))}
         </div>
       )}
-      {busy && <Progress label="Création de la famille" done={0} />}
-      <div class="actions"><button class="btn" onClick={onClose}>Annuler</button></div>
+      {busy && <Progress label={L("Création de la famille", "Creating the family")} done={0} />}
+      <div class="actions"><button class="btn" onClick={onClose}>{L("Annuler", "Cancel")}</button></div>
     </Modal>
   );
 }
@@ -407,14 +445,19 @@ export function FamiliesTab() {
     <div class="stack">
       <div class="page-head">
         <div style={{flex: 1}}>
-          <h2>Familles</h2>
-          <p>Des groupes de cartes à compléter : choisissez-les une à une, ou laissez une recherche les remplir. Partagez-les par code.</p>
+          <h2>{L("Familles", "Families")}</h2>
+          <p>
+            {L(
+              "Des groupes de cartes à compléter : choisissez-les une à une, ou laissez une recherche les remplir. Partagez-les par code.",
+              "Groups of cards to complete: pick them one by one, or let a search fill them. Share them by code.",
+            )}
+          </p>
         </div>
-        <button class="btn" onClick={() => setModal("tag")}>Depuis une étiquette</button>
-        <button class="btn" onClick={() => setModal("import")}>Importer</button>
-        <button class="btn primary" onClick={() => setModal("create")}>Nouvelle famille</button>
+        <button class="btn" onClick={() => setModal("tag")}>{L("Depuis une étiquette", "From a tag")}</button>
+        <button class="btn" onClick={() => setModal("import")}>{L("Importer", "Import")}</button>
+        <button class="btn primary" onClick={() => setModal("create")}>{L("Nouvelle famille", "New family")}</button>
       </div>
-      {!list.length && <div class="empty">Aucune famille pour l'instant.</div>}
+      {!list.length && <div class="empty">{L("Aucune famille pour l'instant.", "No families yet.")}</div>}
       <div class="cards">
         {list.map((f) => {
           const p = familyProgress(f, ids);
@@ -424,7 +467,9 @@ export function FamiliesTab() {
               {cover?.image_url ? <img class="thumb" src={cover.image_url} alt="" referrerpolicy="no-referrer" /> : <div class="thumb" />}
               <div class="body">
                 <div class="t">{f.name}</div>
-                <div class="d">{f.kind === "smart" ? "Intelligente" : "Manuelle"} · {fmt(p.owned)} / {fmt(p.total)}</div>
+                <div class="d">
+                  {f.kind === "smart" ? L("Intelligente", "Smart") : L("Manuelle", "Manual")} · {fmt(p.owned)} / {fmt(p.total)}
+                </div>
                 <div class="progress" style={{marginTop: "auto"}}><div style={{width: `${p.percent}%`}} /></div>
               </div>
             </div>

@@ -2,6 +2,8 @@
 // Sans dépendance : partagé par les scripts Node, les tests et l'extension.
 "use strict";
 
+const {L} = require("./i18n");
+
 // ---------------------------------------------------------------------------
 // Correspondance de mots-clés
 // ---------------------------------------------------------------------------
@@ -28,9 +30,9 @@ function hasKeyword(text, keywords) {
 const MAX_PATTERN = 5000;
 const NESTED_QUANTIFIER = /\((?:[^()\\]|\\.)*[+*}](?:[^()\\]|\\.)*\)[+*{]/;
 function patternProblem(pattern) {
-  if (typeof pattern !== "string") return "texte attendu";
-  if (pattern.length > MAX_PATTERN) return `trop longue, ${MAX_PATTERN} caractères au plus`;
-  if (NESTED_QUANTIFIER.test(pattern)) return "quantificateurs imbriqués, trop lente à évaluer";
+  if (typeof pattern !== "string") return L("texte attendu", "text expected");
+  if (pattern.length > MAX_PATTERN) return L(`trop longue, ${MAX_PATTERN} caractères au plus`, `too long, ${MAX_PATTERN} characters at most`);
+  if (NESTED_QUANTIFIER.test(pattern)) return L("quantificateurs imbriqués, trop lente à évaluer", "nested quantifiers, too slow to evaluate");
   try {
     compile(pattern);
   } catch (e) {

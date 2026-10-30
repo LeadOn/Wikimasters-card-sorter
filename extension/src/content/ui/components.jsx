@@ -6,23 +6,25 @@ import {tagColor} from "../state/themes";
 import {wikiImage, knownWikiImage} from "../features/wiki-images";
 import {siteLogo, rarityTexture} from "../features/site-assets";
 import {Icon, Mark} from "../../shared/Brand";
+import {L, LOCALE, LANG} from "../../shared/i18n";
 
 export {Icon, Mark};
 
-export const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("fr-FR"));
-export const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${n > 1 ? many : one}`;
+export const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString(LOCALE));
+// Pluriel : à partir de 2 en français, tout sauf 1 en anglais (« 0 carte », "0 cards")
+export const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${(LANG === "en" ? n !== 1 : n > 1) ? many : one}`;
 
 export function timeAgo(date) {
-  if (!date) return "jamais";
+  if (!date) return L("jamais", "never");
   const s = Math.round((Date.now() - new Date(date)) / 1000);
-  if (s < 60) return "à l'instant";
-  if (s < 3600) return `il y a ${Math.round(s / 60)} min`;
-  if (s < 86400) return `il y a ${Math.round(s / 3600)} h`;
-  return `il y a ${Math.round(s / 86400)} j`;
+  if (s < 60) return L("à l'instant", "just now");
+  if (s < 3600) return L(`il y a ${Math.round(s / 60)} min`, `${Math.round(s / 60)} min ago`);
+  if (s < 86400) return L(`il y a ${Math.round(s / 3600)} h`, `${Math.round(s / 3600)} h ago`);
+  return L(`il y a ${Math.round(s / 86400)} j`, `${Math.round(s / 86400)} d ago`);
 }
 
 export function duration(ms) {
-  if (ms <= 0) return "terminée";
+  if (ms <= 0) return L("terminée", "ended");
   const s = Math.floor(ms / 1000);
   if (s < 60) return `${s} s`;
   if (s < 3600) return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}`;
@@ -276,7 +278,7 @@ export function CardTile({card, rarity, theme, price, uncertain, badges = [], se
 }
 
 // Liste paginée côté client (évite de rendre des milliers de cartes d'un coup)
-export function Paged({items, pageSize = 60, render, empty = "Aucune carte.", class: cls = ""}) {
+export function Paged({items, pageSize = 60, render, empty = L("Aucune carte.", "No cards."), class: cls = ""}) {
   const [shown, setShown] = useState(pageSize);
   useEffect(() => setShown(pageSize), [items, pageSize]);
   if (!items.length) return <div class="empty">{empty}</div>;
@@ -286,7 +288,7 @@ export function Paged({items, pageSize = 60, render, empty = "Aucune carte.", cl
       {shown < items.length && (
         <div class="row" style={{justifyContent: "center"}}>
           <button class="btn" onClick={() => setShown(shown + pageSize * 2)}>
-            Afficher plus ({fmt(items.length - shown)} restantes)
+            {L(`Afficher plus (${fmt(items.length - shown)} restantes)`, `Show more (${fmt(items.length - shown)} left)`)}
           </button>
         </div>
       )}
@@ -316,9 +318,9 @@ export function Copyable({text}) {
             setTimeout(() => setCopied(false), 2000);
           }}
         >
-          {copied ? <><Icon name="check" size={14} /> Copié</> : "Copier"}
+          {copied ? <><Icon name="check" size={14} /> {L("Copié", "Copied")}</> : L("Copier", "Copy")}
         </button>
-        <span class="small muted">{fmt(text.length)} caractères</span>
+        <span class="small muted">{L(`${fmt(text.length)} caractères`, `${fmt(text.length)} characters`)}</span>
       </div>
     </div>
   );
@@ -338,12 +340,12 @@ export function downloadFile(filename, text, type = "application/json") {
 export const datedFilename = (kind) => `wikimasters-${kind}-${new Date().toISOString().slice(0, 10)}.json`;
 
 // Bouton « Choisir un fichier » : onText(contenu) ou onError(message) si le fichier est trop gros
-export function FileButton({label = "Choisir un fichier", maxSize, onText, onError}) {
+export function FileButton({label = L("Choisir un fichier", "Choose a file"), maxSize, onText, onError}) {
   const pick = async (e) => {
     const file = e.currentTarget.files?.[0];
     e.currentTarget.value = "";
     if (!file) return;
-    if (maxSize && file.size > maxSize) return onError?.("Fichier trop volumineux.");
+    if (maxSize && file.size > maxSize) return onError?.(L("Fichier trop volumineux.", "File too large."));
     onText(await file.text());
   };
   return (

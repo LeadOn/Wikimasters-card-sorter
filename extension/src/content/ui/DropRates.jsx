@@ -6,17 +6,19 @@ import {useState} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {pullStats, collectionRarity} from "../features/packs";
 import {RARITIES, RARITY_LABEL} from "../../../../core";
-import {Mark, fmt} from "./components";
+import {Mark, fmt, plural} from "./components";
 import {mountIsland} from "./islands/mount";
+import {L, LOCALE} from "../../shared/i18n";
 
 // En dessous de ce nombre de cartes tirées, la collection donne une meilleure estimation
 const MIN_PULLED = 50;
 
 const pct = (n, total) => {
   if (!total) return "—";
-  if (!n) return "0 %";
+  if (!n) return L("0 %", "0%");
   const p = (100 * n) / total;
-  return `${p.toLocaleString("fr-FR", {maximumFractionDigits: p < 1 ? 2 : 1, minimumFractionDigits: p < 1 && p > 0 ? 2 : 1})} %`;
+  const v = p.toLocaleString(LOCALE, {maximumFractionDigits: p < 1 ? 2 : 1, minimumFractionDigits: p < 1 && p > 0 ? 2 : 1});
+  return L(`${v} %`, `${v}%`);
 };
 
 export function DropRatesView() {
@@ -30,21 +32,24 @@ export function DropRatesView() {
   const caption =
     source === "pulls"
       ? stats.cards
-        ? `${fmt(stats.packs)} paquet${stats.packs > 1 ? "s" : ""} · ${fmt(stats.cards)} cartes depuis le ${new Date(stats.since).toLocaleDateString("fr-FR")}`
-        : "Ouvre un paquet : les tirages seront comptés ici."
-      : `Toute ta collection (${fmt(total)} cartes), proche des taux de drop`;
+        ? L(
+            `${fmt(stats.packs)} paquet${stats.packs > 1 ? "s" : ""} · ${fmt(stats.cards)} cartes depuis le ${new Date(stats.since).toLocaleDateString(LOCALE)}`,
+            `${plural(stats.packs, "pack")} · ${plural(stats.cards, "card")} since ${new Date(stats.since).toLocaleDateString(LOCALE)}`,
+          )
+        : L("Ouvre un paquet : les tirages seront comptés ici.", "Open a pack: your pulls will be counted here.")
+      : L(`Toute ta collection (${fmt(total)} cartes), proche des taux de drop`, `Your whole collection (${plural(total, "card")}), close to the drop rates`);
 
   return (
-    <section class="rates" aria-label="Taux de drop par rareté">
+    <section class="rates" aria-label={L("Taux de drop par rareté", "Drop rates by rarity")}>
       <header class="rates-head">
         <Mark size={18} />
-        <span class="rates-title">Taux de drop</span>
+        <span class="rates-title">{L("Taux de drop", "Drop rates")}</span>
         <div class="seg" role="tablist">
           <button role="tab" aria-selected={source === "pulls"} class={source === "pulls" ? "on" : ""} onClick={() => setChoice("pulls")}>
-            Mes paquets
+            {L("Mes paquets", "My packs")}
           </button>
           <button role="tab" aria-selected={source === "collection"} class={source === "collection" ? "on" : ""} disabled={!coll.total} onClick={() => setChoice("collection")}>
-            Ma collection
+            {L("Ma collection", "My collection")}
           </button>
         </div>
       </header>
@@ -53,7 +58,7 @@ export function DropRatesView() {
           {RARITIES.map((r) => {
             const n = Number(counts[r]) || 0;
             return (
-              <li key={r} class="rates-row" style={{"--rc": `var(--r-${r})`}} title={`${RARITY_LABEL[r]} : ${fmt(n)} carte${n > 1 ? "s" : ""} sur ${fmt(total)} (${pct(n, total)})`}>
+              <li key={r} class="rates-row" style={{"--rc": `var(--r-${r})`}} title={L(`${RARITY_LABEL[r]} : ${fmt(n)} carte${n > 1 ? "s" : ""} sur ${fmt(total)} (${pct(n, total)})`, `${RARITY_LABEL[r]}: ${plural(n, "card")} out of ${fmt(total)} (${pct(n, total)})`)}>
                 <span class={`rarity ${r}`}>{r}</span>
                 <span class="rates-name">{RARITY_LABEL[r]}</span>
                 <span class="rates-track">
@@ -66,7 +71,7 @@ export function DropRatesView() {
           })}
         </ul>
       ) : (
-        <p class="rates-empty">{source === "pulls" ? "Aucun tirage compté pour l'instant." : "Répartition indisponible."}</p>
+        <p class="rates-empty">{source === "pulls" ? L("Aucun tirage compté pour l'instant.", "No pulls counted yet.") : L("Répartition indisponible.", "Breakdown unavailable.")}</p>
       )}
       <p class="rates-caption">{caption}</p>
     </section>

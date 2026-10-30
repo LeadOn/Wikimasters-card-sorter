@@ -7,6 +7,7 @@ const {themeSetOf, themeAliases} = require("./theme-set");
 const {hasKeyword, normalize} = require("./text");
 const {keywordsToPattern} = require("./profiles");
 const {RARITIES} = require("./prices");
+const {L} = require("./i18n");
 
 // rule : {query, themes: [], keywords: "…", exclude: "…", rarities: []}
 // Une carte du catalogue entre dans une famille intelligente si elle passe tous les filtres présents.
@@ -66,7 +67,7 @@ const stringList = (v, allowed) => (Array.isArray(v) ? v.filter((x) => typeof x 
 
 function familyFromShare(payload) {
   const name = text(payload?.name, 80).trim();
-  if (!name || !Array.isArray(payload.cards)) throw new Error("Code de famille illisible.");
+  if (!name || !Array.isArray(payload.cards)) throw new Error(L("Code de famille illisible.", "Unreadable family code."));
   const cards = [];
   const seen = new Set();
   for (const entry of payload.cards) {

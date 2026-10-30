@@ -22,19 +22,20 @@ import {ImagesTab} from "./tabs/ImagesTab";
 import {AchievementsTab, claimedMessage} from "./tabs/AchievementsTab";
 import {SettingsTab} from "./tabs/SettingsTab";
 import {SellDialogHost} from "./SellDialog";
+import {L} from "../../shared/i18n";
 
 // L'icône de chaque onglet porte le même nom dans shared/brand.mjs
 const TABS = [
-  {id: "sort", label: "Tri", Comp: SortTab},
-  {id: "profiles", label: "Profils", Comp: ProfilesTab},
-  {id: "trades", label: "Échanges", Comp: TradesTab},
-  {id: "prices", label: "Prix", Comp: PricesTab},
-  {id: "market", label: "Marché", Comp: MarketTab},
-  {id: "packs", label: "Paquets", Comp: PacksTab},
-  {id: "families", label: "Familles", Comp: FamiliesTab},
-  {id: "images", label: "Images", Comp: ImagesTab},
-  {id: "achievements", label: "Succès", Comp: AchievementsTab},
-  {id: "settings", label: "Réglages", Comp: SettingsTab},
+  {id: "sort", label: L("Tri", "Sort"), Comp: SortTab},
+  {id: "profiles", label: L("Profils", "Profiles"), Comp: ProfilesTab},
+  {id: "trades", label: L("Échanges", "Trades"), Comp: TradesTab},
+  {id: "prices", label: L("Prix", "Prices"), Comp: PricesTab},
+  {id: "market", label: L("Marché", "Market"), Comp: MarketTab},
+  {id: "packs", label: L("Paquets", "Packs"), Comp: PacksTab},
+  {id: "families", label: L("Familles", "Families"), Comp: FamiliesTab},
+  {id: "images", label: L("Images", "Images"), Comp: ImagesTab},
+  {id: "achievements", label: L("Succès", "Achievements"), Comp: AchievementsTab},
+  {id: "settings", label: L("Réglages", "Settings"), Comp: SettingsTab},
 ];
 
 export const panel = createStore({open: false, tab: "sort"});
@@ -56,10 +57,10 @@ function Panel() {
           <Mark size={24} />
           <div>
             <div class="panel-title">WikiMasters Toolbox</div>
-            <div class="panel-sub">{session ? `connecté · ${session.username || "joueur"}` : "non connecté"}</div>
+            <div class="panel-sub">{session ? L(`connecté · ${session.username || "joueur"}`, `signed in · ${session.username || "player"}`) : L("non connecté", "signed out")}</div>
           </div>
           <span class="spacer" />
-          <button class="icon-btn" aria-label="Fermer" onClick={() => panel.set({open: false})}>
+          <button class="icon-btn" aria-label={L("Fermer", "Close")} onClick={() => panel.set({open: false})}>
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -72,7 +73,7 @@ function Panel() {
           ))}
           <span class="nav-version">v{__VERSION__}</span>
         </nav>
-        <main class="content">{session ? <Current /> : <div class="empty">Connectez-vous à WikiMasters pour utiliser la Toolbox.</div>}</main>
+        <main class="content">{session ? <Current /> : <div class="empty">{L("Connectez-vous à WikiMasters pour utiliser la Toolbox.", "Sign in to WikiMasters to use the Toolbox.")}</div>}</main>
       </div>
     </div>
   );
@@ -87,9 +88,9 @@ function Dialog() {
         <h3>{current.title}</h3>
         {current.body && <p class="help" style={{fontSize: "14px"}}>{current.body}</p>}
         <div class="actions">
-          <button class="btn ghost" onClick={() => closeDialog(false)}>Annuler</button>
+          <button class="btn ghost" onClick={() => closeDialog(false)}>{L("Annuler", "Cancel")}</button>
           <button class={`btn ${current.danger ? "danger" : "primary"}`} autoFocus onClick={() => closeDialog(true)}>
-            {current.confirm || "Confirmer"}
+            {current.confirm || L("Confirmer", "Confirm")}
           </button>
         </div>
       </div>
@@ -116,7 +117,7 @@ function Toasts() {
               {t.action.label}
             </button>
           )}
-          <button class="btn sm ghost" aria-label="Fermer" onClick={() => dismissToast(t.id)}>
+          <button class="btn sm ghost" aria-label={L("Fermer", "Close")} onClick={() => dismissToast(t.id)}>
             <Icon name="close" size={14} />
           </button>
         </div>
@@ -149,9 +150,9 @@ function TradeValuesWidget({path}) {
     <div class="widget">
       <div class="widget-head">
         <Mark size={18} />
-        <span style={{flex: 1}}>Valeur des échanges</span>
-        <button class="btn sm ghost" onClick={() => openPanel("trades")}>Détail</button>
-        <button class="btn sm ghost" aria-label="Masquer" onClick={() => setHidden(true)}>
+        <span style={{flex: 1}}>{L("Valeur des échanges", "Trade values")}</span>
+        <button class="btn sm ghost" onClick={() => openPanel("trades")}>{L("Détail", "Details")}</button>
+        <button class="btn sm ghost" aria-label={L("Masquer", "Hide")} onClick={() => setHidden(true)}>
           <Icon name="close" size={14} />
         </button>
       </div>
@@ -162,12 +163,12 @@ function TradeValuesWidget({path}) {
         return (
           <div key={t.id} class="row small" style={{justifyContent: "space-between"}}>
             <span>{other?.username}</span>
-            <span class="muted">je donne {give == null ? "?" : fmt(give)} ₩ · je reçois {get == null ? "?" : fmt(get)} ₩</span>
+            <span class="muted">{L("je donne", "I give")} {give == null ? "?" : fmt(give)} ₩ · {L("je reçois", "I get")} {get == null ? "?" : fmt(get)} ₩</span>
             {give != null && get != null && <span class={`chip ${get - give >= 0 ? "ok" : "warn"}`}>{get - give >= 0 ? "+" : ""}{fmt(get - give)}</span>}
           </div>
         );
       })}
-      <span class="small muted">Prix du marché fiables seulement (onglet Échanges pour les charger).</span>
+      <span class="small muted">{L("Prix du marché fiables seulement (onglet Échanges pour les charger).", "Reliable market prices only (load them from the Trades tab).")}</span>
     </div>
   );
 }
@@ -184,39 +185,39 @@ export function App() {
         if (openAllState.get().running) return;
         const remaining = packsStatus.get().remaining;
         const ok = await confirmAction({
-          title: "Ouvrir tous les paquets ?",
-          body: `${remaining != null ? `${plural(remaining, "paquet disponible", "paquets disponibles")}. ` : ""}Ils seront ouverts d'un coup, sans animation. Cette action consomme vos paquets.`,
-          confirm: "Tout ouvrir",
+          title: L("Ouvrir tous les paquets ?", "Open all packs?"),
+          body: `${remaining != null ? `${plural(remaining, L("paquet disponible", "pack available"), L("paquets disponibles", "packs available"))}. ` : ""}${L("Ils seront ouverts d'un coup, sans animation. Cette action consomme vos paquets.", "They will be opened at once, without animation. This uses up your packs.")}`,
+          confirm: L("Tout ouvrir", "Open all"),
         });
         if (!ok) return;
         try {
           const r = await openAllPacks();
           if (openAllState.get().error) toast(openAllState.get().error, {type: "error", duration: 10000});
-          else if (!r.packs) toast("Aucun paquet ouvert.");
+          else if (!r.packs) toast(L("Aucun paquet ouvert.", "No pack opened."));
         } catch (e) {
           toast(errorMessage(e), {type: "error"});
         }
       }),
       on("extension-stale", () =>
-        toast("La Toolbox a été mise à jour : rechargez la page WikiMasters pour qu'elle continue d'enregistrer vos données.", {
+        toast(L("La Toolbox a été mise à jour : rechargez la page WikiMasters pour qu'elle continue d'enregistrer vos données.", "The Toolbox has been updated: reload the WikiMasters page so it keeps recording your data."), {
           type: "error",
           duration: 0,
-          action: {label: "Recharger", run: () => location.reload()},
+          action: {label: L("Recharger", "Reload"), run: () => location.reload()},
         }),
       ),
       on("bid-alert", (a) =>
-        toast(`Enchère bientôt terminée et vous êtes dépassé : ${a.card?.wikipedia_title}`, {
+        toast(L(`Enchère bientôt terminée et vous êtes dépassé : ${a.card?.wikipedia_title}`, `Auction ending soon and you have been outbid: ${a.card?.wikipedia_title}`), {
           type: "error",
           duration: 15000,
-          action: {label: "Voir", run: () => openPanel("market")},
+          action: {label: L("Voir", "View"), run: () => openPanel("market")},
         }),
       ),
-      on("achievements-claimed", (r) => toast(claimedMessage(r), {type: "ok", action: {label: "Voir", run: () => openPanel("achievements")}})),
+      on("achievements-claimed", (r) => toast(claimedMessage(r), {type: "ok", action: {label: L("Voir", "View"), run: () => openPanel("achievements")}})),
       // Sans récapitulatif (désactivé), un message propose de trier les nouvelles cartes
       on("cards-added", ({count, recap, sorted}) => {
         if (recap || sorted || !isOn("sortAfterPack") || sortState.get().running) return;
-        toast(`${plural(count, "nouvelle carte", "nouvelles cartes")} dans votre collection.`, {
-          action: {label: "Trier", run: () => (openPanel("sort"), planSort({newOnly: true}).catch((e) => toast(errorMessage(e), {type: "error"})))},
+        toast(L(`${plural(count, "nouvelle carte", "nouvelles cartes")} dans votre collection.`, `${plural(count, "new card")} in your collection.`), {
+          action: {label: L("Trier", "Sort"), run: () => (openPanel("sort"), planSort({newOnly: true}).catch((e) => toast(errorMessage(e), {type: "error"})))},
         });
       }),
     ];

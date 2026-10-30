@@ -24,7 +24,8 @@ function loadExtensionModule(entry) {
     jsx: "automatic",
     jsxImportSource: "preact",
     loader: {".css": "text"},
-    define: {__TARGET__: '"test"', __VERSION__: '"test"'},
+    // Interface en français, quelle que soit la langue de la machine (Node expose navigator.languages)
+    define: {__TARGET__: '"test"', __VERSION__: '"test"', "navigator.languages": '["fr-FR"]'},
     logLevel: "silent",
   });
   const m = new Module(file);

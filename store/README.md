@@ -39,6 +39,31 @@ Tout ce que le tableau de bord demande est dans ce dossier :
    `confidentialite.md`, `PRIVACY.md` et l'onglet correspondant **avant** l'envoi : les utilisateurs
    devront accepter les nouvelles autorisations.
 
+## Fiche multilingue
+
+L'extension est localisée (`_locales/en` et `_locales/fr`, générés par `extension/build.mjs`, avec
+`default_locale: "en"`). Le Web Store en tire une fiche par langue :
+
+1. **Importer le paquet** contenant `_locales` (version 1.7.0 ou plus) : *Paquet* → *Importer un nouveau
+   paquet*. Le nom et le résumé de chaque langue viennent alors de `_locales/<langue>/messages.json`.
+2. **Fiche** : un menu des langues apparaît en haut de l'onglet (langues de `_locales`). La langue par
+   défaut est celle de `default_locale`, l'anglais : son contenu sert à toutes les langues sans fiche
+   propre (allemand, espagnol…).
+   - **English** (par défaut) : coller « Detailed description (English) » de `fiche.md`, importer les
+     captures (celles en français en attendant des captures en anglais) et les vignettes.
+   - **Français** : coller « Description détaillée (français) », importer les captures et les vignettes.
+     Une langue sans captures ni vignettes reprend celles de la langue par défaut.
+3. Catégorie, site, URL d'assistance et pratiques de confidentialité sont communs à toutes les langues.
+4. **Envoyer pour examen** : la fiche et le paquet partent ensemble.
+
+Avant la 1.7.0, la fiche était en français sans `_locales` : après l'import, vérifier que la description
+française n'est pas restée sous l'anglais (sinon la recoller sous *Français* et coller l'anglaise sous
+*English*). Pour ajouter une langue : traduire l'interface (`L()` n'en prend que deux), ajouter son
+dossier à `LOCALES` dans `extension/build.mjs`, puis remplir sa fiche.
+
+**Captures en anglais** : même procédure que ci-dessous, en passant l'interface en anglais avant
+l'injection (`Object.defineProperty(navigator, "languages", {get: () => ["en-US"]})`, voir `AGENTS.md`).
+
 ## Refaire les visuels
 
 Après un changement visible de l'interface :

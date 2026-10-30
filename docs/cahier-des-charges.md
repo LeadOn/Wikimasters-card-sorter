@@ -16,6 +16,7 @@ Toute l'implémentation est originale : aucune ligne n'est reprise d'une autre e
 | Ouverture automatique des paquets sans clic | **Exclue** (comportement de bot, risque pour le compte). « Tout ouvrir » reste déclenché par un clic, avec confirmation |
 | Moteur de tri | Un seul moteur (`core/`), partagé par l'extension, les scripts Node et les tests |
 | Distribution | `.zip` installé en mode développeur d'abord, stores ensuite |
+| Langue | Interface en français ou en anglais selon la langue du navigateur (première langue prise en charge de sa liste, anglais à défaut), sans réglage. Noms d'étiquettes (thèmes, `Doublon`, `Pour : …`) jamais traduits : ce sont des données du compte. Scripts Node et documentation en français |
 
 ## 2. Principes
 
@@ -50,6 +51,7 @@ Priorité : **P1** indispensable · **P2** important · **P3** bonus.
 | S8 | Entrée « Toolbox » dans le menu du site + popup d'extension | P1 |
 | S9 | Tests automatisés (`node --test`) sans réseau, jeu de cartes étiquetées pour le moteur | P1 |
 | S10 | Paquets `.zip` Chrome et Firefox générés par `npm run build` | P2 |
+| S11 | Interface bilingue français / anglais (panneau, blocs intégrés, popup, messages, nombres et dates), description du manifeste traduite (`_locales`) | P2 |
 
 ### 3.2 Tri automatique et tags
 

@@ -21,6 +21,7 @@ import {
   isFriendTag,
   DOUBLON,
 } from "../../../../core";
+import {L} from "../../shared/i18n";
 
 // list : [{id, name, kind: "manual"|"smart", rule, cards: [{id, title, rarity, category, image_url}], cover, updatedAt}]
 export const families = persistentStore("families", {list: []});
@@ -50,7 +51,7 @@ export async function searchCatalog(q, {page = 0, rarities = []} = {}) {
 // passent la règle (mots-clés, exclusions, thèmes, raretés). maxPages limite la charge.
 export async function refreshSmartFamily(id, {maxPages = 10, onProgress, signal} = {}) {
   const family = families.get().list.find((f) => f.id === id);
-  if (!family?.rule?.query?.trim()) throw new Error("Indiquez une recherche (ex. « Star Wars ») pour remplir la famille.");
+  if (!family?.rule?.query?.trim()) throw new Error(L("Indiquez une recherche (ex. « Star Wars ») pour remplir la famille.", "Enter a search (e.g. \"Star Wars\") to fill the family."));
   const found = new Map();
   for (let page = 0; page < maxPages; page++) {
     if (signal?.aborted) break;
@@ -102,12 +103,17 @@ export async function importFamily(code) {
 export async function familyToTag(family, color = "#0ea5e9") {
   const name = family.name.trim();
   if (isTheme(name) || name === DOUBLON || isFriendTag(name))
-    throw new Error(`« ${name} » est une étiquette gérée par le tri automatique : renommez la famille avant d'en faire une étiquette.`);
+    throw new Error(
+      L(
+        `« ${name} » est une étiquette gérée par le tri automatique : renommez la famille avant d'en faire une étiquette.`,
+        `"${name}" is a tag managed by automatic sorting: rename the family before turning it into a tag.`,
+      ),
+    );
   const session = await ensureSession();
   const copies = await loadMyCollection();
   const ids = new Set(family.cards.map((c) => c.id));
   const mine = copies.filter((c) => ids.has(c.card_id));
-  if (!mine.length) throw new Error("Vous ne possédez aucune carte de cette famille.");
+  if (!mine.length) throw new Error(L("Vous ne possédez aucune carte de cette famille.", "You don't own any card from this family."));
   // Même verrou que le tri : une étiquette n'est jamais créée deux fois en parallèle
   return withLock(
     "sort",

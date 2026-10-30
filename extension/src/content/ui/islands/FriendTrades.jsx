@@ -9,6 +9,7 @@ import {profiles, profileFor} from "../../state/profiles";
 import {priceOf, priceVersion} from "../../state/prices";
 import {CardRow, Mark, Progress, Notice, fmt, timeAgo} from "../components";
 import {RARITIES} from "../../../../../core";
+import {L} from "../../../shared/i18n";
 
 const SHOWN = 6;
 const openTab = (tab) => emit("open-panel", {tab});
@@ -29,7 +30,7 @@ function Column({title, items, empty, badges}) {
       ) : (
         <p class="small muted">{empty}</p>
       )}
-      {items.length > SHOWN && <span class="small muted">… et {fmt(items.length - SHOWN)} autres dans la Toolbox</span>}
+      {items.length > SHOWN && <span class="small muted">{L(`… et ${fmt(items.length - SHOWN)} autres dans la Toolbox`, `… and ${fmt(items.length - SHOWN)} more in the Toolbox`)}</span>}
     </div>
   );
 }
@@ -54,36 +55,38 @@ export function FriendTrades({username}) {
   };
 
   return (
-    <section class="island" aria-label="Échanges WikiMasters Toolbox">
+    <section class="island" aria-label={L("Échanges WikiMasters Toolbox", "WikiMasters Toolbox trades")}>
       <div class="island-head">
         <Mark size={22} />
         <div>
-          <div class="island-title">Échanges avec {username}</div>
+          <div class="island-title">{L(`Échanges avec ${username}`, `Trades with ${username}`)}</div>
           <div class="island-sub">
-            {theirProfile ? `Son profil d'intérêts : ${theirProfile.about || "défini"}` : "Pas de profil d'intérêts : vos doublons qu'il n'a pas lui seront proposés"}
-            {hasMyProfile ? "" : " · Vous n'avez pas encore de profil"}
+            {theirProfile
+              ? L(`Son profil d'intérêts : ${theirProfile.about || "défini"}`, `Their interest profile: ${theirProfile.about || "set"}`)
+              : L("Pas de profil d'intérêts : vos doublons qu'il n'a pas lui seront proposés", "No interest profile: you will offer your duplicates they don't have")}
+            {hasMyProfile ? "" : L(" · Vous n'avez pas encore de profil", " · You don't have a profile yet")}
           </div>
         </div>
         <div class="island-actions">
           {!theirProfile && (
             <button class="btn sm ghost" onClick={() => openTab("profiles")}>
-              Ajouter son profil
+              {L("Ajouter son profil", "Add their profile")}
             </button>
           )}
           {running ? (
             <button class="btn sm danger" onClick={() => abort.current?.abort()}>
-              Arrêter
+              {L("Arrêter", "Stop")}
             </button>
           ) : (
-            <button class="btn sm primary" disabled={busyElsewhere} title={busyElsewhere ? "Une autre recherche est en cours" : ""} onClick={() => start(false)}>
-              {r ? "Relancer" : "Chercher les cartes à échanger"}
+            <button class="btn sm primary" disabled={busyElsewhere} title={busyElsewhere ? L("Une autre recherche est en cours", "Another search is in progress") : ""} onClick={() => start(false)}>
+              {r ? L("Relancer", "Run again") : L("Chercher les cartes à échanger", "Find cards to trade")}
             </button>
           )}
         </div>
       </div>
       {!running && !r && (
         <div class="row small muted">
-          Raretés lues :
+          {L("Raretés lues :", "Rarities read:")}
           <div class="chips">
             {RARITIES.map((x) => (
               <button key={x} class={`chip${rarities.includes(x) ? " on" : ""}`} onClick={() => setRarities(rarities.includes(x) ? rarities.filter((y) => y !== x) : [...rarities, x])}>
@@ -91,16 +94,16 @@ export function FriendTrades({username}) {
               </button>
             ))}
           </div>
-          <span>{rarities.length ? "" : "toutes (une grosse collection peut prendre plusieurs minutes ; une lecture interrompue reprend où elle s'était arrêtée)"}</span>
+          <span>{rarities.length ? "" : L("toutes (une grosse collection peut prendre plusieurs minutes ; une lecture interrompue reprend où elle s'était arrêtée)", "all (a large collection can take several minutes; an interrupted read resumes where it left off)")}</span>
         </div>
       )}
-      {running && <Progress done={s.progress?.done || 0} total={s.progress?.total} label={s.step || "Préparation"} />}
+      {running && <Progress done={s.progress?.done || 0} total={s.progress?.total} label={s.step || L("Préparation", "Preparing")} />}
       {s.error && !s.running && same(s.friend) && (
         <div class="row">
           <Notice type="error">{s.error}</Notice>
           {!hasMyProfile && (
             <button class="btn sm" onClick={() => openTab("profiles")}>
-              Créer mon profil
+              {L("Créer mon profil", "Create my profile")}
             </button>
           )}
         </div>
@@ -108,28 +111,35 @@ export function FriendTrades({username}) {
       {r && !running && (
         <>
           <p class="small muted">
-            Collection lue {timeAgo(r.fetchedAt)} ({fmt(r.total)} cartes{r.rarities.length ? `, raretés ${r.rarities.join(", ")}` : ""}) · recherché : {r.wanted.join(", ")}
+            {L(
+              `Collection lue ${timeAgo(r.fetchedAt)} (${fmt(r.total)} cartes${r.rarities.length ? `, raretés ${r.rarities.join(", ")}` : ""}) · recherché : ${r.wanted.join(", ")}`,
+              `Collection read ${timeAgo(r.fetchedAt)} (${fmt(r.total)} cards${r.rarities.length ? `, rarities ${r.rarities.join(", ")}` : ""}) · looking for: ${r.wanted.join(", ")}`,
+            )}
           </p>
           <div class="grid-2" style={{gap: "12px"}}>
             <Column
-              title="À lui demander"
+              title={L("À lui demander", "To ask for")}
               items={r.toAsk}
-              empty="Aucune de ses cartes ne correspond à ce que vous cherchez."
-              badges={(c) => [c.wished && {label: "souhaitée", type: "danger", icon: "heart"}, c.spare && {label: `${c.count} ex.`, type: "ok"}, c.pending && {label: "échange en cours", type: "warn"}]}
+              empty={L("Aucune de ses cartes ne correspond à ce que vous cherchez.", "None of their cards match what you are looking for.")}
+              badges={(c) => [
+                c.wished && {label: L("souhaitée", "wishlisted"), type: "danger", icon: "heart"},
+                c.spare && {label: L(`${c.count} ex.`, `${c.count} copies`), type: "ok"},
+                c.pending && {label: L("échange en cours", "trade pending"), type: "warn"},
+              ]}
             />
             <Column
-              title="À lui proposer"
+              title={L("À lui proposer", "To offer")}
               items={r.toOffer}
-              empty={r.friendTag ? "Aucune de vos cartes ne correspond à son profil." : "Aucun de vos doublons ne lui manque."}
-              badges={(c) => [c.spare && {label: `${c.copies} ex. chez vous`, type: "ok"}]}
+              empty={r.friendTag ? L("Aucune de vos cartes ne correspond à son profil.", "None of your cards match their profile.") : L("Aucun de vos doublons ne lui manque.", "They already have all your duplicates.")}
+              badges={(c) => [c.spare && {label: L(`${c.copies} ex. chez vous`, `${c.copies} copies on your side`), type: "ok"}]}
             />
           </div>
           <div class="row">
             <button class="btn sm" onClick={() => openTab("trades")}>
-              Tout voir et composer une offre équilibrée
+              {L("Tout voir et composer une offre équilibrée", "See all and build a balanced offer")}
             </button>
             <button class="btn sm ghost" onClick={() => start(true)}>
-              Relire sa collection
+              {L("Relire sa collection", "Reload their collection")}
             </button>
           </div>
         </>

@@ -1,5 +1,6 @@
 // Notifications (toasts) et dialogues de confirmation de la Toolbox.
 import {createStore} from "../lib/store";
+import {L} from "../../shared/i18n";
 
 export const toasts = createStore({list: []});
 let nextId = 1;
@@ -29,4 +30,4 @@ export function closeDialog(result) {
   current?.resolve(result);
 }
 
-export const errorMessage = (e) => (e?.name === "AbortError" ? "Opération annulée." : e?.message || String(e));
+export const errorMessage = (e) => (e?.name === "AbortError" ? L("Opération annulée.", "Operation cancelled.") : e?.message || String(e));

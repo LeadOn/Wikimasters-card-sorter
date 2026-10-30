@@ -2,6 +2,7 @@
 import {ext, extensionAlive} from "./ext";
 import {createStore} from "./store";
 import {emit} from "./bus";
+import {L} from "../../shared/i18n";
 
 // Après une mise à jour de l'extension, l'ancien script de la page n'a plus accès au stockage :
 // le joueur est prévenu une fois qu'il doit recharger la page.
@@ -9,7 +10,7 @@ let staleNotified = false;
 function stale() {
   if (!staleNotified) emit("extension-stale", {});
   staleNotified = true;
-  return new Error("La Toolbox a été mise à jour : rechargez la page WikiMasters.");
+  return new Error(L("La Toolbox a été mise à jour : rechargez la page WikiMasters.", "The Toolbox has been updated: reload the WikiMasters page."));
 }
 
 // Ne lève jamais d'erreur : sans stockage lisible, la valeur par défaut est utilisée.

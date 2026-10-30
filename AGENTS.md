@@ -29,7 +29,8 @@ Plutôt que d'utiliser des requêtes individuelles trop lentes ou de demander à
 - `core/builtin-profiles.js` : profils d'intérêts de la bande (tags « Pour : … »), format décrit dans `core/profiles.js`. Réservés aux scripts Node et aux tests : `core/index.js` ne les ré-exporte pas, pour qu'ils ne soient pas inclus dans l'extension publiée (`require("../core/builtin-profiles")`) ;
 - `core/tag-sync.js` : plan de synchronisation des tags (fonctions pures) ;
 - `core/tag-writer.js` : écriture d'un plan en base (étiquettes relues avant création, ajouts avant suppressions, lots de 100, arrêt à la première panne), partagée par le script et l'extension ;
-- `core/trade.js`, `core/prices.js`, `core/families.js`, `core/share-code.js` : échanges, prix, familles, codes de partage.
+- `core/trade.js`, `core/prices.js`, `core/families.js`, `core/share-code.js` : échanges, prix, familles, codes de partage ;
+- `core/i18n.js` : langue des textes affichés, `L(fr, en)` (français par défaut, donc pour les scripts Node ; l'extension choisit d'après le navigateur).
 
 `scripts/categorize_cards.js` est la CLI de tri au-dessus de ce moteur.
 
@@ -133,7 +134,8 @@ L'extension rend tous ces outils accessibles à n'importe quel joueur, sans Node
   - `features/` : tri, échanges, marché (`auction-tab.js` : titre de l'onglet d'une enchère, temps restant et position, enchère relue régulièrement), paquets, familles, succès (`achievements.js` : liste, progression, réclamation des récompenses), intégration dans les pages (`site-dom.js` regroupe **tous** les sélecteurs du site, place les blocs intégrés et pose les repères `data-wmt-*` du nouvel affichage des cartes, mis en forme par `ui/site.css` ; `site-assets.js`, les fichiers du site repris pour la carte sans image), images manquantes cherchées sur Wikimedia (`wiki-images.js`).
   - `ui/` : panneau et onglets (`ThemeEditor.jsx` : éditeur des thèmes de l'onglet Réglages ; `downloadFile` / `FileButton` de `components.jsx` pour tout export / import de fichier JSON) ; `ui/islands/` : blocs intégrés aux pages du site (barre de la collection, fiche d'une carte, enchère, profil d'un ami), montés par `mountIsland` dans un Shadow DOM. Un bloc est placé par rapport à l'imbrication de la page (`sectionOf`), pas aux classes Tailwind du site.
 - `extension/src/popup/` : popup d'actions rapides.
-- `extension/src/shared/` : identité visuelle commune (marque, icônes, polices), voir « Charte graphique ».
+- `extension/src/shared/` : identité visuelle commune (marque, icônes, polices), voir « Charte graphique » ; langue de l'interface (`i18n.js` : `LANG`, `LOCALE`, `L`), voir « Langue » dans les règles.
+- Langue : `extension/build.mjs` génère aussi `_locales/en` et `_locales/fr` (description du manifeste, `default_locale: "en"`).
 
 ### Commandes
 | Commande | Effet |
@@ -153,7 +155,7 @@ L'interface a sa propre identité, distincte de celle du site. Toute nouvelle in
 - **Icônes** : `<Icon name="…" />` (`ICONS` dans `shared/brand.mjs`, `iconSvg()` hors de Preact) ; grille de 20, trait de 1,5, extrémités carrées et angles vifs. Une nouvelle icône suit la même grille ; chaque onglet du panneau a l'icône de même nom.
 
 ### Tester sans installer l'extension
-Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai site : `npm run build && node extension/dev/make-inject.mjs`, puis, page wiki-masters.com ouverte et connectée, `page.addScriptTag({path: "<dépôt>/dist/dev-inject.js"})` via `browser_run_code_unsafe` (imitation de `chrome.storage` en mémoire, perdue au rechargement ; sans `runtime.getURL`, les polices du système remplacent IBM Plex). Naviguez ensuite côté client (clic dans le menu) pour que le hook observe les réponses.
+Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai site : `npm run build && node extension/dev/make-inject.mjs`, puis, page wiki-masters.com ouverte et connectée, `page.addScriptTag({path: "<dépôt>/dist/dev-inject.js"})` via `browser_run_code_unsafe` (imitation de `chrome.storage` en mémoire, perdue au rechargement ; sans `runtime.getURL`, les polices du système remplacent IBM Plex). Naviguez ensuite côté client (clic dans le menu) pour que le hook observe les réponses. Pour voir l'interface en anglais, exécutez `Object.defineProperty(navigator, "languages", {get: () => ["en-US"]})` dans la page **avant** `addScriptTag` (la langue est lue au chargement du script).
 
 ### Règles
 - **Aucune écriture sans clic explicite du joueur** (seules exceptions : les options désactivées par défaut que le joueur active lui-même, `autoSortPulls` et `autoClaimAchievements`), avec confirmation pour les ventes, enchères, défausses, retri complet et « Tout ouvrir ». Ne lancez jamais vous-même une écriture (tri appliqué, vente, enchère, défausse, paquet, réclamation d'un succès) pendant un test sans l'accord de l'utilisateur : testez l'interface sur le banc d'essai ou avec des réponses simulées.
@@ -166,6 +168,7 @@ Le navigateur Playwright MCP ne charge pas d'extension. Pour tester sur le vrai 
 - **Profils de la bande** : `core/builtin-profiles.js` n'est jamais importé par l'extension (ni via `core/index.js`) : l'extension publiée ne contient aucun profil de joueur. Vérifier après un build : `grep -c JulienPct dist/chrome/content.js` doit renvoyer 0.
 - **Thèmes du joueur** : tout classement de l'extension passe par `state/themes.js` (`classify`, `themeMemo`, `isTheme`, `tagColor`, `themeNames`), jamais par `categorize()` ou `THEME_COLORS` directement, sinon la liste personnalisée du joueur est ignorée. Une étiquette de thème renommé ou supprimé est traitée par `planThemeTags` (`core/tag-sync.js`) avant chaque tri.
 - **Écritures** : les étiquettes passent par `core/tag-writer.js` (avec `tagClient`), sous le verrou `sort` ; une écriture restée sans réponse est signalée « incertaine » (`HttpError.uncertain`) et n'est jamais rejouée automatiquement, sauf si elle est idempotente.
+- **Langue** : l'interface est en français ou en anglais selon la langue du navigateur (`shared/i18n.js`, `core/i18n.js`). Tout texte affiché s'écrit `L("texte français", "English text")`, y compris `title`, `aria-label`, toasts et messages d'erreur montrés au joueur ; nombres et dates avec `LOCALE`. Jamais traduits : noms d'étiquettes (thèmes, `Doublon`, « Pour : … »), textes du site comparés par `site-dom.js`, commentaires. Les tests chargent l'extension en français.
 - **Documentation** : une fonctionnalité ajoutée ou modifiée se documente dans `docs/guide.md` (et dans la liste du `README.md` si elle est visible du joueur) ; un fichier ajouté ou déplacé, dans `docs/architecture.md`. Pas de code mort : ce qui n'est plus appelé est supprimé, pas commenté.
 
 ## 5. Intégration Playwright MCP

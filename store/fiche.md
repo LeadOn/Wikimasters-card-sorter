@@ -1,14 +1,16 @@
 # Fiche du Chrome Web Store
 
-Textes à copier dans l'onglet **Fiche Play Store / Store listing** du tableau de bord développeur.
-Le nom et le résumé viennent du manifeste (`extension/build.mjs`) : ils ne se saisissent pas ici.
+Textes à copier dans l'onglet **Fiche Play Store / Store listing** du tableau de bord développeur, une
+fois par langue (anglais par défaut, puis français : voir « Fiche multilingue » dans `README.md`).
+Le nom et le résumé viennent du manifeste (`extension/build.mjs`, `_locales`) : ils ne se saisissent pas ici.
 
 | Champ | Valeur |
 |---|---|
 | Nom (manifeste) | WikiMasters Toolbox |
-| Résumé (manifeste, 132 car. max) | Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès. |
+| Résumé anglais (`_locales/en`, 132 car. max) | Unofficial tools for WikiMasters: card sorting, market prices, filters, trades, auctions, packs, families and achievements. |
+| Résumé français (`_locales/fr`) | Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès. |
 | Catégorie | Mode de vie › Jeux |
-| Langue | Français |
+| Langues | Anglais (par défaut, `default_locale`) et français |
 | Icône du store | `extension/static/icons/128.png` (128 × 128, marge de 16 px) |
 | Captures d'écran (1280 × 800) | `store/images/capture-1.png` à `capture-5.png` (légendes ci-dessous) |
 | Petite vignette promotionnelle (440 × 280) | `store/images/promo-440x280.png` |
@@ -17,6 +19,9 @@ Le nom et le résumé viennent du manifeste (`extension/build.mjs`) : ils ne se 
 | URL d'assistance | https://github.com/LeadOn/Wikimasters-card-sorter/issues |
 
 ## Captures d'écran
+
+Les captures actuelles montrent l'interface en français. La fiche anglaise peut les reprendre en attendant
+des captures en anglais (même procédure, interface passée en anglais : voir `README.md`).
 
 À importer dans cet ordre (la première sert d'aperçu dans les résultats de recherche) :
 
@@ -28,12 +33,12 @@ Le nom et le résumé viennent du manifeste (`extension/build.mjs`) : ils ne se 
 | `capture-4.png` | La fiche d'une carte : nouvel affichage et bloc Toolbox (prix du marché, thème, familles) |
 | `capture-5.png` | Le panneau Toolbox, onglet Tri : aperçu avant application |
 
-## Description détaillée
+## Description détaillée (français)
 
 ```
 Extension non officielle, faite par des joueurs pour des joueurs. Elle n'est ni éditée ni approuvée par WikiMasters.
 
-WikiMasters Toolbox ajoute à wiki-masters.com les outils qui manquent pour gérer une grosse collection : directement dans les pages du site, et dans un panneau « Toolbox » ouvert depuis le menu. L'interface s'adapte aussi aux petits écrans.
+WikiMasters Toolbox ajoute à wiki-masters.com les outils qui manquent pour gérer une grosse collection : directement dans les pages du site, et dans un panneau « Toolbox » ouvert depuis le menu. L'interface est en français ou en anglais selon votre navigateur, et s'adapte aux petits écrans.
 
 UN NOUVEL AFFICHAGE DES CARTES
 • L'image occupe toute la carte, encadrée aux couleurs de sa rareté ; titre, étiquettes et statistiques passent en surimpression.
@@ -92,4 +97,80 @@ VOS DONNÉES
 • Chaque fonction se désactive dans les réglages.
 
 Guide complet, code source et politique de confidentialité : https://github.com/LeadOn/Wikimasters-card-sorter
+```
+
+## Captions (English)
+
+| File | Shows |
+|---|---|
+| `capture-1.png` | The Collection page: new card layout and Toolbox bar |
+| `capture-2.png` | Filters across the whole collection (here, GIF cards), with selling and discarding in place |
+| `capture-3.png` | The Toolbox panel, Prices tab: collection value and most valuable cards |
+| `capture-4.png` | A card's detail window: new layout and Toolbox block (market price, theme, families) |
+| `capture-5.png` | The Toolbox panel, Sort tab: preview before applying |
+
+## Detailed description (English)
+
+```
+Unofficial extension, made by players for players. It is not published or endorsed by WikiMasters.
+
+WikiMasters Toolbox adds to wiki-masters.com the tools you need to manage a big collection: right inside the site's pages, and in a "Toolbox" panel opened from the menu. The interface is in English or French depending on your browser, and adapts to small screens.
+
+A NEW CARD LAYOUT
+• The image fills the whole card, framed in its rarity's colors; title, tags and stats are overlaid.
+• On every card: market price, theme, already owned or new, link to the Wikipedia article.
+• Optional: cards without an image get one, looked up on Wikimedia (Wikipedia, Wikidata). An image hidden by the site is never replaced.
+
+AUTOMATIC SORTING
+• One theme per card (history, science, sports, pop culture…), deduced from the Wikipedia description and stored as a WikiMasters tag. Theme names can be renamed in the settings.
+• "Sort new cards" from the Collection page: preview, then apply in one click. Your fixes and your own tags are never changed.
+• A "Doublon" tag on cards you own more than once, and "Pour : name" on cards a friend would like.
+• Optional: sort cards as soon as a pack is opened.
+
+FILTERS ACROSS YOUR WHOLE COLLECTION
+• Duplicates, cards without an image, GIFs: combinable criteria, across the whole collection, not just the page shown.
+• By sales: cards never sold, or sold between X and Y ₩.
+• By keywords to include or exclude, by rarity and by theme.
+• Matching cards can be put up for auction or discarded one by one or in bulk.
+
+PRICES AND MARKET
+• Market price of each card in its rarity: median of recent sales, separate prices for shiny cards, "≈" when a card has sold too rarely.
+• On an auction page: gap between the bid and the market price.
+• An auction's tab title shows the time left and whether you lead (✓) or were outbid (✗), and flashes when someone outbids you: keep an eye on it from another tab.
+• "Good deal" and "overpriced" badges on the market.
+• Your collection's value and your most valuable cards.
+• Your auctions at a glance, one-click outbid (with confirmation), alert before the end.
+
+STONKS: YOUR TRADING HISTORY
+• A "Stonks" page in the site menu: your auction purchases and sales, by day, week or month.
+• Resale profit: each sale is matched with its purchase, with the return, the share of winning resales and the holding time.
+• A "Resales" view showing only cards bought then resold; or the full history, with net cash flow and the unrealized profit of cards you bought and still hold.
+• History only: nothing can be bought or sold from this page.
+
+TRADES
+• Interest profiles: describe what you collect, and friends import your profile with a code.
+• On a friend's profile: their cards you want, your cards they want, and a balanced offer at market prices.
+• Value of each side of your pending trades.
+
+PACKS
+• A recap after each pack: new cards, duplicates, price of each card, total value.
+• Sell or discard in place, card by card or in bulk; "Open next" to keep going.
+• Drop rates by rarity.
+• "Open all": only on your click, after confirmation. Packs are never opened automatically.
+
+FAMILIES
+• Sets of cards to complete, hand-picked or filled from a search, with missing cards on sale. Shareable by code.
+
+ACHIEVEMENTS
+• All your achievements, their progress (e.g. 10,081 / 30,000 cards) and their WikiBidou rewards.
+• "Claim all": every available reward in one click.
+• Optional: claim automatically as soon as an achievement is unlocked.
+
+YOUR DATA
+• Everything stays in your browser: no server, no account, no ads, no usage statistics.
+• The extension uses your WikiMasters session to read your collection and prices, only from WikiMasters.
+• Nothing is written to your account without a click from you, except the automatic options you turn on yourself (sorting pulled cards, claiming achievements).
+• Every feature can be turned off in the settings.
+
+Full guide (in French), source code and privacy policy: https://github.com/LeadOn/Wikimasters-card-sorter
 ```

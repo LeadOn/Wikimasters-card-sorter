@@ -3,6 +3,8 @@
 // Fonctions pures : aucune lecture réseau, aucune écriture.
 "use strict";
 
+const {L} = require("./i18n");
+
 const UNITS = ["day", "week", "month"];
 
 const amount = (v) => (v != null && Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
@@ -130,7 +132,7 @@ function periodKey(at, unit) {
 // première opération et `until` (les périodes sans opération comptent pour le graphique).
 // → [{key, start, end, ops, stats}]
 function byPeriod(ops, unit, {until = Date.now()} = {}) {
-  if (!UNITS.includes(unit)) throw new Error(`Période inconnue : ${unit}`);
+  if (!UNITS.includes(unit)) throw new Error(L(`Période inconnue : ${unit}`, `Unknown period: ${unit}`));
   if (!ops.length) return [];
   const groups = new Map();
   for (const op of ops) {

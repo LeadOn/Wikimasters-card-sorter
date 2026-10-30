@@ -21,7 +21,7 @@ Extension de navigateur **non officielle** pour [WikiMasters](https://www.wiki-m
 - **Images** : n'afficher que vos cartes sans image, ou celles dont l'image est un GIF, sur toute la collection (onglet Images et page Collection).
 - **Sur les cartes** : un nouvel affichage, avec l'image sur toute la carte et un cadre aux couleurs de la rareté ; les images manquantes cherchées sur Wikimedia (Wikipédia, Wikidata et ses éléments liés), sinon la carte sans image du site ; thème, prix, possédée ou nouvelle, lien vers l'article Wikipédia.
 
-L'interface s'adapte aux petits écrans (navigateur mobile qui accepte les extensions, fenêtre étroite) : panneau en plein écran, fenêtres ouvertes depuis le bas, boutons à la taille du doigt.
+L'interface s'adapte aux petits écrans (navigateur mobile qui accepte les extensions, fenêtre étroite) : panneau en plein écran, fenêtres ouvertes depuis le bas, boutons à la taille du doigt. Elle est en français ou en anglais, selon la langue du navigateur.
 
 Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre compte sans un clic de votre part (sauf les options automatiques que vous activez : tri des cartes tirées, réclamation des succès), et aucune donnée ne quitte votre navigateur en dehors de WikiMasters.
 
@@ -91,6 +91,6 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 
 The interface adapts to small screens (mobile browsers that support extensions, narrow windows).
 
-Every feature can be turned off. Nothing is written to your account without a click (except the automatic options you turn on: sorting pulled cards, claiming achievements), there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface and documentation are in French: see the [user guide](docs/guide.md).
+Every feature can be turned off. Nothing is written to your account without a click (except the automatic options you turn on: sorting pulled cards, claiming achievements), there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface is in English unless your browser is set to French; the default theme and tag names (`Doublon`, "Pour : …") stay in French, and themes can be renamed in the settings. The documentation is in French: see the [user guide](docs/guide.md).
 
 To build from source: `npm install && npm run build`, then load `dist/chrome` as an unpacked extension (`chrome://extensions`, developer mode) or `dist/firefox/manifest.json` as a temporary add-on in Firefox 128+.

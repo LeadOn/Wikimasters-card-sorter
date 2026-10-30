@@ -8,6 +8,7 @@ import {CardRow, Icon, Notice, Progress, fmt, plural, duration, timeAgo} from ".
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {askSell} from "../SellDialog";
 import {confirmDiscard} from "../discard";
+import {L} from "../../../shared/i18n";
 
 function useTick(ms = 1000) {
   const [, set] = useState(0);
@@ -24,18 +25,25 @@ function AuctionRow({a, bidding}) {
   const avg = priceOf(a.card_id, a.snapshot_rarity || a.card?.rarity, {shiny: a.is_shiny});
   const bid = async (amount) => {
     const ok = await confirmAction({
-      title: `Enchérir ${fmt(amount)} ₩ ?`,
-      body: `${a.card?.wikipedia_title} (${a.snapshot_rarity}) · enchère actuelle ${fmt(current)} ₩${avg ? ` · prix du marché ${fmt(avg)} ₩` : ""}. Les WikiBidous sont réservés jusqu'à la fin de l'enchère.`,
-      confirm: `Enchérir ${fmt(amount)} ₩`,
+      title: L(`Enchérir ${fmt(amount)} ₩ ?`, `Bid ${fmt(amount)} ₩?`),
+      body: L(
+        `${a.card?.wikipedia_title} (${a.snapshot_rarity}) · enchère actuelle ${fmt(current)} ₩${avg ? ` · prix du marché ${fmt(avg)} ₩` : ""}. Les WikiBidous sont réservés jusqu'à la fin de l'enchère.`,
+        `${a.card?.wikipedia_title} (${a.snapshot_rarity}) · current bid ${fmt(current)} ₩${avg ? ` · market price ${fmt(avg)} ₩` : ""}. The WikiBidous are held until the auction ends.`,
+      ),
+      confirm: L(`Enchérir ${fmt(amount)} ₩`, `Bid ${fmt(amount)} ₩`),
     });
     if (!ok) return;
     const r = await placeBid(a, amount);
-    if (r.ok) toast("Enchère placée.", {type: "ok"});
+    if (r.ok) toast(L("Enchère placée.", "Bid placed."), {type: "ok"});
     else if (r.min) {
-      const again = await confirmAction({title: "Mise trop basse", body: `Le site demande au moins ${fmt(r.min)} ₩. Enchérir ce montant ?`, confirm: `Enchérir ${fmt(r.min)} ₩`});
+      const again = await confirmAction({
+        title: L("Mise trop basse", "Bid too low"),
+        body: L(`Le site demande au moins ${fmt(r.min)} ₩. Enchérir ce montant ?`, `The site requires at least ${fmt(r.min)} ₩. Bid this amount?`),
+        confirm: L(`Enchérir ${fmt(r.min)} ₩`, `Bid ${fmt(r.min)} ₩`),
+      });
       if (again) {
         const r2 = await placeBid(a, r.min);
-        toast(r2.ok ? "Enchère placée." : r2.error, {type: r2.ok ? "ok" : "error"});
+        toast(r2.ok ? L("Enchère placée.", "Bid placed.") : r2.error, {type: r2.ok ? "ok" : "error"});
       }
     } else toast(r.error, {type: "error"});
   };
@@ -45,9 +53,9 @@ function AuctionRow({a, bidding}) {
       rarity={a.snapshot_rarity}
       {...pricing(a.card_id, a.snapshot_rarity || a.card?.rarity, {shiny: a.is_shiny})}
       badges={[
-        {label: `${a.current_bid != null ? "enchère" : "mise de départ"} ${fmt(current)} ₩`, type: "accent"},
+        {label: `${a.current_bid != null ? L("enchère", "bid") : L("mise de départ", "starting bid")} ${fmt(current)} ₩`, type: "accent"},
         {label: duration(left), type: left < 120000 ? "danger" : ""},
-        bidding && {label: leading ? "en tête" : "dépassé", type: leading ? "ok" : "warn"},
+        bidding && {label: leading ? L("en tête", "leading") : L("dépassé", "outbid"), type: leading ? "ok" : "warn"},
       ]}
       action={
         bidding && !leading && left > 0 ? (
@@ -55,7 +63,7 @@ function AuctionRow({a, bidding}) {
             {fmt(nextBid(a))} ₩
           </button>
         ) : (
-          <a class="btn sm ghost" href={`/marketplace/${a.id}`}>Voir</a>
+          <a class="btn sm ghost" href={`/marketplace/${a.id}`}>{L("Voir", "View")}</a>
         )
       }
     />
@@ -67,7 +75,7 @@ function AuctionRow({a, bidding}) {
 function SpareRow({s, quotaFull, loading}) {
   const [busy, setBusy] = useState(false);
   const card = {...s.card, id: s.card_id};
-  const locked = s.sellCopyId ? "" : "Tous vos exemplaires sont en favori : le site les verrouille";
+  const locked = s.sellCopyId ? "" : L("Tous vos exemplaires sont en favori : le site les verrouille", "All your copies are favorites: the site locks them");
   const shiny = Boolean(spareCopy(s)?.is_shiny);
 
   const discard = async () => {
@@ -75,13 +83,13 @@ function SpareRow({s, quotaFull, loading}) {
       card,
       rarity: s.rarity,
       shiny,
-      copies: `Il vous en restera ${plural(s.copies - 1, "exemplaire")}.`,
+      copies: L(`Il vous en restera ${plural(s.copies - 1, "exemplaire")}.`, `You will have ${plural(s.copies - 1, "copy", "copies")} left.`),
     });
     if (!ok) return;
     setBusy(true);
     try {
       await discardSpare({userCardId: s.sellCopyId, cardId: s.card_id});
-      toast(`${card.wikipedia_title} : un exemplaire défaussé, +1 WikiBidou.`, {type: "ok"});
+      toast(L(`${card.wikipedia_title} : un exemplaire défaussé, +1 WikiBidou.`, `${card.wikipedia_title}: one copy discarded, +1 WikiBidou.`), {type: "ok"});
     } catch (e) {
       toast(errorMessage(e), {type: "error", duration: 10000});
     } finally {
@@ -94,7 +102,7 @@ function SpareRow({s, quotaFull, loading}) {
       card={s.card}
       rarity={s.rarity}
       {...pricing(s.card_id, s.rarity, {shiny})}
-      badges={[{label: plural(s.spare, "en trop", "en trop"), type: "ok"}, s.starred && {label: "favori", type: "warn", icon: "star"}]}
+      badges={[{label: L(plural(s.spare, "en trop", "en trop"), plural(s.spare, "extra", "extra")), type: "ok"}, s.starred && {label: L("favori", "favorite"), type: "warn", icon: "star"}]}
       action={
         <span class="row" style={{gap: "2px"}}>
           <button
@@ -107,21 +115,21 @@ function SpareRow({s, quotaFull, loading}) {
                 userCardId: s.sellCopyId,
                 rarity: s.rarity,
                 shiny,
-                badges: [{label: `${s.copies} exemplaires`, type: "ok"}],
-                note: "Un exemplaire est mis en réserve pendant l'enchère ; vous en gardez au moins un.",
+                badges: [{label: L(`${s.copies} exemplaires`, `${s.copies} copies`), type: "ok"}],
+                note: L("Un exemplaire est mis en réserve pendant l'enchère ; vous en gardez au moins un.", "One copy is held in reserve during the auction; you keep at least one."),
               })
             }
           >
-            Vendre
+            {L("Vendre", "Sell")}
           </button>
           <button
             class="btn sm ghost"
             disabled={busy || loading || Boolean(locked)}
-            title={locked || "Défausser un exemplaire contre 1 WikiBidou"}
-            aria-label="Défausser un exemplaire"
+            title={locked || L("Défausser un exemplaire contre 1 WikiBidou", "Discard a copy for 1 WikiBidou")}
+            aria-label={L("Défausser un exemplaire", "Discard a copy")}
             onClick={discard}
           >
-            {busy ? <span class="spinner" style={{width: "12px", height: "12px"}} aria-label="Défausse en cours" /> : <Icon name="discard" size={14} />}
+            {busy ? <span class="spinner" style={{width: "12px", height: "12px"}} aria-label={L("Défausse en cours", "Discarding")} /> : <Icon name="discard" size={14} />}
           </button>
         </span>
       }
@@ -146,27 +154,27 @@ export function MarketTab() {
     <div class="stack">
       <div class="page-head">
         <div>
-          <h2>Marché</h2>
-          <p>Suivez vos enchères, vendez ou défaussez vos cartes en double. Chaque enchère, mise en vente ou défausse demande votre confirmation.</p>
+          <h2>{L("Marché", "Market")}</h2>
+          <p>{L("Suivez vos enchères, vendez ou défaussez vos cartes en double. Chaque enchère, mise en vente ou défausse demande votre confirmation.", "Track your auctions, sell or discard your duplicate cards. Every bid, listing or discard asks for your confirmation.")}</p>
         </div>
       </div>
 
       <div class="box stack">
         <div class="row">
-          <h3 style={{flex: 1}}>Mes enchères</h3>
+          <h3 style={{flex: 1}}>{L("Mes enchères", "My auctions")}</h3>
           {bids.balance != null && <span class="chip accent">{fmt(bids.balance)} WikiBidous</span>}
           <span class="small muted">{bids.at ? timeAgo(bids.at) : ""}</span>
-          <button class="btn sm" disabled={bids.loading} onClick={refreshBids}>Actualiser</button>
+          <button class="btn sm" disabled={bids.loading} onClick={refreshBids}>{L("Actualiser", "Refresh")}</button>
         </div>
         {bids.error && <Notice type="error">{bids.error}</Notice>}
         {bids.bidding.length ? (
           <div class="cards">{[...bids.bidding].sort((a, b) => msLeft(a) - msLeft(b)).map((a) => <AuctionRow key={a.id} a={a} bidding />)}</div>
         ) : (
-          <p class="help">Aucune enchère en cours.</p>
+          <p class="help">{L("Aucune enchère en cours.", "No active bids.")}</p>
         )}
         {bids.selling.length > 0 && (
           <>
-            <h3 style={{marginTop: "8px"}}>Mes ventes en cours</h3>
+            <h3 style={{marginTop: "8px"}}>{L("Mes ventes en cours", "My active sales")}</h3>
             <div class="cards">{bids.selling.map((a) => <AuctionRow key={a.id} a={a} />)}</div>
           </>
         )}
@@ -174,14 +182,19 @@ export function MarketTab() {
 
       <div class="box stack">
         <div class="row">
-          <h3 style={{flex: 1}}>Mes doublons</h3>
-          {sell.quota && <span class={`chip ${quotaFull ? "warn" : ""}`}>{sell.quota.sellingCount} / {sell.quota.maxConcurrentAuctions} ventes en cours</span>}
-          <button class="btn sm" disabled={sell.loading} onClick={loadSpares}>Actualiser</button>
+          <h3 style={{flex: 1}}>{L("Mes doublons", "My duplicates")}</h3>
+          {sell.quota && <span class={`chip ${quotaFull ? "warn" : ""}`}>{sell.quota.sellingCount} / {sell.quota.maxConcurrentAuctions} {L("ventes en cours", "active sales")}</span>}
+          <button class="btn sm" disabled={sell.loading} onClick={loadSpares}>{L("Actualiser", "Refresh")}</button>
         </div>
-        <p class="help">Les cartes que vous possédez en plusieurs exemplaires, les plus chères d'abord. Mettez un exemplaire aux enchères, ou défaussez-le contre 1 WikiBidou : vous gardez toujours au moins un exemplaire.</p>
-        {sell.loading && <Progress label="Lecture de votre collection" done={0} />}
+        <p class="help">
+          {L(
+            "Les cartes que vous possédez en plusieurs exemplaires, les plus chères d'abord. Mettez un exemplaire aux enchères, ou défaussez-le contre 1 WikiBidou : vous gardez toujours au moins un exemplaire.",
+            "Cards you own in several copies, most valuable first. Put a copy up for auction, or discard it for 1 WikiBidou: you always keep at least one copy.",
+          )}
+        </p>
+        {sell.loading && <Progress label={L("Lecture de votre collection", "Reading your collection")} done={0} />}
         {sell.error && <Notice type="error">{sell.error}</Notice>}
-        {sell.spares && !spares.length && <p class="help">Aucun doublon.</p>}
+        {sell.spares && !spares.length && <p class="help">{L("Aucun doublon.", "No duplicates.")}</p>}
         {spares.length > 0 && (
           <div class="cards">
             {spares.map((s) => (

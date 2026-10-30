@@ -3,6 +3,8 @@
 // Fonctionne dans Node 18+ et dans les navigateurs (CompressionStream).
 "use strict";
 
+const {L} = require("./i18n");
+
 const PREFIX = "WMT-";
 
 function bytesToBase64Url(bytes) {
@@ -54,16 +56,16 @@ async function encodeShareCode(type, payload) {
 async function decodeShareCode(code, expectedType) {
   const clean = String(code || "").replace(/\s+/g, "");
   const m = /^WMT-([A-Z])1\.([A-Za-z0-9_-]+)$/.exec(clean);
-  if (!m) throw new Error("Code invalide : il doit commencer par « WMT- ».");
+  if (!m) throw new Error(L("Code invalide : il doit commencer par « WMT- ».", "Invalid code: it must start with \"WMT-\"."));
   if (expectedType && m[1] !== expectedType)
-    throw new Error(expectedType === "P" ? "Ce code n'est pas un code de profil." : "Ce code n'est pas un code de famille.");
+    throw new Error(expectedType === "P" ? L("Ce code n'est pas un code de profil.", "This is not a profile code.") : L("Ce code n'est pas un code de famille.", "This is not a family code."));
   let payload;
   try {
     const json = new TextDecoder().decode(await transform(base64UrlToBytes(m[2]), new DecompressionStream("deflate-raw"), MAX_DECODED));
     payload = JSON.parse(json);
   } catch (e) {
-    if (e instanceof RangeError) throw new Error("Code refusé : son contenu est anormalement volumineux.");
-    throw new Error("Code incomplet ou abîmé : vérifiez qu'il a été copié en entier.");
+    if (e instanceof RangeError) throw new Error(L("Code refusé : son contenu est anormalement volumineux.", "Code rejected: its content is abnormally large."));
+    throw new Error(L("Code incomplet ou abîmé : vérifiez qu'il a été copié en entier.", "Incomplete or damaged code: make sure it was copied in full."));
   }
   return {type: m[1], payload};
 }

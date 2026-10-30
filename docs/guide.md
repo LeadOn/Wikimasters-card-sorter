@@ -371,6 +371,8 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 
 **Réclamer les succès automatiquement** : la récompense de chaque succès débloqué est réclamée sans clic (voir [Succès](#succès)).
 
+**Langue** : l'interface de la Toolbox (panneau, blocs intégrés aux pages, popup, messages) est en français si le navigateur est réglé en français, en anglais sinon. C'est la première langue de la liste du navigateur qui compte, parmi le français et l'anglais (un navigateur réglé « allemand, puis français » affiche le français). Les noms des étiquettes (thèmes, `Doublon`, « Pour : … ») restent ceux de votre liste de thèmes, quelle que soit la langue : un joueur anglophone peut les renommer dans **Thèmes de tri**.
+
 L'onglet règle aussi la **durée de validité d'un prix** (48 heures par défaut), le **nombre de ventes minimum pour un prix fiable** (3) et le **nombre de premières ventes ignorées** pour chaque carte et chaque rareté (1), le **délai de l'alerte de fin d'enchère** (2 minutes), les **thèmes de tri** (voir [Personnaliser les thèmes](#personnaliser-les-thèmes)) et la couleur de `Doublon`, et permet de vider le cache des prix, d'oublier les collections d'amis enregistrées ou de tout réinitialiser.
 
 ---

@@ -26,13 +26,29 @@ const FIREFOX_EXTRA_HOSTS = [
   "https://www.wikidata.org/*",
 ];
 
+// Description de l'extension dans la langue du navigateur (_locales), anglais à défaut, comme l'interface.
+// 132 caractères au plus (Chrome Web Store).
+const LOCALES = {
+  en: {description: "Unofficial tools for WikiMasters: card sorting, market prices, filters, trades, auctions, packs, families and achievements."},
+  fr: {description: "Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès."},
+};
+
+function writeLocales(out) {
+  for (const [lang, messages] of Object.entries(LOCALES)) {
+    const dir = path.join(out, "_locales", lang);
+    fs.mkdirSync(dir, {recursive: true});
+    const json = Object.fromEntries(Object.entries(messages).map(([k, message]) => [k, {message}]));
+    fs.writeFileSync(path.join(dir, "messages.json"), JSON.stringify(json, null, 2));
+  }
+}
+
 function manifest(target) {
   const m = {
     manifest_version: 3,
     name: "WikiMasters Toolbox",
     version: pkg.version,
-    // 132 caractères au plus (Chrome Web Store)
-    description: "Outils non officiels pour WikiMasters : tri des cartes, prix du marché, filtres, échanges, enchères, paquets, familles et succès.",
+    default_locale: "en",
+    description: "__MSG_description__",
     icons: {16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png"},
     action: {default_popup: "popup.html", default_title: "WikiMasters Toolbox", default_icon: {16: "icons/16.png", 32: "icons/32.png"}},
     permissions: ["storage", "unlimitedStorage"],
@@ -82,6 +98,7 @@ async function buildTarget(target) {
   fs.mkdirSync(out, {recursive: true});
   fs.cpSync(path.join(here, "static"), out, {recursive: true});
   copyFonts(out);
+  writeLocales(out);
   fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify(manifest(target), null, 2));
   const options = {
     absWorkingDir: root,

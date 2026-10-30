@@ -15,6 +15,8 @@
 // interruption termine le travail sans rien créer en double.
 "use strict";
 
+const {L} = require("./i18n");
+
 const CHUNK = 100;
 
 // Lot refusé à cause d'une ligne (étiquette ou exemplaire supprimé entre-temps, valeur refusée) :
@@ -46,7 +48,7 @@ async function ensureTags(client, wanted, {known = []} = {}) {
   take(await client.listTags());
   for (const name of missing()) {
     const created = await client.createTag({name, color: wanted[name]});
-    if (!created?.id) throw new Error(`Création de l'étiquette « ${name} » : réponse inattendue du serveur.`);
+    if (!created?.id) throw new Error(L(`Création de l'étiquette « ${name} » : réponse inattendue du serveur.`, `Creating tag "${name}": unexpected server response.`));
     ids.set(name, created.id);
   }
   return ids;

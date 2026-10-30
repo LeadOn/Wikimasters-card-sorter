@@ -17,19 +17,20 @@ import {emit} from "../lib/bus";
 import {DOUBLON, RECENT_SALES} from "../../../../core";
 import {classify, isTheme} from "../state/themes";
 import {mountIsland} from "./islands/mount";
+import {L} from "../../shared/i18n";
 
 function Price({card, loading}) {
   const shiny = {shiny: card.is_shiny};
   const status = priceStatus(card.id, card.rarity, shiny);
   if (status === "ok") return <Money v={priceOf(card.id, card.rarity, shiny)} class="recap-price" />;
-  if (loading || status === "unknown") return <span class="spinner" aria-label="Chargement du prix" />;
+  if (loading || status === "unknown") return <span class="spinner" aria-label={L("Chargement du prix", "Loading price")} />;
   if (status === "few") {
     const info = priceInfo(card.id, card.rarity, shiny);
     if (info.price != null) return <Money v={info.price} class="recap-price" approx title={uncertainNote(info)} />;
-    return <span class="recap-price none" title="Ses seules ventes sont ses toutes premières, ignorées">pas de prix</span>;
+    return <span class="recap-price none" title={L("Ses seules ventes sont ses toutes premières, ignorées", "Its only sales are its very first ones, which are ignored")}>{L("pas de prix", "no price")}</span>;
   }
-  if (status === "error") return <span class="recap-price none" title="Le serveur n'a pas répondu ; nouvel essai dans quelques minutes">?</span>;
-  return <span class="recap-price none" title={`Cette carte n'a jamais été vendue${card.is_shiny ? " en shiny" : ""} dans cette rareté`}>aucune vente</span>;
+  if (status === "error") return <span class="recap-price none" title={L("Le serveur n'a pas répondu ; nouvel essai dans quelques minutes", "The server did not respond; retrying in a few minutes")}>?</span>;
+  return <span class="recap-price none" title={L(`Cette carte n'a jamais été vendue${card.is_shiny ? " en shiny" : ""} dans cette rareté`, `This card has never been sold${card.is_shiny ? " as shiny" : ""} in this rarity`)}>{L("aucune vente", "no sales")}</span>;
 }
 
 // Vignette : image de la carte, sinon image de Wikimedia (jamais pour une image masquée par le site),
@@ -42,12 +43,12 @@ const available = (c) => Boolean(c.user_card_id) && !c.action;
 // Mise aux enchères, un exemplaire à la fois ; une fois fait, ce qu'il est advenu de la carte
 function CardActions({card, index, at, locked}) {
   const done = card.action;
-  if (done?.kind === "discarded") return <span class="chip">Défaussée · +1 ₩</span>;
-  if (done?.kind === "listed") return <span class="chip accent">En vente · {fmt(done.baseAmount)} ₩</span>;
+  if (done?.kind === "discarded") return <span class="chip">{L("Défaussée · +1 ₩", "Discarded · +1 ₩")}</span>;
+  if (done?.kind === "listed") return <span class="chip accent">{L("En vente", "For sale")} · {fmt(done.baseAmount)} ₩</span>;
   if (done?.kind === "uncertain")
     return (
-      <span class="chip warn" title="Le site n'a pas répondu : vérifiez sur WikiMasters avant de recommencer">
-        {done.what === "discard" ? "Défausse" : "Vente"} à vérifier
+      <span class="chip warn" title={L("Le site n'a pas répondu : vérifiez sur WikiMasters avant de recommencer", "The site did not respond: check on WikiMasters before trying again")}>
+        {done.what === "discard" ? L("Défausse à vérifier", "Discard to check") : L("Vente à vérifier", "Sale to check")}
       </span>
     );
 
@@ -57,8 +58,8 @@ function CardActions({card, index, at, locked}) {
       userCardId: card.user_card_id,
       rarity: card.rarity,
       shiny: card.is_shiny,
-      badges: [card.isNew === true && {label: "Nouvelle", type: "ok"}, card.is_shiny && {label: "Shiny", type: "warn", icon: "shine"}],
-      note: card.isNew === true ? "C'est votre seul exemplaire : il est mis en réserve pendant l'enchère." : "Un exemplaire est mis en réserve pendant l'enchère.",
+      badges: [card.isNew === true && {label: L("Nouvelle", "New"), type: "ok"}, card.is_shiny && {label: "Shiny", type: "warn", icon: "shine"}],
+      note: card.isNew === true ? L("C'est votre seul exemplaire : il est mis en réserve pendant l'enchère.", "This is your only copy: it is held back during the auction.") : L("Un exemplaire est mis en réserve pendant l'enchère.", "One copy is held back during the auction."),
     });
     markListed(at, index, sale);
   };
@@ -68,11 +69,11 @@ function CardActions({card, index, at, locked}) {
       <button
         class="btn sm ghost"
         disabled={locked || !card.user_card_id}
-        title={card.user_card_id ? "Mettre aux enchères" : "Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection"}
+        title={card.user_card_id ? L("Mettre aux enchères", "Put up for auction") : L("Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection", "Copy not found: put this card up for auction from your collection")}
         onClick={sell}
       >
         <Icon name="market" size={14} />
-        <span class="label">Vendre</span>
+        <span class="label">{L("Vendre", "Sell")}</span>
       </button>
     </div>
   );
@@ -84,13 +85,13 @@ function SortTags({card, sort, index}) {
   if (sort.status === "running")
     return (
       <span class="chip">
-        <span class="spinner" style={{width: "10px", height: "10px", borderWidth: "2px"}} /> tri…
+        <span class="spinner" style={{width: "10px", height: "10px", borderWidth: "2px"}} /> {L("tri…", "sorting…")}
       </span>
     );
   if (sort.status === "error") return <ThemeChip theme={classify(card)[0]} />;
   const r = sort.byIndex?.[index];
-  if (!r || r.status === "unknown") return <span class="chip warn" title="Exemplaire introuvable : utilisez le tri manuel">non trié</span>;
-  if (r.status === "already") return <span class="chip" title="Cet exemplaire avait déjà un thème : il n'a pas été modifié">déjà triée</span>;
+  if (!r || r.status === "unknown") return <span class="chip warn" title={L("Exemplaire introuvable : utilisez le tri manuel", "Copy not found: use the manual sort")}>{L("non trié", "unsorted")}</span>;
+  if (r.status === "already") return <span class="chip" title={L("Cet exemplaire avait déjà un thème : il n'a pas été modifié", "This copy already had a theme: it was left unchanged")}>{L("déjà triée", "already sorted")}</span>;
   return (
     <>
       {r.tags.map((t) =>
@@ -117,8 +118,8 @@ function NextPack({onNext, disabled}) {
   };
   return (
     <button class="btn sm primary" disabled={busy || disabled} onClick={run}>
-      {busy ? <span class="spinner" aria-label="Ouverture en cours" /> : <Icon name="packs" size={14} />}
-      Ouvrir le prochain
+      {busy ? <span class="spinner" aria-label={L("Ouverture en cours", "Opening")} /> : <Icon name="packs" size={14} />}
+      {L("Ouvrir le prochain", "Open the next one")}
       <span class="num">({remaining})</span>
     </button>
   );
@@ -155,9 +156,14 @@ export function PackRecapView({onClose, onNext, compact = false}) {
     setDiscarding({done: 0, total: picked.length});
     try {
       const n = await discardPulledMany(at, picked, (done) => setDiscarding({done, total: picked.length}));
-      toast(n === 1 ? `${cards[0].wikipedia_title} défaussée : +1 WikiBidou.` : `${n} cartes défaussées : +${n} WikiBidous.`, {type: "ok"});
+      toast(
+        n === 1
+          ? L(`${cards[0].wikipedia_title} défaussée : +1 WikiBidou.`, `${cards[0].wikipedia_title} discarded: +1 WikiBidou.`)
+          : L(`${n} cartes défaussées : +${n} WikiBidous.`, `${n} cards discarded: +${n} WikiBidous.`),
+        {type: "ok"},
+      );
     } catch (e) {
-      const before = e.discarded ? `${plural(e.discarded, "carte défaussée", "cartes défaussées")}, puis arrêt : ` : "";
+      const before = e.discarded ? L(`${plural(e.discarded, "carte défaussée", "cartes défaussées")}, puis arrêt : `, `${plural(e.discarded, "card discarded", "cards discarded")}, then stopped: `) : "";
       toast(before + errorMessage(e), {type: "error", duration: 10000});
     } finally {
       setDiscarding(null);
@@ -165,22 +171,22 @@ export function PackRecapView({onClose, onNext, compact = false}) {
   };
 
   return (
-    <section class="recap" aria-label="Récapitulatif du paquet">
+    <section class="recap" aria-label={L("Récapitulatif du paquet", "Pack summary")}>
       <header class="recap-head">
         <Mark size={22} />
         <div class="recap-heading">
-          <div class="recap-title">{recap.packs > 1 ? `${recap.packs} paquets ouverts` : "Récapitulatif du paquet"}</div>
+          <div class="recap-title">{recap.packs > 1 ? L(`${recap.packs} paquets ouverts`, `${recap.packs} packs opened`) : L("Récapitulatif du paquet", "Pack summary")}</div>
           <div class="recap-sub">
-            {plural(recap.cards.length, "carte")}
-            {known && ` · ${plural(fresh, "nouvelle", "nouvelles")}`}
+            {plural(recap.cards.length, L("carte", "card"))}
+            {known && ` · ${L(plural(fresh, "nouvelle", "nouvelles"), `${fmt(fresh)} new`)}`}
           </div>
         </div>
         <div class="recap-total">
-          <span class="k">Valeur</span>
-          {loading && unpriced ? <span class="spinner" aria-label="Chargement des prix" /> : unpriced === prices.length ? <span class="v none">—</span> : <Money v={total} class="v" />}
+          <span class="k">{L("Valeur", "Value")}</span>
+          {loading && unpriced ? <span class="spinner" aria-label={L("Chargement des prix", "Loading prices")} /> : unpriced === prices.length ? <span class="v none">—</span> : <Money v={total} class="v" />}
         </div>
         {onClose && (
-          <button class="icon-btn" aria-label="Masquer le récapitulatif" onClick={onClose}>
+          <button class="icon-btn" aria-label={L("Masquer le récapitulatif", "Hide the summary")} onClick={onClose}>
             <Icon name="close" size={16} />
           </button>
         )}
@@ -195,17 +201,17 @@ export function PackRecapView({onClose, onNext, compact = false}) {
               disabled={Boolean(discarding)}
               onChange={() => pick(picked.length === choosable.length ? [] : choosable)}
             />
-            Tout
+            {L("Tout", "All")}
           </label>
           {doubles.length > 0 && (
-            <button class="btn sm ghost" disabled={Boolean(discarding)} title="Cocher les doublons (sauf les shiny)" onClick={() => pick(doubles)}>
-              Doublons
+            <button class="btn sm ghost" disabled={Boolean(discarding)} title={L("Cocher les doublons (sauf les shiny)", "Select duplicates (except shiny ones)")} onClick={() => pick(doubles)}>
+              {L("Doublons", "Duplicates")}
             </button>
           )}
-          <span class={`recap-select-count${picked.length ? "" : " hint"}`}>{picked.length ?plural(picked.length, "carte cochée", "cartes cochées") : "Cochez les cartes à défausser"}</span>
-          <button class="btn sm" disabled={!picked.length || Boolean(discarding)} title="Défausser les cartes cochées contre 1 WikiBidou chacune" onClick={discardPicked}>
-            {discarding ? <span class="spinner" aria-label="Défausse en cours" /> : <Icon name="discard" size={14} />}
-            {discarding ? `Défausse… ${discarding.done}/${discarding.total}` : "Défausser"}
+          <span class={`recap-select-count${picked.length ? "" : " hint"}`}>{picked.length ? L(plural(picked.length, "carte cochée", "cartes cochées"), plural(picked.length, "card selected", "cards selected")) : L("Cochez les cartes à défausser", "Select the cards to discard")}</span>
+          <button class="btn sm" disabled={!picked.length || Boolean(discarding)} title={L("Défausser les cartes cochées contre 1 WikiBidou chacune", "Discard the selected cards for 1 WikiBidou each")} onClick={discardPicked}>
+            {discarding ? <span class="spinner" aria-label={L("Défausse en cours", "Discarding")} /> : <Icon name="discard" size={14} />}
+            {discarding ? L(`Défausse… ${discarding.done}/${discarding.total}`, `Discarding… ${discarding.done}/${discarding.total}`) : L("Défausser", "Discard")}
             {!discarding && picked.length > 0 && <span class="gain">+{picked.length}</span>}
           </button>
         </div>
@@ -226,7 +232,7 @@ export function PackRecapView({onClose, onNext, compact = false}) {
                   class="recap-pick"
                   checked={checked.has(i)}
                   disabled={Boolean(discarding)}
-                  aria-label={`Défausser ${c.wikipedia_title}`}
+                  aria-label={L(`Défausser ${c.wikipedia_title}`, `Discard ${c.wikipedia_title}`)}
                   onChange={() => toggle(i)}
                 />
               ) : (
@@ -237,8 +243,8 @@ export function PackRecapView({onClose, onNext, compact = false}) {
                 <div class="recap-name" title={c.wikipedia_title}>{c.wikipedia_title}</div>
                 <div class="recap-meta">
                   <Rarity r={c.rarity} />
-                  {c.isNew === true && <span class="chip ok">Nouvelle</span>}
-                  {c.isNew === false && <span class="chip danger">Doublon</span>}
+                  {c.isNew === true && <span class="chip ok">{L("Nouvelle", "New")}</span>}
+                  {c.isNew === false && <span class="chip danger">{L("Doublon", "Duplicate")}</span>}
                   {c.is_shiny && (
                     <span class="chip warn">
                       <Icon name="shine" size={12} /> Shiny
@@ -260,22 +266,22 @@ export function PackRecapView({onClose, onNext, compact = false}) {
       <footer class="recap-foot">
         <span class="small muted">
           {loading
-            ? "Récupération des prix du marché…"
+            ? L("Récupération des prix du marché…", "Fetching market prices…")
             : failed
-              ? `${plural(failed, "prix indisponible", "prix indisponibles")} (serveur WikiMasters), nouvel essai dans quelques minutes.`
+              ? L(`${plural(failed, "prix indisponible", "prix indisponibles")} (serveur WikiMasters), nouvel essai dans quelques minutes.`, `${plural(failed, "price")} unavailable (WikiMasters server), retrying in a few minutes.`)
               : few
-                ? `${plural(few, "carte vendue trop peu de fois", "cartes vendues trop peu de fois")} pour un prix fiable : hors du total.`
+                ? L(`${plural(few, "carte vendue trop peu de fois", "cartes vendues trop peu de fois")} pour un prix fiable : hors du total.`, `${plural(few, "card", "cards")} sold too few times for a reliable price: left out of the total.`)
                 : unpriced
-                  ? `${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`
-                  : `Prix du marché : médiane des ${RECENT_SALES} dernières ventes, par rareté.`}
+                  ? L(`${plural(unpriced, "carte jamais vendue", "cartes jamais vendues")} dans sa rareté.`, `${plural(unpriced, "card", "cards")} never sold in ${unpriced === 1 ? "its" : "their"} rarity.`)
+                  : L(`Prix du marché : médiane des ${RECENT_SALES} dernières ventes, par rareté.`, `Market price: median of the last ${RECENT_SALES} sales, by rarity.`)}
         </span>
         <div class="recap-foot-do">
           {recap.sort?.status === "done" && (
             <span class="chip ok">
-              <Icon name="check" size={12} /> Cartes triées
+              <Icon name="check" size={12} /> {L("Cartes triées", "Cards sorted")}
             </span>
           )}
-          {recap.sort?.status === "error" && <span class="chip danger" title={recap.sort.error}>Tri automatique impossible</span>}
+          {recap.sort?.status === "error" && <span class="chip danger" title={recap.sort.error}>{L("Tri automatique impossible", "Auto-sort failed")}</span>}
           {(!recap.sort || recap.sort.status === "error") && isOn("sortAfterPack") && known && fresh > 0 && (
             <button
               class="btn sm"
@@ -284,7 +290,7 @@ export function PackRecapView({onClose, onNext, compact = false}) {
                 planSort({newOnly: true}).catch((e) => toast(errorMessage(e), {type: "error"}));
               }}
             >
-              Trier les nouvelles cartes
+              {L("Trier les nouvelles cartes", "Sort the new cards")}
             </button>
           )}
           {onNext && recap.source === "reveal" && recap.phase === "ready" && <NextPack onNext={onNext} disabled={Boolean(discarding)} />}

@@ -15,6 +15,7 @@ import {on} from "../lib/bus";
 import {lookupId} from "../lib/registry";
 import {settings} from "./settings";
 import {priceInfo as computePriceInfo, summarizeSales, priceBatches} from "../../../../core/prices";
+import {L} from "../../shared/i18n";
 
 // Format des résumés changé (prix shiny à part, dernières ventes) : les anciens sont abandonnés
 const KEY = "prices-v2";
@@ -116,7 +117,10 @@ export function pricing(cardId, rarity, options) {
 }
 export function uncertainNote(info) {
   const ignored = info.total - info.sales;
-  return `Prix indicatif : ${info.sales} vente${info.sales > 1 ? "s" : ""} prise${info.sales > 1 ? "s" : ""} en compte${ignored ? ` (${ignored} première${ignored > 1 ? "s" : ""} ignorée${ignored > 1 ? "s" : ""})` : ""}, il en faut ${priceOptions().minSales} pour un prix fiable.`;
+  return L(
+    `Prix indicatif : ${info.sales} vente${info.sales > 1 ? "s" : ""} prise${info.sales > 1 ? "s" : ""} en compte${ignored ? ` (${ignored} première${ignored > 1 ? "s" : ""} ignorée${ignored > 1 ? "s" : ""})` : ""}, il en faut ${priceOptions().minSales} pour un prix fiable.`,
+    `Estimated price: based on ${info.sales} sale${info.sales !== 1 ? "s" : ""}${ignored ? (ignored === 1 ? " (first one ignored)" : ` (first ${ignored} ignored)`) : ""}; ${priceOptions().minSales} are needed for a reliable price.`,
+  );
 }
 export const priceMap = () => new Map([...cache].map(([id, v]) => [id, v.s]));
 

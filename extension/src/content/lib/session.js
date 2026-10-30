@@ -1,4 +1,5 @@
 // Session du joueur, lue dans les cookies du site (@supabase/ssr) : aucun token à copier.
+import {L} from "../../shared/i18n";
 const COOKIE = "sb-cyrxjeppjqsxxjayfrur-auth-token";
 
 function decodeBase64Url(text) {
@@ -75,7 +76,7 @@ export async function ensureSession({force = false} = {}) {
   if (s && !force && s.expiresAt - Date.now() > 120000) return s;
   await refreshCookies();
   s = readSession();
-  if (!s) throw new Error("Vous n'êtes pas connecté à WikiMasters.");
-  if (s.expiresAt <= Date.now()) throw new Error("Session expirée : rechargez la page WikiMasters.");
+  if (!s) throw new Error(L("Vous n'êtes pas connecté à WikiMasters.", "You are not logged in to WikiMasters."));
+  if (s.expiresAt <= Date.now()) throw new Error(L("Session expirée : rechargez la page WikiMasters.", "Session expired: reload the WikiMasters page."));
   return s;
 }

@@ -9,6 +9,7 @@ import {site, AUCTION_DURATIONS} from "../api/site";
 import {priceInfo, priceOptions, pricing} from "../state/prices";
 import {CardRow, Notice, Progress, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
+import {L} from "../../shared/i18n";
 
 const sellDialog = createStore({current: null});
 
@@ -44,7 +45,7 @@ function useQuota() {
   return quota;
 }
 
-function AuctionFields({amount, setAmount, minutes, setMinutes, label = "Mise de départ (₩)", disabled}) {
+function AuctionFields({amount, setAmount, minutes, setMinutes, label = L("Mise de départ (₩)", "Starting bid (₩)"), disabled}) {
   return (
     <div class="row" style={{alignItems: "flex-end"}}>
       <label class="field" style={{flex: 1}}>
@@ -52,7 +53,7 @@ function AuctionFields({amount, setAmount, minutes, setMinutes, label = "Mise de
         <input type="number" min="1" step="1" value={amount} disabled={disabled} onInput={(e) => setAmount(e.currentTarget.value)} />
       </label>
       <label class="field" style={{flex: 1}}>
-        <span>Durée</span>
+        <span>{L("Durée", "Duration")}</span>
         <select value={minutes} disabled={disabled} onChange={(e) => setMinutes(Number(e.currentTarget.value))}>
           {AUCTION_DURATIONS.map((d) => (
             <option key={d.minutes} value={d.minutes}>
@@ -68,10 +69,21 @@ function AuctionFields({amount, setAmount, minutes, setMinutes, label = "Mise de
 // Ce que l'on sait du prix de l'exemplaire, sous le formulaire
 function priceHelp(info, shiny) {
   const version = shiny ? " en shiny" : "";
-  if (!info) return `Cette carte n'a jamais été vendue${version} dans cette rareté.`;
-  if (info.reliable) return `Prix du marché${shiny ? " shiny" : ""} pour cette rareté : ${fmt(info.price)} ₩ (${plural(info.total, "vente")}).`;
-  if (info.price == null) return `Les seules ventes${version} de cette carte sont ses toutes premières, ignorées : pas encore de prix du marché.`;
-  return `Prix indicatif : ${fmt(info.price)} ₩, sur trop peu de ventes pour être fiable (${plural(info.sales, "prise", "prises")} en compte, il en faut ${priceOptions().minSales}).`;
+  if (!info) return L(`Cette carte n'a jamais été vendue${version} dans cette rareté.`, `This card has never been sold${shiny ? " as shiny" : ""} in this rarity.`);
+  if (info.reliable)
+    return L(
+      `Prix du marché${shiny ? " shiny" : ""} pour cette rareté : ${fmt(info.price)} ₩ (${plural(info.total, "vente")}).`,
+      `${shiny ? "Shiny market price" : "Market price"} for this rarity: ${fmt(info.price)} ₩ (${plural(info.total, "sale")}).`,
+    );
+  if (info.price == null)
+    return L(
+      `Les seules ventes${version} de cette carte sont ses toutes premières, ignorées : pas encore de prix du marché.`,
+      `The only${shiny ? " shiny" : ""} sales of this card are its very first ones, which are ignored: no market price yet.`,
+    );
+  return L(
+    `Prix indicatif : ${fmt(info.price)} ₩, sur trop peu de ventes pour être fiable (${plural(info.sales, "prise", "prises")} en compte, il en faut ${priceOptions().minSales}).`,
+    `Estimated price: ${fmt(info.price)} ₩, from too few sales to be reliable (${fmt(info.sales)} counted, ${priceOptions().minSales} needed).`,
+  );
 }
 
 function SellForm({card, userCardId, rarity, shiny = false, badges = [], note}) {
@@ -87,12 +99,12 @@ function SellForm({card, userCardId, rarity, shiny = false, badges = [], note}) 
 
   const submit = async () => {
     const baseAmount = Math.round(Number(amount));
-    if (!Number.isInteger(baseAmount) || baseAmount < 1) return setError("Mise de départ invalide (minimum 1).");
+    if (!Number.isInteger(baseAmount) || baseAmount < 1) return setError(L("Mise de départ invalide (minimum 1).", "Invalid starting bid (minimum 1)."));
     setBusy(true);
     setError(null);
     try {
       await sellCard({userCardId, cardId: card.id, baseAmount, durationMinutes: minutes});
-      toast(`${card.wikipedia_title} mise aux enchères à ${fmt(baseAmount)} ₩.`, {type: "ok"});
+      toast(L(`${card.wikipedia_title} mise aux enchères à ${fmt(baseAmount)} ₩.`, `${card.wikipedia_title} put up for auction at ${fmt(baseAmount)} ₩.`), {type: "ok"});
       close({baseAmount, durationMinutes: minutes});
     } catch (e) {
       setError(errorMessage(e));
@@ -104,23 +116,23 @@ function SellForm({card, userCardId, rarity, shiny = false, badges = [], note}) 
 
   return (
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && dismiss()}>
-      <div class="modal" role="dialog" aria-label="Mettre aux enchères">
-        <h3>Mettre aux enchères</h3>
+      <div class="modal" role="dialog" aria-label={L("Mettre aux enchères", "Put up for auction")}>
+        <h3>{L("Mettre aux enchères", "Put up for auction")}</h3>
         <CardRow card={card} rarity={rarity} {...pricing(card.id, rarity, {shiny})} badges={badges} />
-        <p class="help">{note || "L'exemplaire est mis en réserve pendant l'enchère."}</p>
+        <p class="help">{note || L("L'exemplaire est mis en réserve pendant l'enchère.", "The copy is held in reserve during the auction.")}</p>
         <AuctionFields amount={amount} setAmount={setAmount} minutes={minutes} setMinutes={setMinutes} />
         <p class="small muted">
           {priceHelp(info, shiny)}
-          {quota && ` ${quota.sellingCount} / ${quota.maxConcurrentAuctions} ventes en cours.`}
+          {quota && L(` ${quota.sellingCount} / ${quota.maxConcurrentAuctions} ventes en cours.`, ` ${quota.sellingCount} / ${quota.maxConcurrentAuctions} active sales.`)}
         </p>
-        {full && <Notice type="warn">Vous avez atteint le nombre de ventes simultanées autorisé par le site.</Notice>}
+        {full && <Notice type="warn">{L("Vous avez atteint le nombre de ventes simultanées autorisé par le site.", "You have reached the number of simultaneous sales the site allows.")}</Notice>}
         {error && <Notice type="error">{error}</Notice>}
         <div class="actions">
           <button class="btn ghost" onClick={dismiss}>
-            {busy === "uncertain" ? "Fermer" : "Annuler"}
+            {busy === "uncertain" ? L("Fermer", "Close") : L("Annuler", "Cancel")}
           </button>
           <button class="btn primary" disabled={Boolean(busy) || full} onClick={submit}>
-            {busy === true ? "Mise en vente…" : "Lancer l'enchère"}
+            {busy === true ? L("Mise en vente…", "Listing…") : L("Lancer l'enchère", "Start auction")}
           </button>
         </div>
       </div>
@@ -145,17 +157,22 @@ function SellManyForm({items, sell}) {
 
   const submit = async () => {
     const baseAmount = Math.round(Number(amount));
-    if (!Number.isInteger(baseAmount) || baseAmount < 1) return setError("Mise de départ invalide (minimum 1).");
+    if (!Number.isInteger(baseAmount) || baseAmount < 1) return setError(L("Mise de départ invalide (minimum 1).", "Invalid starting bid (minimum 1)."));
     const chosen = items.slice(0, count);
     abort.current = new AbortController();
     setError(null);
     setProgress({done: 0, total: chosen.length});
     try {
       const done = await sell(chosen, {baseAmount, durationMinutes: minutes}, {signal: abort.current.signal, onProgress: (n) => setProgress({done: n, total: chosen.length})});
-      toast(done < chosen.length ? `${plural(done, "carte mise", "cartes mises")} aux enchères, puis arrêt.` : `${plural(done, "carte mise", "cartes mises")} aux enchères à ${fmt(baseAmount)} ₩.`, {type: "ok"});
+      toast(
+        done < chosen.length
+          ? L(`${plural(done, "carte mise", "cartes mises")} aux enchères, puis arrêt.`, `${plural(done, "card")} put up for auction, then stopped.`)
+          : L(`${plural(done, "carte mise", "cartes mises")} aux enchères à ${fmt(baseAmount)} ₩.`, `${plural(done, "card")} put up for auction at ${fmt(baseAmount)} ₩.`),
+        {type: "ok"},
+      );
       close({done});
     } catch (e) {
-      const before = e.done ? `${plural(e.done, "carte mise", "cartes mises")} aux enchères, puis arrêt : ` : "";
+      const before = e.done ? L(`${plural(e.done, "carte mise", "cartes mises")} aux enchères, puis arrêt : `, `${plural(e.done, "card")} put up for auction, then stopped: `) : "";
       setError(before + errorMessage(e));
       setEnded({done: e.done || 0, uncertain: Boolean(e.uncertain)});
       setProgress(null);
@@ -164,35 +181,43 @@ function SellManyForm({items, sell}) {
 
   return (
     <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && !progress && dismiss()}>
-      <div class="modal" role="dialog" aria-label="Mettre aux enchères">
-        <h3>Mettre aux enchères {plural(items.length, "carte", "cartes")}</h3>
+      <div class="modal" role="dialog" aria-label={L("Mettre aux enchères", "Put up for auction")}>
+        <h3>{L(`Mettre aux enchères ${plural(items.length, "carte", "cartes")}`, `Put ${plural(items.length, "card")} up for auction`)}</h3>
         <p class="small muted">
           {titles.slice(0, 6).join(", ")}
-          {titles.length > 6 ? `… et ${fmt(titles.length - 6)} autres` : ""}
+          {titles.length > 6 ? L(`… et ${fmt(titles.length - 6)} autres`, `… and ${fmt(titles.length - 6)} more`) : ""}
         </p>
-        <p class="help">Un exemplaire de chaque carte est mis en réserve pendant son enchère. Jamais un favori, une carte shiny en dernier.</p>
-        <AuctionFields amount={amount} setAmount={setAmount} minutes={minutes} setMinutes={setMinutes} label="Mise de départ de chaque carte (₩)" disabled={Boolean(progress || ended)} />
+        <p class="help">
+          {L(
+            "Un exemplaire de chaque carte est mis en réserve pendant son enchère. Jamais un favori, une carte shiny en dernier.",
+            "One copy of each card is held in reserve during its auction. Never a favorite; a shiny copy only as a last resort.",
+          )}
+        </p>
+        <AuctionFields amount={amount} setAmount={setAmount} minutes={minutes} setMinutes={setMinutes} label={L("Mise de départ de chaque carte (₩)", "Starting bid per card (₩)")} disabled={Boolean(progress || ended)} />
         {quota && (
           <p class="small muted">
-            {quota.sellingCount} / {quota.maxConcurrentAuctions} ventes en cours.
+            {quota.sellingCount} / {quota.maxConcurrentAuctions} {L("ventes en cours.", "active sales.")}
           </p>
         )}
         {quota && count < items.length && (
           <Notice type="warn">
             {count
-              ? `Le site n'autorise plus que ${plural(count, "vente simultanée", "ventes simultanées")} : seules les ${fmt(count)} premières cartes seront mises en vente.`
-              : "Vous avez atteint le nombre de ventes simultanées autorisé par le site."}
+              ? L(
+                  `Le site n'autorise plus que ${plural(count, "vente simultanée", "ventes simultanées")} : seules les ${fmt(count)} premières cartes seront mises en vente.`,
+                  `The site only allows ${plural(count, "more simultaneous sale", "more simultaneous sales")}: only the first ${fmt(count)} cards will be listed.`,
+                )
+              : L("Vous avez atteint le nombre de ventes simultanées autorisé par le site.", "You have reached the number of simultaneous sales the site allows.")}
           </Notice>
         )}
-        {progress && <Progress done={progress.done} total={progress.total} label="Mise en vente" />}
+        {progress && <Progress done={progress.done} total={progress.total} label={L("Mise en vente", "Listing")} />}
         {error && <Notice type="error">{error}</Notice>}
         <div class="actions">
           <button class="btn ghost" onClick={dismiss}>
-            {progress ? "Arrêter" : ended ? "Fermer" : "Annuler"}
+            {progress ? L("Arrêter", "Stop") : ended ? L("Fermer", "Close") : L("Annuler", "Cancel")}
           </button>
           {!ended && (
             <button class="btn primary" disabled={Boolean(progress) || !count} onClick={submit}>
-              {progress ? "Mise en vente…" : `Lancer ${plural(count, "enchère", "enchères")}`}
+              {progress ? L("Mise en vente…", "Listing…") : L(`Lancer ${plural(count, "enchère", "enchères")}`, `Start ${plural(count, "auction")}`)}
             </button>
           )}
         </div>

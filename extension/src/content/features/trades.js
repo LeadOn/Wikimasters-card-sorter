@@ -10,6 +10,7 @@ import {loadMyCollection} from "../state/collection";
 import {activeProfiles, profileFor} from "../state/profiles";
 import {priceOptions, priceMap} from "../state/prices";
 import {themeSet} from "../state/themes";
+import {L, LOCALE} from "../../shared/i18n";
 import {findTrades, tagForProfile} from "../../../../core";
 
 const MAX_AGE_H = 12;
@@ -64,9 +65,9 @@ async function friendCollection(username, {rarities, refresh, signal}) {
   const usable = cache && typeof cache.pages === "object" && Number.isInteger(cache.pageCount) && cache.summaries && typeof cache.summaries === "object";
   if (!usable || (Date.now() - new Date(cache.fetched_at)) / 3.6e6 > MAX_AGE_H) cache = null;
   if (!cache) {
-    tradeState.set({step: `Lecture de la collection de ${username}`, progress: null});
+    tradeState.set({step: L(`Lecture de la collection de ${username}`, `Reading ${username}'s collection`), progress: null});
     const first = await site.profileCollection(username, 0, {rarities, stats: true, signal});
-    if (!Array.isArray(first?.collection)) throw new Error(`Collection de ${username} : réponse inattendue du site.`);
+    if (!Array.isArray(first?.collection)) throw new Error(L(`Collection de ${username} : réponse inattendue du site.`, `${username}'s collection: unexpected response from the site.`));
     const pageSize = first.collection.length || 50;
     const total = Number(first.total) || 0;
     cache = {
@@ -90,7 +91,7 @@ async function friendCollection(username, {rarities, refresh, signal}) {
       save(key, cache).catch(() => {});
     }, 1500);
   };
-  const progress = () => tradeState.set({step: `Collection de ${username} : ${cache.total.toLocaleString("fr-FR")} cartes`, progress: {done, total: cache.pageCount}});
+  const progress = () => tradeState.set({step: L(`Collection de ${username} : ${cache.total.toLocaleString(LOCALE)} cartes`, `${username}'s collection: ${cache.total.toLocaleString(LOCALE)} cards`), progress: {done, total: cache.pageCount}});
   progress();
   try {
     // À la première page en échec (après réessais), plus aucune page n'est demandée
@@ -98,7 +99,7 @@ async function friendCollection(username, {rarities, refresh, signal}) {
       missing,
       async (p) => {
         const res = await site.profileCollection(username, p, {rarities, signal});
-        if (!Array.isArray(res?.collection)) throw new Error(`Collection de ${username} : réponse inattendue du site (page ${p + 1}).`);
+        if (!Array.isArray(res?.collection)) throw new Error(L(`Collection de ${username} : réponse inattendue du site (page ${p + 1}).`, `${username}'s collection: unexpected response from the site (page ${p + 1}).`));
         cache.pages[p] = res.collection.map(compact);
         done++;
         progress();
@@ -134,7 +135,7 @@ async function loadSummaries(cardIds, cache, key, signal) {
         if (e.name === "AbortError") throw e;
       }
       done += ids.length;
-      tradeState.set({step: "Lecture des résumés des cartes", progress: {done, total: todo.length}});
+      tradeState.set({step: L("Lecture des résumés des cartes", "Reading card summaries"), progress: {done, total: todo.length}});
     },
     {concurrency: 4, signal},
   );
@@ -143,24 +144,24 @@ async function loadSummaries(cardIds, cache, key, signal) {
 
 // themes : null → mon tag « Pour : <moi> » ; sinon liste de thèmes génériques recherchés
 export async function findTradesWith(friend, {themes = null, rarities = [], refresh = false, signal} = {}) {
-  tradeState.set({friend: friend.username, running: true, result: null, error: null, step: "Préparation", progress: null});
+  tradeState.set({friend: friend.username, running: true, result: null, error: null, step: L("Préparation", "Preparing"), progress: null});
   try {
     const session = await ensureSession();
     const profiles = activeProfiles();
     const myProfile = profileFor(session.username);
     const wanted = themes?.length ? themes : myProfile ? [tagForProfile(myProfile)] : null;
-    if (!wanted) throw new Error("Définissez d'abord votre profil d'intérêts (onglet Profils), ou choisissez des thèmes à rechercher.");
+    if (!wanted) throw new Error(L("Définissez d'abord votre profil d'intérêts (onglet Profils), ou choisissez des thèmes à rechercher.", "Set up your interest profile first (Profiles tab), or pick themes to search for."));
     const friendProfile = profileFor(friend.username);
     const friendTag = friendProfile ? tagForProfile(friendProfile) : null;
 
-    tradeState.set({step: "Lecture de ma collection et de ma liste de souhaits"});
+    tradeState.set({step: L("Lecture de ma collection et de ma liste de souhaits", "Reading my collection and wishlist")});
     const [copies, wishlist] = await Promise.all([loadMyCollection({withSummary: true}), rest("wishlist_items?select=card_id").catch(() => [])]);
     const mine = copies.map((c) => ({id: c.id, card_id: c.card_id, count: c.count, is_shiny: c.is_shiny, cards: c.card}));
     const {cache, key, items} = await friendCollection(friend.username, {rarities, refresh, signal});
     const myIds = new Set(mine.map((m) => m.card_id));
     await loadSummaries(items.filter((it) => !myIds.has(it.card_id)).map((it) => it.card_id), cache, key, signal);
 
-    tradeState.set({step: "Analyse", progress: null});
+    tradeState.set({step: L("Analyse", "Analyzing"), progress: null});
     const result = findTrades({
       mine,
       friendItems: items,
@@ -194,7 +195,7 @@ on("trades", ({data, path}) => {
 });
 export async function refreshTrades() {
   const res = await site.trades();
-  if (!Array.isArray(res?.trades)) throw new Error("Échanges : réponse inattendue du site.");
+  if (!Array.isArray(res?.trades)) throw new Error(L("Échanges : réponse inattendue du site.", "Trades: unexpected response from the site."));
   activeTrades.set({list: res.trades, at: Date.now()});
   return res.trades;
 }

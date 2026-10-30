@@ -11,6 +11,7 @@ import {owned, addOwned, removeOwned, invalidateCollection, discardCopy} from ".
 import {loadPrices} from "../state/prices";
 import {packNovelty} from "../../../../core/prices";
 import {sortPulledCards} from "./autosort";
+import {L} from "../../shared/i18n";
 
 export const packsStatus = createStore({remaining: null, at: 0});
 // Récapitulatif du dernier paquet, affiché dans la page (pas de fenêtre) :
@@ -96,9 +97,9 @@ function setCardAction(at, index, action) {
 // cours, la défausse attend qu'il ait fini d'étiqueter cet exemplaire (discardCopy).
 export async function discardPulled(at, index) {
   // Récapitulatif remplacé par un autre paquet : l'index désignerait une autre carte
-  if (recapState.get().at !== at) throw new Error("Un autre paquet a été ouvert entre-temps : rien n'a été défaussé.");
+  if (recapState.get().at !== at) throw new Error(L("Un autre paquet a été ouvert entre-temps : rien n'a été défaussé.", "Another pack was opened in the meantime: nothing was discarded."));
   const card = recapState.get().cards[index];
-  if (!card?.user_card_id) throw new Error("Exemplaire introuvable : défaussez cette carte depuis votre collection.");
+  if (!card?.user_card_id) throw new Error(L("Exemplaire introuvable : défaussez cette carte depuis votre collection.", "Copy not found: discard this card from your collection."));
   try {
     await discardCopy(card.user_card_id);
   } catch (e) {
@@ -190,7 +191,7 @@ export async function openAllPacks() {
       for (let guard = 0; guard < 100; guard++) {
         const res = await openPackPolitely();
         // Réponse sans cartes (erreur rendue en 200, format changé) : on s'arrête sans rien supposer
-        if (!Array.isArray(res?.cards) || !res.cards.length) throw new Error(res?.error ? String(res.error) : "réponse du site sans cartes");
+        if (!Array.isArray(res?.cards) || !res.cards.length) throw new Error(res?.error ? String(res.error) : L("réponse du site sans cartes", "site response without cards"));
         packs++;
         all.push(...res.cards);
         for (const c of res.cards) if (c.user_card_id) openedByAll.add(c.user_card_id);
@@ -205,8 +206,11 @@ export async function openAllPacks() {
       openAllState.set({
         error:
           e instanceof HumanCheckError
-            ? `Arrêt après ${packs} paquet(s) : WikiMasters demande une vérification anti-robot. Ouvrez le paquet suivant avec le bouton « Ouvrir » du site, qui l'affiche, puis relancez « Tout ouvrir ».`
-            : `Arrêt après ${packs} paquet(s) : ${reason}`,
+            ? L(
+                `Arrêt après ${packs} paquet(s) : WikiMasters demande une vérification anti-robot. Ouvrez le paquet suivant avec le bouton « Ouvrir » du site, qui l'affiche, puis relancez « Tout ouvrir ».`,
+                `Stopped after ${packs} pack(s): WikiMasters is asking for a bot check. Open the next pack with the site's "Ouvrir" button, which shows it, then run "Open all" again.`,
+              )
+            : L(`Arrêt après ${packs} paquet(s) : ${reason}`, `Stopped after ${packs} pack(s): ${reason}`),
       });
     } finally {
       openAllState.set({running: false});

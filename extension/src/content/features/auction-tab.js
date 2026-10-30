@@ -4,14 +4,19 @@
 import {readSession} from "../lib/session";
 import {isOn} from "../state/settings";
 import {auctionById, refreshAuction, msLeft, bidsState} from "./market";
+import {L, LOCALE} from "../../shared/i18n";
 
 const AUCTION_PATH = /^\/marketplace\/([0-9a-f-]{36})\/?$/;
-const fmt = (n) => n.toLocaleString("fr-FR");
+const fmt = (n) => n.toLocaleString(LOCALE);
 
 // Temps restant compact : 4:07, 1 h 05
 export function clock(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
-  if (s >= 3600) return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+  if (s >= 3600) {
+    const h = Math.floor(s / 3600);
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+    return L(`${h} h ${m}`, `${h}h ${m}m`);
+  }
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
@@ -26,22 +31,22 @@ export function standing(a, {me, participated}) {
 // Titre de l'onglet. alert : surenchère pas encore vue ("outbid" ou "bid"), affichée une seconde
 // sur deux (flash) ; le symbole en tête reste visible même dans un onglet étroit.
 export function tabTitle(a, {me, participated = false, alert = null, flash = false, now = Date.now()}) {
-  const name = a.card?.wikipedia_title || "Enchère";
+  const name = a.card?.wikipedia_title || L("Enchère", "Auction");
   const pos = standing(a, {me, participated});
   const left = new Date(a.end_at).getTime() - now;
   if (a.status && a.status !== "active") {
-    if (a.winner_id && a.winner_id === me) return `✓ Gagnée · ${fmt(a.final_price ?? a.current_bid)} ₩ — ${name}`;
-    if (pos === "outbid") return `✗ Perdue — ${name}`;
-    return `Terminée — ${name}`;
+    if (a.winner_id && a.winner_id === me) return L(`✓ Gagnée · ${fmt(a.final_price ?? a.current_bid)} ₩ — ${name}`, `✓ Won · ${fmt(a.final_price ?? a.current_bid)} ₩ — ${name}`);
+    if (pos === "outbid") return L(`✗ Perdue — ${name}`, `✗ Lost — ${name}`);
+    return L(`Terminée — ${name}`, `Ended — ${name}`);
   }
-  if (left <= 0) return `${pos === "leading" ? "✓ " : pos === "outbid" ? "✗ " : ""}Fin… — ${name}`;
-  if (flash && alert === "outbid") return `✗ SURENCHÉRI ! — ${name}`;
-  if (flash && alert === "bid") return `↑ NOUVELLE MISE — ${name}`;
+  if (left <= 0) return `${pos === "leading" ? "✓ " : pos === "outbid" ? "✗ " : ""}${L("Fin…", "Ending…")} — ${name}`;
+  if (flash && alert === "outbid") return L(`✗ SURENCHÉRI ! — ${name}`, `✗ OUTBID! — ${name}`);
+  if (flash && alert === "bid") return L(`↑ NOUVELLE MISE — ${name}`, `↑ NEW BID — ${name}`);
   const amount = `${fmt(a.current_bid ?? a.base_amount)} ₩`;
-  if (pos === "leading") return `✓ ${clock(left)} · En tête · ${amount} — ${name}`;
-  if (pos === "outbid") return `✗ ${clock(left)} · Surenchéri · ${amount} — ${name}`;
+  if (pos === "leading") return `✓ ${clock(left)} · ${L("En tête", "Leading")} · ${amount} — ${name}`;
+  if (pos === "outbid") return `✗ ${clock(left)} · ${L("Surenchéri", "Outbid")} · ${amount} — ${name}`;
   const mark = alert ? "↑ " : "";
-  if (pos === "seller") return `${mark}${clock(left)} · ${a.current_bid != null ? amount : "aucune mise"} (votre vente) — ${name}`;
+  if (pos === "seller") return `${mark}${clock(left)} · ${a.current_bid != null ? amount : L("aucune mise", "no bids")} ${L("(votre vente)", "(your sale)")} — ${name}`;
   return `${mark}${clock(left)} · ${amount} — ${name}`;
 }
 

@@ -1,6 +1,7 @@
 // Routes /api du site WikiMasters (authentifiées par les cookies de session, même origine).
 // Voir docs/site-api.md. Les lectures sont réessayées ; les écritures jamais automatiquement.
 import {request, createLimiter} from "../lib/http";
+import {L} from "../../shared/i18n";
 
 const limit = createLimiter(6);
 
@@ -60,8 +61,8 @@ export const site = {
 export const AUCTION_DURATIONS = [
   {minutes: 10, label: "10 min"},
   {minutes: 30, label: "30 min"},
-  {minutes: 60, label: "1 h"},
-  {minutes: 180, label: "3 h"},
-  {minutes: 360, label: "6 h"},
-  {minutes: 720, label: "12 h"},
+  {minutes: 60, label: L("1 h", "1 hour")},
+  {minutes: 180, label: L("3 h", "3 hours")},
+  {minutes: 360, label: L("6 h", "6 hours")},
+  {minutes: 720, label: L("12 h", "12 hours")},
 ];

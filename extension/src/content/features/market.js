@@ -7,6 +7,7 @@ import {settings, isOn} from "../state/settings";
 import {loadMyCollection, invalidateCollection, discardCopy} from "../state/collection";
 import {priceOf, loadPrices} from "../state/prices";
 import {spareCards} from "../../../../core";
+import {L} from "../../shared/i18n";
 
 export const bidsState = createStore({selling: [], bidding: [], won: [], loading: false, error: null, at: 0, balance: null});
 
@@ -88,7 +89,7 @@ export async function placeBid(auction, amount) {
     await refreshBids();
     return {ok: true};
   } catch (e) {
-    if (e.code === "bid_too_low" && e.data?.min) return {ok: false, min: e.data.min, error: `Mise trop basse : minimum ${e.data.min}.`};
+    if (e.code === "bid_too_low" && e.data?.min) return {ok: false, min: e.data.min, error: L(`Mise trop basse : minimum ${e.data.min}.`, `Bid too low: minimum ${e.data.min}.`)};
     // Sans réponse, l'enchère a peut-être été placée : l'état affiché est relu
     if (e.uncertain) refreshBids();
     return {ok: false, error: e.message};
@@ -169,7 +170,7 @@ function dropSpareCopy(cardId, userCardId) {
 // Défausse d'un exemplaire en trop contre 1 WikiBidou, après confirmation du joueur. Sans réponse
 // du site, la défausse a peut-être eu lieu : la liste est relue avant toute nouvelle tentative.
 export async function discardSpare({userCardId, cardId}) {
-  if (!userCardId) throw new Error("Exemplaire introuvable : défaussez cette carte depuis votre collection.");
+  if (!userCardId) throw new Error(L("Exemplaire introuvable : défaussez cette carte depuis votre collection.", "Copy not found: discard this card from your collection."));
   try {
     await discardCopy(userCardId);
   } catch (e) {
@@ -184,7 +185,7 @@ export async function discardSpare({userCardId, cardId}) {
 // tentative, pour ne pas mettre en vente un deuxième exemplaire par erreur.
 // userCardId : l'exemplaire mis en vente (user_cards.id) ; cardId : la carte, pour la liste des doublons
 export async function sellCard({userCardId, cardId, baseAmount, durationMinutes}) {
-  if (!userCardId) throw new Error("Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection.");
+  if (!userCardId) throw new Error(L("Exemplaire introuvable : mettez cette carte aux enchères depuis votre collection.", "Copy not found: auction this card from your collection."));
   let res;
   try {
     res = await site.createAuction({userCardId, baseAmount, durationMinutes});

@@ -4,6 +4,7 @@ import {useEffect, useState} from "preact/hooks";
 import {Icon, Mark} from "../shared/Brand";
 import fontsCss from "../shared/fonts.css";
 import css from "./popup.css";
+import {L, LANG} from "../shared/i18n";
 
 const ext = globalThis.browser?.runtime?.id ? globalThis.browser : globalThis.chrome;
 const SITE = "https://www.wiki-masters.com/";
@@ -21,7 +22,7 @@ function Popup() {
       try {
         setStatus(await ext.tabs.sendMessage(t.id, {type: "status"}));
       } catch {
-        setError("Rechargez la page WikiMasters pour activer la Toolbox.");
+        setError(L("Rechargez la page WikiMasters pour activer la Toolbox.", "Reload the WikiMasters page to enable the Toolbox."));
       }
     });
   }, []);
@@ -31,7 +32,7 @@ function Popup() {
       await ext.tabs.sendMessage(tab.id, msg);
       window.close();
     } catch {
-      setError("Rechargez la page WikiMasters pour activer la Toolbox.");
+      setError(L("Rechargez la page WikiMasters pour activer la Toolbox.", "Reload the WikiMasters page to enable the Toolbox."));
     }
   };
 
@@ -42,38 +43,38 @@ function Popup() {
         <Mark size={24} />
         <div>
           <div class="title">WikiMasters Toolbox</div>
-          <div class="sub">{onSite ? (status?.connected ? `connecté · ${status.username || "joueur"}` : status ? "non connecté à WikiMasters" : "…") : "ouvrez WikiMasters pour commencer"}</div>
+          <div class="sub">{onSite ? (status?.connected ? L(`connecté · ${status.username || "joueur"}`, `signed in · ${status.username || "player"}`) : status ? L("non connecté à WikiMasters", "not signed in to WikiMasters") : "…") : L("ouvrez WikiMasters pour commencer", "open WikiMasters to get started")}</div>
         </div>
       </div>
       {!onSite && (
         <button class="primary" onClick={() => ext.tabs.create({url: SITE}).then(() => window.close())}>
-          Ouvrir WikiMasters
+          {L("Ouvrir WikiMasters", "Open WikiMasters")}
         </button>
       )}
       {onSite && status?.connected && (
         <>
           <button class="primary" onClick={() => send({type: "sort-new"})}>
-            <Icon name="sort" size={16} /> Trier mes nouvelles cartes
+            <Icon name="sort" size={16} /> {L("Trier mes nouvelles cartes", "Sort my new cards")}
           </button>
           <button onClick={() => send({type: "open-panel"})}>
-            <Mark size={16} /> Ouvrir la Toolbox
+            <Mark size={16} /> {L("Ouvrir la Toolbox", "Open the Toolbox")}
           </button>
           <div class="grid">
             <button onClick={() => send({type: "open-panel", tab: "trades"})}>
-              <Icon name="trades" size={16} /> Échanges
+              <Icon name="trades" size={16} /> {L("Échanges", "Trades")}
             </button>
             <button onClick={() => send({type: "open-panel", tab: "market"})}>
-              <Icon name="market" size={16} /> Enchères
+              <Icon name="market" size={16} /> {L("Enchères", "Auctions")}
             </button>
             <button onClick={() => send({type: "open-panel", tab: "prices"})}>
-              <Icon name="prices" size={16} /> Prix
+              <Icon name="prices" size={16} /> {L("Prix", "Prices")}
             </button>
             <button onClick={() => send({type: "open-panel", tab: "families"})}>
-              <Icon name="families" size={16} /> Familles
+              <Icon name="families" size={16} /> {L("Familles", "Families")}
             </button>
           </div>
           <button onClick={() => send({type: "open-all"})}>
-            <Icon name="packs" size={16} /> Tout ouvrir
+            <Icon name="packs" size={16} /> {L("Tout ouvrir", "Open all")}
             {status.packs != null && <span class="n">{status.packs}</span>}
           </button>
         </>
@@ -87,4 +88,5 @@ const style = document.createElement("style");
 // Page de l'extension : les polices sont servies à côté de popup.html
 style.textContent = fontsCss.replaceAll("__FONTS__", "fonts/") + css;
 document.head.append(style);
+document.documentElement.lang = LANG;
 render(<Popup />, document.getElementById("app"));

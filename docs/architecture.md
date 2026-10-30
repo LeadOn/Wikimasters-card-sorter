@@ -44,15 +44,16 @@ core/                          moteur partagé (CommonJS, sans dépendance)
   families.js                  familles de cartes (manuelles ou par règle), progression
   share-code.js                codes de partage WMT-P1… / WMT-F1… (JSON compressé, base64url)
   stonks.js                    achats et ventes au marché : rapprochement vente → achat (premier entré, premier sorti), reventes seules, plus-value, périodes jour / semaine / mois
+  i18n.js                      langue des textes affichés (français par défaut, anglais) : L(fr, en), choix d'après la langue du navigateur
 
 extension/
-  build.mjs                    build esbuild → dist/chrome, dist/firefox (+ .zip), manifeste généré
+  build.mjs                    build esbuild → dist/chrome, dist/firefox (+ .zip), manifeste et description traduite (_locales) générés
   make-icons.mjs               icônes PNG de la barre d'outils et du store, depuis la marque
   static/                      popup.html et icônes, copiés tels quels
   dev/                         banc d'essai : injecter l'extension dans une page sans l'installer
   src/
     hook/main-world.js         script du monde principal de la page : observe les réponses du site
-    shared/                    identité visuelle : marque, icônes, polices (brand.mjs, Brand.jsx, fonts.css)
+    shared/                    identité visuelle : marque, icônes, polices (brand.mjs, Brand.jsx, fonts.css) ; langue de l'interface (i18n.js)
     popup/                     popup d'actions rapides
     content/                   application, dans le monde isolé de la page
       index.jsx                démarrage : bus, registre, interface, intégration aux pages, messages de la popup
@@ -189,6 +190,7 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | Fichier | Ce qui est vérifié |
 |---|---|
 | `engine.test.js` | Classement du jeu de cartes étiquetées, profils d'intérêts |
+| `i18n.test.js` | Langue : choix d'après la liste du navigateur (anglais à défaut), textes et raretés dans la langue courante, extension en français pendant les tests |
 | `profiles.test.js` | Règles, éditeur simple, validation des profils, export / import JSON et fusion des profils importés, profils de la bande hors du moteur partagé |
 | `themes.test.js` | Thèmes personnalisés : classement identique par défaut, renommage, ajout, suppression, réglage enregistré (différences seulement), suivi des étiquettes renommées / supprimées, vérification, export / import JSON, plan du tri et écriture après un renommage ou une suppression, réglage de l'extension |
 | `tag-sync.test.js` | Plan de synchronisation, modes complet et incrémental |
@@ -203,7 +205,7 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `extension-stonks.test.js` | Lecture de l'historique : deux lectures triées (vendeur, acheteur), aucune écriture, cartes encore en stock d'après la collection, cache de quelques minutes, panne signalée sans perdre l'historique affiché |
 | `extension-collection-view.test.js` | Collection filtrée : critères cumulés, jamais vendues (toute rareté ou la sienne), intervalle de prix (prix fiables seulement, recalculés quand les réglages changent ; bornes incluses, facultatives, remises dans l'ordre), lecture des ventes (ordre stable, shiny) et résumé du site qui n'écrase pas un prix récent, mots-clés inclus ou exclus, ouverture depuis la grille du site ; exemplaire visé (jamais un favori, shiny en dernier), une requête par carte, arrêt à la première erreur, collection relue après une écriture sans réponse |
 
-Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés.
+Les modules de l'extension sont chargés dans Node par `tests/helpers/extension.js` (regroupés par esbuild), avec `fetch` et `chrome.storage` simulés, et l'interface en français (`navigator.languages` fixé à `fr-FR`).
 
 `npm run eval` évalue la qualité du classement sur `scripts/fixtures/labeled_cards.json` : à lancer avant et après chaque modification des règles.
 
@@ -234,4 +236,5 @@ La publication sur le Chrome Web Store est décrite dans [store/README.md](../st
 - **Sélecteurs du site** : uniquement dans `features/site-dom.js`.
 - **Interface** : elle suit la charte graphique décrite dans [AGENTS.md](../AGENTS.md#charte-graphique) (couleurs, typographie, marque, icônes).
 - **Code original** : rien n'est repris d'une autre extension ; les routes du site sont relevées dans son trafic ([docs/site-api.md](site-api.md)).
+- **Langue** : tout texte affiché passe par `L("texte français", "English text")` (`shared/i18n.js` dans l'extension, `core/i18n.js` dans le moteur). Ne sont jamais traduits les noms d'étiquettes (thèmes, `Doublon`, « Pour : … », données du joueur) ni les textes du site lus par `site-dom.js`, qui reste en français.
 - Code, commentaires et documentation en français.

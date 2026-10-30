@@ -9,38 +9,45 @@ import {stonksState, loadStonks} from "../../features/stonks";
 import {priceVersion, pricing, priceOf, priceStatus} from "../../state/prices";
 import {CardArt, Gain, Icon, Mark, Money, Notice, Progress, Rarity, fmt, plural, signOf, timeAgo} from "../components";
 import {byPeriod, tradeStats, resalesOnly} from "../../../../../core";
+import {L, LANG, LOCALE} from "../../../shared/i18n";
 
 // window : nombre de périodes affichées dans le graphique
 const UNITS = [
-  {id: "day", label: "Jour", window: 30},
-  {id: "week", label: "Semaine", window: 16},
-  {id: "month", label: "Mois", window: 12},
+  {id: "day", label: L("Jour", "Day"), window: 30},
+  {id: "week", label: L("Semaine", "Week"), window: 16},
+  {id: "month", label: L("Mois", "Month"), window: 12},
 ];
 const FILTERS = [
-  {id: "all", label: "Tout"},
-  {id: "buy", label: "Achats"},
-  {id: "sell", label: "Ventes"},
+  {id: "all", label: L("Tout", "All")},
+  {id: "buy", label: L("Achats", "Purchases")},
+  {id: "sell", label: L("Ventes", "Sales")},
 ];
 // Mesure du graphique : plus-value réalisée (reventes seulement) ou flux net (ventes − achats)
 const METRICS = [
-  {id: "profit", label: "Plus-value", title: "Plus-value réalisée", empty: "Aucune revente sur ces périodes : la plus-value apparaît dès qu'une carte achetée est revendue."},
-  {id: "net", label: "Flux net", title: "Flux net", empty: "Aucun achat ni vente sur ces périodes."},
+  {
+    id: "profit",
+    label: L("Plus-value", "Profit"),
+    title: L("Plus-value réalisée", "Realized profit"),
+    empty: L("Aucune revente sur ces périodes : la plus-value apparaît dès qu'une carte achetée est revendue.", "No resales in these periods: profit shows up as soon as a bought card is resold."),
+  },
+  {id: "net", label: L("Flux net", "Net flow"), title: L("Flux net", "Net flow"), empty: L("Aucun achat ni vente sur ces périodes.", "No purchases or sales in these periods.")},
 ];
 // Opérations prises en compte : tout l'historique, ou seulement les cartes achetées puis revendues
 const SCOPES = [
-  {id: "all", label: "Tout", title: "Tous vos achats et ventes, cartes en stock comprises"},
-  {id: "resale", label: "Achat-revente", title: "Seulement les cartes achetées au marché puis revendues"},
+  {id: "all", label: L("Tout", "All"), title: L("Tous vos achats et ventes, cartes en stock comprises", "All your purchases and sales, including cards still in stock")},
+  {id: "resale", label: L("Achat-revente", "Resales"), title: L("Seulement les cartes achetées au marché puis revendues", "Only cards bought on the market and then resold")},
 ];
 // Réglages de la page, gardés d'une visite à l'autre ; la période choisie, le temps de la visite
 const view = persistentStore("stonks-view", {unit: "day", metric: "profit", scope: "all", filter: "all", sort: "date"});
 const picked = createStore({selected: null});
 
 // --- Formats
-const dateFmt = (opts) => new Intl.DateTimeFormat("fr-FR", opts);
+const dateFmt = (opts) => new Intl.DateTimeFormat(LOCALE, opts);
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const sameYear = (d) => d.getFullYear() === new Date().getFullYear();
 
-const percent = (x) => (x == null ? "—" : `${signOf(x)}${Math.abs(x * 100).toLocaleString("fr-FR", {maximumFractionDigits: 1})} %`);
+const pct = (n) => L(`${n} %`, `${n}%`);
+const percent = (x) => (x == null ? "—" : `${signOf(x)}${pct(Math.abs(x * 100).toLocaleString(LOCALE, {maximumFractionDigits: 1}))}`);
 
 // Durée de détention : « 3 h », « 2 j 4 h », « 12 j »
 function held(ms) {
@@ -49,7 +56,7 @@ function held(ms) {
   if (h < 1) return `${Math.max(1, Math.round(ms / 60000))} min`;
   if (h < 24) return `${h} h`;
   const d = Math.floor(h / 24);
-  return d < 7 && h % 24 ? `${d} j ${h % 24} h` : `${d} j`;
+  return d < 7 && h % 24 ? L(`${d} j ${h % 24} h`, `${d} d ${h % 24} h`) : L(`${d} j`, `${d} d`);
 }
 
 // Nom d'une période : « Mercredi 15 octobre », « Semaine du 12 au 18 octobre », « Octobre 2026 »
@@ -59,6 +66,8 @@ function periodName(p, unit) {
   if (unit === "day") return capital(dateFmt({weekday: "long", day: "numeric", month: "long", ...year}).format(start));
   if (unit === "month") return capital(dateFmt({month: "long", year: "numeric"}).format(start));
   const last = new Date(p.end - 1);
+  // « Week of October 12 – 18 », « Week of September 29 – October 5 »
+  if (LANG === "en") return `Week of ${dateFmt({day: "numeric", month: "long", ...year}).formatRange(start, last)}`;
   const from = start.getMonth() === last.getMonth() ? String(start.getDate()) : dateFmt({day: "numeric", month: "long"}).format(start);
   return `Semaine du ${from} au ${dateFmt({day: "numeric", month: "long", ...year}).format(last)}`;
 }
@@ -66,10 +75,10 @@ function periodName(p, unit) {
 // Période en cours ou précédente : « Aujourd'hui », « Hier », « Cette semaine »…
 function periodHint(p, periods, unit) {
   const now = Date.now();
-  if (now >= p.start && now < p.end) return {day: "Aujourd'hui", week: "Cette semaine", month: "Ce mois-ci"}[unit];
+  if (now >= p.start && now < p.end) return {day: L("Aujourd'hui", "Today"), week: L("Cette semaine", "This week"), month: L("Ce mois-ci", "This month")}[unit];
   const i = periods.indexOf(p);
   const current = periods[periods.length - 1];
-  if (now >= current.start && now < current.end && i === periods.length - 2) return {day: "Hier", week: "La semaine dernière", month: "Le mois dernier"}[unit];
+  if (now >= current.start && now < current.end && i === periods.length - 2) return {day: L("Hier", "Yesterday"), week: L("La semaine dernière", "Last week"), month: L("Le mois dernier", "Last month")}[unit];
   return null;
 }
 
@@ -95,7 +104,7 @@ function scale(min, max) {
   for (let t = bottom; t <= top + step / 2; t += step) ticks.push(Math.round(t));
   return {top, bottom, ticks};
 }
-const compact = (v) => `${signOf(v)}${new Intl.NumberFormat("fr-FR", {notation: "compact", maximumFractionDigits: 1}).format(Math.abs(v))}`;
+const compact = (v) => `${signOf(v)}${new Intl.NumberFormat(LOCALE, {notation: "compact", maximumFractionDigits: 1}).format(Math.abs(v))}`;
 
 // --- Graphique : plus-value réalisée ou flux net par période (une barre par période, au-dessus ou
 // en dessous de zéro). Une période à zéro mais avec des opérations a un repère sur la ligne de zéro.
@@ -127,7 +136,10 @@ function PnlChart({periods, unit, metric, selected, onSelect}) {
                 type="button"
                 class={`pnl-col${p.key === selected ? " on" : ""}`}
                 aria-pressed={p.key === selected}
-                aria-label={`${periodName(p, unit)} : ${metric.title.toLowerCase()} ${signOf(v)}${fmt(Math.abs(v))} ₩, ${plural(p.stats.sells, "vente")}, ${plural(p.stats.buys, "achat")}`}
+                aria-label={L(
+                  `${periodName(p, unit)} : ${metric.title.toLowerCase()} ${signOf(v)}${fmt(Math.abs(v))} ₩, ${plural(p.stats.sells, "vente")}, ${plural(p.stats.buys, "achat")}`,
+                  `${periodName(p, unit)}: ${metric.title.toLowerCase()} ${signOf(v)}${fmt(Math.abs(v))} ₩, ${plural(p.stats.sells, "sale")}, ${plural(p.stats.buys, "purchase")}`,
+                )}
                 onClick={() => onSelect(p.key)}
                 onMouseEnter={() => setHover(i)}
                 onFocus={() => setHover(i)}
@@ -144,8 +156,8 @@ function PnlChart({periods, unit, metric, selected, onSelect}) {
             <Gain v={tip.stats[metric.id]} class="pnl-tip-v" />
             <span class="pnl-tip-k">{periodName(tip, unit)}</span>
             <span class="pnl-tip-k">
-              {plural(tip.stats.sells, "vente")} · {plural(tip.stats.buys, "achat")}
-              {tip.stats.resold ? ` · ${plural(tip.stats.resold, "revente")}` : ""}
+              {L(plural(tip.stats.sells, "vente"), plural(tip.stats.sells, "sale"))} · {L(plural(tip.stats.buys, "achat"), plural(tip.stats.buys, "purchase"))}
+              {tip.stats.resold ? ` · ${L(plural(tip.stats.resold, "revente"), plural(tip.stats.resold, "resale"))}` : ""}
             </span>
           </div>
         )}
@@ -177,39 +189,51 @@ function Stats({s, resale}) {
   if (resale)
     return (
       <div class="grid-stats stonks-stats">
-        <Stat k="Plus-value réalisée" sub={s.resold ? `${percent(s.roi)} sur ${plural(s.resold, "revente")}` : "aucune revente"}>
+        <Stat k={L("Plus-value réalisée", "Realized profit")} sub={s.resold ? L(`${percent(s.roi)} sur ${plural(s.resold, "revente")}`, `${percent(s.roi)} on ${plural(s.resold, "resale")}`) : L("aucune revente", "no resales")}>
           <Gain v={s.profit} />
         </Stat>
-        <Stat k="Prix de vente" sub={plural(s.resold, "revente")}>
+        <Stat k={L("Prix de vente", "Sale price")} sub={L(plural(s.resold, "revente"), plural(s.resold, "resale"))}>
           <Money v={s.revenue} />
         </Stat>
-        <Stat k="Prix d'achat" sub="des cartes revendues">
+        <Stat k={L("Prix d'achat", "Purchase price")} sub={L("des cartes revendues", "of resold cards")}>
           <Money v={s.cost} />
         </Stat>
-        <Stat k="Reventes gagnantes" sub={s.resold ? `${fmt(s.wins)} sur ${fmt(s.resold)}${s.losses ? ` · ${plural(s.losses, "à perte", "à perte")}` : ""}` : "—"}>
-          {s.winRate == null ? "—" : `${Math.round(s.winRate * 100)} %`}
+        <Stat
+          k={L("Reventes gagnantes", "Winning resales")}
+          sub={s.resold ? L(`${fmt(s.wins)} sur ${fmt(s.resold)}${s.losses ? ` · ${plural(s.losses, "à perte", "à perte")}` : ""}`, `${fmt(s.wins)} of ${fmt(s.resold)}${s.losses ? ` · ${fmt(s.losses)} at a loss` : ""}`) : "—"}
+        >
+          {s.winRate == null ? "—" : pct(Math.round(s.winRate * 100))}
         </Stat>
-        <Stat k="Détention moyenne" sub="de l'achat à la revente">
+        <Stat k={L("Détention moyenne", "Average holding time")} sub={L("de l'achat à la revente", "from purchase to resale")}>
           {held(s.avgHeldMs)}
         </Stat>
       </div>
     );
   return (
     <div class="grid-stats stonks-stats">
-      <Stat k="Plus-value réalisée" sub={s.resold ? `${percent(s.roi)} sur ${plural(s.resold, "revente")}` : "aucune revente"}>
+      <Stat k={L("Plus-value réalisée", "Realized profit")} sub={s.resold ? L(`${percent(s.roi)} sur ${plural(s.resold, "revente")}`, `${percent(s.roi)} on ${plural(s.resold, "resale")}`) : L("aucune revente", "no resales")}>
         <Gain v={s.profit} />
       </Stat>
-      <Stat k="Ventes" sub={`${plural(s.sells, "vente")}${s.pulled ? ` · dont ${fmt(s.pulledRevenue)} ₩ de cartes non achetées` : ""}`}>
+      <Stat
+        k={L("Ventes", "Sales")}
+        sub={L(
+          `${plural(s.sells, "vente")}${s.pulled ? ` · dont ${fmt(s.pulledRevenue)} ₩ de cartes non achetées` : ""}`,
+          `${plural(s.sells, "sale")}${s.pulled ? ` · incl. ${fmt(s.pulledRevenue)} ₩ from cards not bought` : ""}`,
+        )}
+      >
         <Money v={s.revenue} />
       </Stat>
-      <Stat k="Achats" sub={plural(s.buys, "achat")}>
+      <Stat k={L("Achats", "Purchases")} sub={L(plural(s.buys, "achat"), plural(s.buys, "purchase"))}>
         <Money v={s.spent} />
       </Stat>
-      <Stat k="Flux net" sub="ventes − achats">
+      <Stat k={L("Flux net", "Net flow")} sub={L("ventes − achats", "sales − purchases")}>
         <Gain v={s.net} />
       </Stat>
-      <Stat k="Reventes gagnantes" sub={s.resold ? `${fmt(s.wins)} sur ${fmt(s.resold)} · détention moyenne ${held(s.avgHeldMs)}` : "—"}>
-        {s.winRate == null ? "—" : `${Math.round(s.winRate * 100)} %`}
+      <Stat
+        k={L("Reventes gagnantes", "Winning resales")}
+        sub={s.resold ? L(`${fmt(s.wins)} sur ${fmt(s.resold)} · détention moyenne ${held(s.avgHeldMs)}`, `${fmt(s.wins)} of ${fmt(s.resold)} · average holding ${held(s.avgHeldMs)}`) : "—"}
+      >
+        {s.winRate == null ? "—" : pct(Math.round(s.winRate * 100))}
       </Stat>
     </div>
   );
@@ -217,7 +241,7 @@ function Stats({s, resale}) {
 
 // Carte d'une ligne : vignette, titre (lien vers l'article), rareté, shiny
 function CardCell({card, rarity, shiny}) {
-  const title = card?.wikipedia_title || "Carte inconnue";
+  const title = card?.wikipedia_title || L("Carte inconnue", "Unknown card");
   const href = card?.wikipedia_url || (card?.wikipedia_title ? `https://fr.wikipedia.org/wiki/${encodeURIComponent(card.wikipedia_title.replace(/ /g, "_"))}` : null);
   return (
     <div class="op-card" style={{"--rc": `var(--r-${rarity || "C"})`}}>
@@ -243,7 +267,7 @@ function CardCell({card, rarity, shiny}) {
   );
 }
 
-const NOT_BOUGHT = "Carte tirée d'un paquet, reçue par échange ou achetée avant l'historique : pas de prix d'achat.";
+const NOT_BOUGHT = L("Carte tirée d'un paquet, reçue par échange ou achetée avant l'historique : pas de prix d'achat.", "Card pulled from a pack, received in a trade or bought before the history starts: no purchase price.");
 
 // Lignes affichées d'un tableau : les premières, puis davantage à la demande (remis à zéro quand la liste change)
 const PAGE = 50;
@@ -256,18 +280,18 @@ const More = ({shown, total, onMore}) =>
   shown < total ? (
     <div class="row" style={{justifyContent: "center"}}>
       <button class="btn sm" onClick={onMore}>
-        Afficher plus ({fmt(total - shown)} restantes)
+        {L(`Afficher plus (${fmt(total - shown)} restantes)`, `Show more (${fmt(total - shown)} left)`)}
       </button>
     </div>
   ) : null;
 
 const SortSeg = ({sort}) => (
-  <div class="seg" role="group" aria-label="Ordre">
+  <div class="seg" role="group" aria-label={L("Ordre", "Order")}>
     <button class={sort === "date" ? "on" : ""} aria-pressed={sort === "date"} onClick={() => view.set({sort: "date"})}>
-      Récentes
+      {L("Récentes", "Recent")}
     </button>
     <button class={sort === "profit" ? "on" : ""} aria-pressed={sort === "profit"} onClick={() => view.set({sort: "profit"})}>
-      Plus-value
+      {L("Plus-value", "Profit")}
     </button>
   </div>
 );
@@ -279,10 +303,10 @@ function Operations({ops, period, unit, cards, byId}) {
   const count = (side) => ops.filter((op) => side === "all" || op.side === side).length;
   const [shownRows, more] = useMore([period, v.filter, v.sort]);
   return (
-    <section class="box stack" aria-label="Opérations de la période">
+    <section class="box stack" aria-label={L("Opérations de la période", "Transactions in the period")}>
       <div class="row">
-        <h3 style={{flex: 1}}>Opérations</h3>
-        <div class="seg" role="group" aria-label="Type d'opération">
+        <h3 style={{flex: 1}}>{L("Opérations", "Transactions")}</h3>
+        <div class="seg" role="group" aria-label={L("Type d'opération", "Transaction type")}>
           {FILTERS.map((f) => (
             <button key={f.id} class={v.filter === f.id ? "on" : ""} aria-pressed={v.filter === f.id} onClick={() => view.set({filter: f.id})}>
               {f.label} <span class="n">{fmt(count(f.id))}</span>
@@ -296,13 +320,13 @@ function Operations({ops, period, unit, cards, byId}) {
           <table class="list ops">
             <thead>
               <tr>
-                <th>{unit === "day" ? "Heure" : "Date"}</th>
-                <th>Carte</th>
-                <th>Opération</th>
-                <th class="num">Prix</th>
-                <th class="num">Prix d'achat</th>
-                <th class="num">Plus-value</th>
-                <th class="num">Détention</th>
+                <th>{unit === "day" ? L("Heure", "Time") : L("Date", "Date")}</th>
+                <th>{L("Carte", "Card")}</th>
+                <th>{L("Opération", "Transaction")}</th>
+                <th class="num">{L("Prix", "Price")}</th>
+                <th class="num">{L("Prix d'achat", "Purchase price")}</th>
+                <th class="num">{L("Plus-value", "Profit")}</th>
+                <th class="num">{L("Détention", "Held")}</th>
               </tr>
             </thead>
             <tbody>
@@ -310,28 +334,28 @@ function Operations({ops, period, unit, cards, byId}) {
                 const sale = op.side === "buy" && op.soldId ? byId.get(op.soldId) : null;
                 return (
                   <tr key={op.id}>
-                    <td class="num muted" data-k={unit === "day" ? "Heure" : "Date"}>{when(op.at, unit)}</td>
+                    <td class="num muted" data-k={unit === "day" ? L("Heure", "Time") : L("Date", "Date")}>{when(op.at, unit)}</td>
                     <td class="op-main">
                       <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                     </td>
-                    <td data-k="Opération">
-                      <span class={`chip side ${op.side}`}>{op.side === "buy" ? "Achat" : op.cost != null ? "Revente" : "Vente"}</span>
+                    <td data-k={L("Opération", "Transaction")}>
+                      <span class={`chip side ${op.side}`}>{op.side === "buy" ? L("Achat", "Purchase") : op.cost != null ? L("Revente", "Resale") : L("Vente", "Sale")}</span>
                     </td>
-                    <td class="num" data-k="Prix">
+                    <td class="num" data-k={L("Prix", "Price")}>
                       <Money v={op.price} />
                     </td>
-                    <td class="num" data-k="Prix d'achat">
+                    <td class="num" data-k={L("Prix d'achat", "Purchase price")}>
                       {op.side === "sell" ? (
                         op.cost != null ? (
                           <Money v={op.cost} />
                         ) : (
                           <span class="muted" title={NOT_BOUGHT}>
-                            non achetée
+                            {L("non achetée", "not bought")}
                           </span>
                         )
                       ) : null}
                     </td>
-                    <td class="num" data-k="Plus-value">
+                    <td class="num" data-k={L("Plus-value", "Profit")}>
                       {op.side === "sell" ? (
                         op.cost != null ? (
                           <span class="stack-num">
@@ -342,15 +366,15 @@ function Operations({ops, period, unit, cards, byId}) {
                           <span class="muted">—</span>
                         )
                       ) : sale ? (
-                        <span class="stack-num" title={`Revendue ${dateFmt({day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(sale.at))}`}>
-                          <span class="muted small">revendue</span>
+                        <span class="stack-num" title={L(`Revendue ${dateFmt({day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(sale.at))}`, `Resold ${dateFmt({day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"}).format(new Date(sale.at))}`)}>
+                          <span class="muted small">{L("revendue", "resold")}</span>
                           <Gain v={sale.profit} />
                         </span>
                       ) : (
-                        <span class="muted small">en stock</span>
+                        <span class="muted small">{L("en stock", "in stock")}</span>
                       )}
                     </td>
-                    <td class="num muted" data-k="Détention">{op.side === "sell" ? held(op.heldMs) : sale ? held(sale.heldMs) : ""}</td>
+                    <td class="num muted" data-k={L("Détention", "Held")}>{op.side === "sell" ? held(op.heldMs) : sale ? held(sale.heldMs) : ""}</td>
                   </tr>
                 );
               })}
@@ -359,7 +383,7 @@ function Operations({ops, period, unit, cards, byId}) {
           <More shown={shownRows} total={sorted.length} onMore={more} />
         </div>
       ) : (
-        <div class="empty">{ops.length ? "Aucune opération de ce type sur la période." : "Aucun achat ni vente sur la période."}</div>
+        <div class="empty">{ops.length ? L("Aucune opération de ce type sur la période.", "No transactions of this type in this period.") : L("Aucun achat ni vente sur la période.", "No purchases or sales in this period.")}</div>
       )}
     </section>
   );
@@ -371,9 +395,9 @@ function Resales({ops, period, unit, cards}) {
   const sorted = [...ops].sort((a, b) => (v.sort === "profit" ? b.profit - a.profit || b.at - a.at : b.at - a.at));
   const [shownRows, more] = useMore([period, v.sort]);
   return (
-    <section class="box stack" aria-label="Reventes de la période">
+    <section class="box stack" aria-label={L("Reventes de la période", "Resales in the period")}>
       <div class="row">
-        <h3 style={{flex: 1}}>Reventes</h3>
+        <h3 style={{flex: 1}}>{L("Reventes", "Resales")}</h3>
         <SortSeg sort={v.sort} />
       </div>
       {sorted.length ? (
@@ -381,36 +405,36 @@ function Resales({ops, period, unit, cards}) {
           <table class="list ops">
             <thead>
               <tr>
-                <th>{unit === "day" ? "Vendue à" : "Vendue le"}</th>
-                <th>Carte</th>
-                <th>Achetée le</th>
-                <th class="num">Prix d'achat</th>
-                <th class="num">Prix de vente</th>
-                <th class="num">Plus-value</th>
-                <th class="num">Détention</th>
+                <th>{unit === "day" ? L("Vendue à", "Sold at") : L("Vendue le", "Sold on")}</th>
+                <th>{L("Carte", "Card")}</th>
+                <th>{L("Achetée le", "Bought on")}</th>
+                <th class="num">{L("Prix d'achat", "Purchase price")}</th>
+                <th class="num">{L("Prix de vente", "Sale price")}</th>
+                <th class="num">{L("Plus-value", "Profit")}</th>
+                <th class="num">{L("Détention", "Held")}</th>
               </tr>
             </thead>
             <tbody>
               {sorted.slice(0, shownRows).map((op) => (
                 <tr key={op.id}>
-                  <td class="num muted" data-k={unit === "day" ? "Vendue à" : "Vendue le"}>{when(op.at, unit)}</td>
+                  <td class="num muted" data-k={unit === "day" ? L("Vendue à", "Sold at") : L("Vendue le", "Sold on")}>{when(op.at, unit)}</td>
                   <td class="op-main">
                     <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                   </td>
-                  <td class="num muted" data-k="Achetée le">{when(op.boughtAt, "week")}</td>
-                  <td class="num" data-k="Prix d'achat">
+                  <td class="num muted" data-k={L("Achetée le", "Bought on")}>{when(op.boughtAt, "week")}</td>
+                  <td class="num" data-k={L("Prix d'achat", "Purchase price")}>
                     <Money v={op.cost} />
                   </td>
-                  <td class="num" data-k="Prix de vente">
+                  <td class="num" data-k={L("Prix de vente", "Sale price")}>
                     <Money v={op.price} />
                   </td>
-                  <td class="num" data-k="Plus-value">
+                  <td class="num" data-k={L("Plus-value", "Profit")}>
                     <span class="stack-num">
                       <Gain v={op.profit} />
                       <span class="muted small">{percent(op.cost ? op.profit / op.cost : null)}</span>
                     </span>
                   </td>
-                  <td class="num muted" data-k="Détention">{held(op.heldMs)}</td>
+                  <td class="num muted" data-k={L("Détention", "Held")}>{held(op.heldMs)}</td>
                 </tr>
               ))}
             </tbody>
@@ -418,7 +442,7 @@ function Resales({ops, period, unit, cards}) {
           <More shown={shownRows} total={sorted.length} onMore={more} />
         </div>
       ) : (
-        <div class="empty">Aucune revente sur la période.</div>
+        <div class="empty">{L("Aucune revente sur la période.", "No resales in this period.")}</div>
       )}
     </section>
   );
@@ -431,8 +455,8 @@ function Positions({open, error, cards}) {
   if (!open)
     return (
       <section class="box stack">
-        <h3>Cartes achetées en stock</h3>
-        {open === false ? <Notice type="error">Votre collection n'a pas pu être lue : {error}</Notice> : <Progress done={0} label="Lecture de votre collection…" />}
+        <h3>{L("Cartes achetées en stock", "Bought cards in stock")}</h3>
+        {open === false ? <Notice type="error">{L("Votre collection n'a pas pu être lue : ", "Your collection could not be read: ")}{error}</Notice> : <Progress done={0} label={L("Lecture de votre collection…", "Reading your collection…")} />}
       </section>
     );
   const rows = open.map((op) => {
@@ -445,13 +469,21 @@ function Positions({open, error, cards}) {
   const latent = valued.length ? valued.reduce((n, r) => n + r.latent, 0) : null;
   const reading = rows.some((r) => priceStatus(r.op.cardId, r.op.rarity, {shiny: r.op.shiny}) === "unknown");
   return (
-    <section class="box stack" aria-label="Cartes achetées en stock">
+    <section class="box stack" aria-label={L("Cartes achetées en stock", "Bought cards in stock")}>
       <div class="row">
-        <h3 style={{flex: 1}}>Cartes achetées en stock</h3>
+        <h3 style={{flex: 1}}>{L("Cartes achetées en stock", "Bought cards in stock")}</h3>
         {rows.length > 0 && (
           <span class="small muted">
-            {plural(rows.length, "carte")} · payées <Money v={cost} /> · plus-value latente <Gain v={latent} />
-            {reading ? " · prix du marché en cours de lecture…" : valued.length < rows.length ? ` (${fmt(rows.length - valued.length)} sans prix fiable)` : ""}
+            {L(plural(rows.length, "carte"), plural(rows.length, "card"))}
+            {L(" · payées ", " · paid ")}
+            <Money v={cost} />
+            {L(" · plus-value latente ", " · unrealized profit ")}
+            <Gain v={latent} />
+            {reading
+              ? L(" · prix du marché en cours de lecture…", " · reading market prices…")
+              : valued.length < rows.length
+                ? L(` (${fmt(rows.length - valued.length)} sans prix fiable)`, ` (${fmt(rows.length - valued.length)} without a reliable price)`)
+                : ""}
           </span>
         )}
       </div>
@@ -460,29 +492,29 @@ function Positions({open, error, cards}) {
           <table class="list ops">
             <thead>
               <tr>
-                <th>Achetée</th>
-                <th>Carte</th>
-                <th class="num">Prix d'achat</th>
-                <th class="num">Prix du marché</th>
-                <th class="num">Plus-value latente</th>
-                <th class="num">Depuis</th>
+                <th>{L("Achetée", "Bought")}</th>
+                <th>{L("Carte", "Card")}</th>
+                <th class="num">{L("Prix d'achat", "Purchase price")}</th>
+                <th class="num">{L("Prix du marché", "Market price")}</th>
+                <th class="num">{L("Plus-value latente", "Unrealized profit")}</th>
+                <th class="num">{L("Depuis", "Held for")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.slice(0, shownRows).map(({op, p, latent: l}) => (
                 <tr key={op.id}>
-                  <td class="num muted" data-k="Achetée">{when(op.at, "week")}</td>
+                  <td class="num muted" data-k={L("Achetée", "Bought")}>{when(op.at, "week")}</td>
                   <td class="op-main">
                     <CardCell card={cards.get(op.cardId)} rarity={op.rarity} shiny={op.shiny} />
                   </td>
-                  <td class="num" data-k="Prix d'achat">
+                  <td class="num" data-k={L("Prix d'achat", "Purchase price")}>
                     <Money v={op.price} />
                   </td>
-                  <td class="num" data-k="Prix du marché">{p.price != null ? <Money v={p.price} approx={Boolean(p.uncertain)} title={p.uncertain} /> : <span class="muted">—</span>}</td>
-                  <td class="num" data-k="Plus-value latente">
+                  <td class="num" data-k={L("Prix du marché", "Market price")}>{p.price != null ? <Money v={p.price} approx={Boolean(p.uncertain)} title={p.uncertain} /> : <span class="muted">—</span>}</td>
+                  <td class="num" data-k={L("Plus-value latente", "Unrealized profit")}>
                     <Gain v={l} />
                   </td>
-                  <td class="num muted" data-k="Depuis">{held(Date.now() - op.at)}</td>
+                  <td class="num muted" data-k={L("Depuis", "Held for")}>{held(Date.now() - op.at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -490,9 +522,14 @@ function Positions({open, error, cards}) {
           <More shown={shownRows} total={rows.length} onMore={more} />
         </div>
       ) : (
-        <div class="empty">Toutes les cartes achetées ont été revendues (ou ont quitté votre collection).</div>
+        <div class="empty">{L("Toutes les cartes achetées ont été revendues (ou ont quitté votre collection).", "All bought cards have been resold (or have left your collection).")}</div>
       )}
-      <p class="small muted">Plus-value latente : prix du marché actuel (médiane des dernières ventes, fiable seulement) moins le prix payé.</p>
+      <p class="small muted">
+        {L(
+          "Plus-value latente : prix du marché actuel (médiane des dernières ventes, fiable seulement) moins le prix payé.",
+          "Unrealized profit: current market price (median of recent sales, reliable only) minus the price paid.",
+        )}
+      </p>
     </section>
   );
 }
@@ -522,22 +559,22 @@ export function StonksPage() {
         <div class="eyebrow">WikiMasters Toolbox</div>
         <h1>Stonks</h1>
       </div>
-      <div class="seg stonks-units" role="group" aria-label="Opérations prises en compte">
+      <div class="seg stonks-units" role="group" aria-label={L("Opérations prises en compte", "Transactions included")}>
         {SCOPES.map((o) => (
           <button key={o.id} class={v.scope === o.id ? "on" : ""} aria-pressed={v.scope === o.id} title={o.title} onClick={() => (view.set({scope: o.id}), picked.set({selected: null}))}>
             {o.label}
           </button>
         ))}
       </div>
-      <div class="seg stonks-units" role="group" aria-label="Période">
+      <div class="seg stonks-units" role="group" aria-label={L("Période", "Period")}>
         {UNITS.map((u) => (
           <button key={u.id} class={v.unit === u.id ? "on" : ""} aria-pressed={v.unit === u.id} onClick={() => (view.set({unit: u.id}), picked.set({selected: null}))}>
             {u.label}
           </button>
         ))}
       </div>
-      <button class="btn sm" disabled={s.loading || !session} onClick={() => loadStonks({force: true})} title={s.at ? `Mis à jour ${timeAgo(s.at)}` : undefined}>
-        <Icon name="refresh" size={14} /> Actualiser
+      <button class="btn sm" disabled={s.loading || !session} onClick={() => loadStonks({force: true})} title={s.at ? L(`Mis à jour ${timeAgo(s.at)}`, `Updated ${timeAgo(s.at)}`) : undefined}>
+        <Icon name="refresh" size={14} /> {L("Actualiser", "Refresh")}
       </button>
     </header>
   );
@@ -546,7 +583,7 @@ export function StonksPage() {
     return (
       <div class="stonks">
         {head}
-        <div class="empty">Connectez-vous à WikiMasters pour voir votre historique.</div>
+        <div class="empty">{L("Connectez-vous à WikiMasters pour voir votre historique.", "Sign in to WikiMasters to see your history.")}</div>
       </div>
     );
   if (!s.ops)
@@ -555,13 +592,14 @@ export function StonksPage() {
         {head}
         {s.error ? (
           <Notice type="error">
-            Historique illisible : {s.error}{" "}
+            {L("Historique illisible : ", "Could not read the history: ")}
+            {s.error}{" "}
             <button class="btn sm" onClick={() => loadStonks({force: true})}>
-              Réessayer
+              {L("Réessayer", "Retry")}
             </button>
           </Notice>
         ) : (
-          <Progress done={0} label="Lecture de vos enchères conclues…" />
+          <Progress done={0} label={L("Lecture de vos enchères conclues…", "Reading your completed auctions…")} />
         )}
       </div>
     );
@@ -576,45 +614,68 @@ export function StonksPage() {
   const shown = periods.slice(Math.max(0, end - unit.window), end);
   const select = (key) => picked.set({selected: key});
   const hint = current ? periodHint(current, periods, unit.id) : null;
+  const since = ops.length ? dateFmt({day: "numeric", month: "long", year: "numeric"}).format(new Date(ops[0].at)) : "";
 
   return (
     <div class={`stonks${s.loading ? " refreshing" : ""}`}>
       {head}
       <p class="stonks-lead">
         {resale
-          ? "Seulement les cartes achetées au marché puis revendues, chacune avec son prix d'achat : une revente compte à la date de la vente. Les ventes de cartes tirées et les cartes encore en stock sont écartées."
-          : "Vos enchères conclues, achats et ventes. Une vente est rapprochée du plus ancien achat encore en stock de la même carte (même rareté, même version) : la différence est la plus-value réalisée."}
+          ? L(
+              "Seulement les cartes achetées au marché puis revendues, chacune avec son prix d'achat : une revente compte à la date de la vente. Les ventes de cartes tirées et les cartes encore en stock sont écartées.",
+              "Only cards bought on the market and then resold, each with its purchase price: a resale counts on the date of the sale. Sales of pulled cards and cards still in stock are left out.",
+            )
+          : L(
+              "Vos enchères conclues, achats et ventes. Une vente est rapprochée du plus ancien achat encore en stock de la même carte (même rareté, même version) : la différence est la plus-value réalisée.",
+              "Your completed auctions, purchases and sales. Each sale is matched with the oldest purchase of the same card still in stock (same rarity, same version): the difference is the realized profit.",
+            )}
       </p>
-      {s.error && <Notice type="error">Actualisation impossible : {s.error}</Notice>}
+      {s.error && (
+        <Notice type="error">
+          {L("Actualisation impossible : ", "Refresh failed: ")}
+          {s.error}
+        </Notice>
+      )}
       {!ops.length ? (
         <div class="empty">
           {resale
-            ? "Aucune carte achetée puis revendue pour l'instant : chaque revente d'une carte achetée au marché apparaîtra ici, avec sa plus-value."
-            : "Aucune enchère conclue pour l'instant : vos achats et ventes au marché apparaîtront ici."}
+            ? L(
+                "Aucune carte achetée puis revendue pour l'instant : chaque revente d'une carte achetée au marché apparaîtra ici, avec sa plus-value.",
+                "No card bought and resold yet: every resale of a card bought on the market will show up here, with its profit.",
+              )
+            : L("Aucune enchère conclue pour l'instant : vos achats et ventes au marché apparaîtront ici.", "No completed auctions yet: your market purchases and sales will show up here.")}
         </div>
       ) : (
         <>
           <div class="stonks-total small muted">
             {resale ? (
+              L(
+                <>
+                  Depuis le {since} : plus-value réalisée <Gain v={total.profit} /> sur {plural(total.resold, "revente")} ({percent(total.roi)}) · achetées <Money v={total.cost} /> · revendues <Money v={total.revenue} /> · {fmt(total.wins)} gagnantes sur {fmt(total.resold)}
+                </>,
+                <>
+                  Since {since}: realized profit <Gain v={total.profit} /> on {plural(total.resold, "resale")} ({percent(total.roi)}) · bought <Money v={total.cost} /> · resold <Money v={total.revenue} /> · {fmt(total.wins)} winning out of {fmt(total.resold)}
+                </>,
+              )
+            ) : L(
               <>
-                Depuis le {dateFmt({day: "numeric", month: "long", year: "numeric"}).format(new Date(ops[0].at))} : plus-value réalisée <Gain v={total.profit} /> sur {plural(total.resold, "revente")} ({percent(total.roi)}) · achetées <Money v={total.cost} /> · revendues <Money v={total.revenue} /> · {fmt(total.wins)} gagnantes sur {fmt(total.resold)}
-              </>
-            ) : (
+                Depuis le {since} : plus-value réalisée <Gain v={total.profit} /> sur {plural(total.resold, "revente")} ({percent(total.roi)}) · {plural(total.sells, "vente")} pour <Money v={total.revenue} /> · {plural(total.buys, "achat")} pour <Money v={total.spent} />
+              </>,
               <>
-                Depuis le {dateFmt({day: "numeric", month: "long", year: "numeric"}).format(new Date(ops[0].at))} : plus-value réalisée <Gain v={total.profit} /> sur {plural(total.resold, "revente")} ({percent(total.roi)}) · {plural(total.sells, "vente")} pour <Money v={total.revenue} /> · {plural(total.buys, "achat")} pour <Money v={total.spent} />
-              </>
+                Since {since}: realized profit <Gain v={total.profit} /> on {plural(total.resold, "resale")} ({percent(total.roi)}) · {plural(total.sells, "sale")} for <Money v={total.revenue} /> · {plural(total.buys, "purchase")} for <Money v={total.spent} />
+              </>,
             )}
           </div>
-          <section class="box stack" aria-label="Plus-value réalisée par période">
+          <section class="box stack" aria-label={L("Plus-value réalisée par période", "Realized profit by period")}>
             <div class="row stonks-period">
-              <button class="icon-btn" aria-label="Période précédente" disabled={at <= 0} onClick={() => select(periods[at - 1].key)}>
+              <button class="icon-btn" aria-label={L("Période précédente", "Previous period")} disabled={at <= 0} onClick={() => select(periods[at - 1].key)}>
                 <Icon name="back" size={16} />
               </button>
               <div style={{flex: 1, minWidth: 0}}>
                 {hint && <div class="eyebrow">{hint}</div>}
                 <h2>{periodName(current, unit.id)}</h2>
               </div>
-              <button class="icon-btn flip" aria-label="Période suivante" disabled={at >= periods.length - 1} onClick={() => select(periods[at + 1].key)}>
+              <button class="icon-btn flip" aria-label={L("Période suivante", "Next period")} disabled={at >= periods.length - 1} onClick={() => select(periods[at + 1].key)}>
                 <Icon name="back" size={16} />
               </button>
             </div>
@@ -622,12 +683,12 @@ export function StonksPage() {
             <div class="stonks-chart-head">
               <div>
                 <div class="eyebrow">
-                  {metric.title} par {unit.label.toLowerCase()}
+                  {L(`${metric.title} par ${unit.label.toLowerCase()}`, `${metric.title} per ${unit.label.toLowerCase()}`)}
                 </div>
-                <span class="small muted">Cliquez sur une barre pour afficher la période</span>
+                <span class="small muted">{L("Cliquez sur une barre pour afficher la période", "Click a bar to show that period")}</span>
               </div>
               {!resale && (
-                <div class="seg" role="group" aria-label="Mesure du graphique">
+                <div class="seg" role="group" aria-label={L("Mesure du graphique", "Chart metric")}>
                   {METRICS.map((m) => (
                     <button key={m.id} class={metric.id === m.id ? "on" : ""} aria-pressed={metric.id === m.id} onClick={() => view.set({metric: m.id})}>
                       {m.label}

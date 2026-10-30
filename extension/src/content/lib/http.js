@@ -1,5 +1,6 @@
 // Requêtes réseau prudentes : délai maximal, réessais avec délai croissant pour les lectures,
 // respect des 429 (Retry-After), et jamais de réessai automatique d'une écriture non idempotente.
+import {L} from "../../shared/i18n";
 export class HttpError extends Error {
   // code : code d'erreur du serveur (PostgREST, site), ou "timeout" / "network" / "bad_response"
   // uncertain : écriture restée sans réponse, peut-être prise en compte par le serveur
@@ -16,7 +17,7 @@ export class HttpError extends Error {
 // Le site demande une vérification anti-robot : le joueur doit la faire lui-même sur le site.
 export class HumanCheckError extends HttpError {
   constructor(data) {
-    super("WikiMasters demande une vérification anti-robot : faites-la sur le site (ouvrez un paquet ou une page à la main), puis réessayez.", {
+    super(L("WikiMasters demande une vérification anti-robot : faites-la sur le site (ouvrez un paquet ou une page à la main), puis réessayez.", "WikiMasters is asking for an anti-bot check: complete it on the site (open a pack or a page by hand), then try again."), {
       status: 403,
       code: "human_verification_required",
       data,
@@ -25,7 +26,7 @@ export class HumanCheckError extends HttpError {
   }
 }
 
-export const abortError = () => new DOMException("Annulé", "AbortError");
+export const abortError = () => new DOMException(L("Annulé", "Cancelled"), "AbortError");
 
 export const sleep = (ms, signal) =>
   new Promise((resolve, reject) => {
@@ -89,10 +90,10 @@ export async function runAll(items, fn, {concurrency = 4, signal} = {}) {
 
 function describe(status, data) {
   const detail = typeof data === "object" && data ? data.error || data.message || data.code : null;
-  if (status === 401 || status === 403) return detail || "Accès refusé : reconnectez-vous à WikiMasters.";
-  if (status === 429) return "Trop de requêtes : le site demande de ralentir. Réessayez dans un moment.";
-  if (status >= 500) return detail ? `Erreur du serveur WikiMasters (${detail})` : `Le serveur WikiMasters ne répond pas (${status}).`;
-  return detail || `Erreur ${status}`;
+  if (status === 401 || status === 403) return detail || L("Accès refusé : reconnectez-vous à WikiMasters.", "Access denied: log in to WikiMasters again.");
+  if (status === 429) return L("Trop de requêtes : le site demande de ralentir. Réessayez dans un moment.", "Too many requests: the site is asking to slow down. Try again in a moment.");
+  if (status >= 500) return detail ? L(`Erreur du serveur WikiMasters (${detail})`, `WikiMasters server error (${detail})`) : L(`Le serveur WikiMasters ne répond pas (${status}).`, `The WikiMasters server is not responding (${status}).`);
+  return detail || L(`Erreur ${status}`, `Error ${status}`);
 }
 
 const isHumanCheck = (data) => data && typeof data === "object" && (data.code === "human_verification_required" || data.human_verification_required === true);
@@ -132,11 +133,11 @@ export async function request(url, {method = "GET", headers = {}, body, timeout 
         if (write)
           throw new HttpError(
             attempts === 1
-              ? "Pas de réponse du site : l'action a peut-être été prise en compte. Vérifiez sur WikiMasters avant de réessayer."
-              : "Pas de réponse du site : l'opération est restée inachevée, vous pouvez la relancer.",
+              ? L("Pas de réponse du site : l'action a peut-être été prise en compte. Vérifiez sur WikiMasters avant de réessayer.", "No response from the site: the action may have gone through. Check on WikiMasters before trying again.")
+              : L("Pas de réponse du site : l'opération est restée inachevée, vous pouvez la relancer.", "No response from the site: the operation did not finish, you can run it again."),
             {status: 0, code, uncertain: true},
           );
-        throw new HttpError(timedOut ? "Le site met trop de temps à répondre." : "Le site ne répond pas (connexion interrompue ?).", {status: 0, code});
+        throw new HttpError(timedOut ? L("Le site met trop de temps à répondre.", "The site is taking too long to respond.") : L("Le site ne répond pas (connexion interrompue ?).", "The site is not responding (connection lost?)."), {status: 0, code});
       }
       await sleep(retryDelay(attempt), signal);
       continue;
@@ -160,7 +161,7 @@ export async function request(url, {method = "GET", headers = {}, body, timeout 
     const retryable = unexpected || res.status === 408 || res.status === 425 || res.status === 429 || res.status >= 500;
     if (!retryable || attempt >= attempts) {
       if (unexpected)
-        throw new HttpError("Réponse inattendue du site (page de vérification ou de maintenance ?). Rechargez la page WikiMasters puis réessayez.", {
+        throw new HttpError(L("Réponse inattendue du site (page de vérification ou de maintenance ?). Rechargez la page WikiMasters puis réessayez.", "Unexpected response from the site (check or maintenance page?). Reload the WikiMasters page, then try again."), {
           status: res.status,
           code: "bad_response",
           uncertain: write,
