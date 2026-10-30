@@ -79,6 +79,7 @@ extension/
         autosort.js            tri des cartes tirées à l'ouverture d'un paquet (option)
         trades.js              recherche d'échanges, échanges en cours
         market.js              enchères, surenchère, alerte de fin, vente et défausse des doublons
+        auction-tab.js         titre de l'onglet sur la page d'une enchère : temps restant, en tête ou surenchéri, relecture régulière
         packs.js               récapitulatif, statistiques de tirage, « Tout ouvrir »
         families.js            familles : catalogue, cartes manquantes en vente, étiquettes
         card-lookup.js         carte affichée par le site mais jamais vue dans ses réponses

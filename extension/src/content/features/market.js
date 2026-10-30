@@ -44,25 +44,24 @@ function rememberAuctions(list) {
 on("marketplace", ({data}) => {
   for (const key of ["auctions", "selling", "bidding", "won"]) rememberAuctions(data?.[key]);
 });
-on("auction", ({data}) => data?.auction && rememberAuctions([data.auction]));
+// Fiche d'une enchère ({auction, bids}) : bidder_ids, les joueurs qui ont misé (titre de l'onglet)
+function rememberAuctionPage(res) {
+  if (!res?.auction) return null;
+  rememberAuctions([Array.isArray(res.bids) ? {...res.auction, bidder_ids: res.bids.map((b) => b.bidder_id)} : res.auction]);
+  return res.auction;
+}
+on("auction", ({data}) => rememberAuctionPage(data));
 export const auctionById = (id) => auctions.get(id) || null;
 
 // Fiche d'une enchère que le site n'a pas (encore) chargée devant nous : lue une fois
 const loading = new Map();
 export function loadAuction(id) {
-  if (!loading.has(id))
-    loading.set(
-      id,
-      site
-        .auction(id)
-        .then((res) => {
-          if (res?.auction) rememberAuctions([res.auction]);
-          return res?.auction || null;
-        })
-        .finally(() => setTimeout(() => loading.delete(id), 30000)),
-    );
+  if (!loading.has(id)) loading.set(id, refreshAuction(id).finally(() => setTimeout(() => loading.delete(id), 30000)));
   return loading.get(id);
 }
+
+// Relecture d'une enchère, sans cache (titre de l'onglet sur sa page)
+export const refreshAuction = (id) => site.auction(id).then(rememberAuctionPage);
 
 export async function refreshBids({withBalance = true} = {}) {
   bidsState.set({loading: true, error: null});

@@ -101,6 +101,17 @@ Quand vous ouvrez une carte (dans votre collection, le catalogue ou le profil d'
 
 Sous le formulaire de mise, l'**Analyse Toolbox** indique le prix du marché de la carte (celui des shiny pour une carte shiny), l'écart entre la mise actuelle et ce prix s'il est fiable (en vert quand elle est au moins 20 % en dessous, en orange au moins 20 % au-dessus), la prochaine mise possible, si vous avez déjà la carte et quels amis elle intéresse. Ce bloc ne fait que lire : la mise se fait toujours avec le formulaire du site.
 
+Le **titre de l'onglet** suit l'enchère, pour la surveiller depuis un autre onglet : temps restant, votre position et la mise actuelle, par exemple `✓ 4:07 · En tête · 1 250 ₩ — Titre de la carte`.
+
+| Début du titre | Signification |
+|---|---|
+| `✓` | vous êtes en tête |
+| `✗` | vous avez misé et un autre joueur est passé devant vous (« Surenchéri ») |
+| `↑` | nouvelle mise d'un autre joueur, sur une enchère où vous n'avez pas misé ou sur votre propre vente |
+| `✓ Gagnée`, `✗ Perdue`, `Terminée` | enchère terminée |
+
+Quand quelqu'un surenchérit, le titre clignote (« ✗ SURENCHÉRI ! » ou « ↑ NOUVELLE MISE ») jusqu'à ce que vous reveniez sur l'onglet. Le site ne relit pas l'enchère de lui-même : la Toolbox la relit toutes les 30 secondes, toutes les 15 secondes dans les 10 dernières minutes et toutes les 5 secondes dans les 2 dernières, et dès que vous revenez sur l'onglet. Un navigateur peut ralentir les onglets restés longtemps en arrière-plan (Chrome : au plus une mise à jour par minute après 5 minutes) : le titre peut alors avoir un peu de retard. Désactivable dans les réglages (*Enchère dans le titre de l'onglet*).
+
 ### Profil d'un autre joueur
 
 Le bloc **Échanges avec …** cherche dans sa collection :
