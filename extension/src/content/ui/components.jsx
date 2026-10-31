@@ -98,12 +98,13 @@ export function Notice({type = "info", children}) {
   );
 }
 
+// Interrupteur : un bouton (role="switch") plutôt qu'une case à cocher invisible, dont la zone
+// sensible dépendait de la mise en forme des cases à cocher (réduite sur écran tactile).
 export function Toggle({checked, onChange, label}) {
   return (
-    <span class="switch">
-      <input type="checkbox" checked={checked} aria-label={label} onChange={(e) => onChange(e.currentTarget.checked)} />
+    <button type="button" class="switch" role="switch" aria-checked={checked ? "true" : "false"} aria-label={label} onClick={() => onChange(!checked)}>
       <span class="track" />
-    </span>
+    </button>
   );
 }
 

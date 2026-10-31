@@ -244,13 +244,13 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 3px; }
 input[type="color"]::-moz-color-swatch { border: 0; border-radius: 3px; }
 
 /* Interrupteur */
-.switch { position: relative; width: 34px; height: 20px; flex: none; }
-.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; z-index: 1; width: 100%; height: 100%; }
+.switch { position: relative; width: 34px; height: 20px; flex: none; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .switch .track { position: absolute; inset: 0; background: var(--surface-3); border-radius: 999px; transition: background 0.15s; }
 .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 0.15s, background 0.15s; }
-.switch input:checked + .track { background: var(--fg); }
-.switch input:checked + .track::after { transform: translateX(14px); background: var(--bg); }
-.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch[aria-checked="true"] .track { background: var(--fg); }
+.switch[aria-checked="true"] .track::after { transform: translateX(14px); background: var(--bg); }
+.switch:focus-visible { outline: none; }
+.switch:focus-visible .track { outline: 2px solid var(--accent); outline-offset: 2px; }
 .setting { display: flex; gap: 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
 .setting:last-child { border-bottom: 0; padding-bottom: 0; }
 .setting .txt { flex: 1; }
@@ -732,7 +732,8 @@ table.list.ops .num { font-size: 12.5px; }
   .check { min-height: 32px; }
   .switch { width: 44px; height: 26px; }
   .switch .track::after { width: 20px; height: 20px; }
-  .switch input:checked + .track::after { transform: translateX(18px); }
+  .switch[aria-checked="true"] .track::after { transform: translateX(18px); }
+  .switch::before { content: ""; position: absolute; inset: -7px -4px; }
   .recap-row { --pick: 20px; }
 }
 
