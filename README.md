@@ -31,7 +31,9 @@ Chaque fonction se désactive dans les réglages. Rien n'est écrit sur votre co
 
 ## Installation
 
-**Chrome, Edge, Brave, Opera** : installez *WikiMasters Toolbox* depuis le Chrome Web Store, puis rechargez wiki-masters.com. L'entrée **Toolbox** apparaît dans le menu du site, et l'icône de l'extension ouvre les actions rapides.
+**Chrome, Edge, Brave, Opera** : installez *WikiMasters Toolbox* depuis le [Chrome Web Store](https://chromewebstore.google.com/detail/wikimasters-toolbox/akiompkjikkfmmmgekgficomoahhhajh), puis rechargez wiki-masters.com. L'entrée **Toolbox** apparaît dans le menu du site, et l'icône de l'extension ouvre les actions rapides.
+
+**Firefox** : installez *WikiMasters Toolbox* depuis [Firefox Add-ons](https://addons.mozilla.org/fr/firefox/addon/wikimasters-toolbox/), puis rechargez wiki-masters.com.
 
 **Depuis le code source** (Chrome 120+ ou Firefox 128+) :
 
@@ -92,5 +94,7 @@ WikiMasters Toolbox is an **unofficial** browser extension for [WikiMasters](htt
 The interface adapts to small screens (mobile browsers that support extensions, narrow windows).
 
 Every feature can be turned off. Nothing is written to your account without a click (except the automatic options you turn on: sorting pulled cards, claiming achievements), there is no third-party server, and your data stays in your browser ([privacy policy](PRIVACY.md)). The interface is in English unless your browser is set to French; the default theme and tag names (`Doublon`, "Pour : …") stay in French, and themes can be renamed in the settings. The documentation is in French: see the [user guide](docs/guide.md).
+
+Install it from the [Chrome Web Store](https://chromewebstore.google.com/detail/wikimasters-toolbox/akiompkjikkfmmmgekgficomoahhhajh) (Chrome, Edge, Brave, Opera) or [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/wikimasters-toolbox/), then reload wiki-masters.com.
 
 To build from source: `npm install && npm run build`, then load `dist/chrome` as an unpacked extension (`chrome://extensions`, developer mode) or `dist/firefox/manifest.json` as a temporary add-on in Firefox 128+.
