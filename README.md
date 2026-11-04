@@ -73,7 +73,7 @@ npm test        # tests du moteur et de l'extension, sans réseau
 npm run eval    # qualité du classement sur le jeu de cartes étiquetées
 ```
 
-Le dépôt contient un moteur de tri partagé (`core/`), l'extension (`extension/`), des scripts Node (`scripts/`) et les tests (`tests/`) : voir la [structure du projet](docs/architecture.md). Un problème ou une idée : [issues](https://github.com/LeadOn/Wikimasters-card-sorter/issues).
+Le dépôt contient un moteur de tri partagé (`core/`), l'extension (`extension/`), des scripts Node (`scripts/`) et les tests (`tests/`) : voir la [structure du projet](docs/architecture.md). Un problème ou une idée : [issues](https://github.com/LeadOn/Wikimasters-Toolbox/issues).
 
 ---
 

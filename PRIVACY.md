@@ -2,7 +2,7 @@
 
 *Dernière mise à jour : 30 octobre 2026*
 
-WikiMasters Toolbox est une extension de navigateur **non officielle** pour le jeu [WikiMasters](https://www.wiki-masters.com/). Elle n'est ni éditée ni approuvée par WikiMasters. Son code source est public : <https://github.com/LeadOn/Wikimasters-card-sorter>.
+WikiMasters Toolbox est une extension de navigateur **non officielle** pour le jeu [WikiMasters](https://www.wiki-masters.com/). Elle n'est ni éditée ni approuvée par WikiMasters. Son code source est public : <https://github.com/LeadOn/Wikimasters-Toolbox>.
 
 ## En bref
 
@@ -31,10 +31,10 @@ Les données restent dans le stockage local du navigateur jusqu'à ce que vous l
 
 ## Contact
 
-Questions ou problèmes : <https://github.com/LeadOn/Wikimasters-card-sorter/issues>.
+Questions ou problèmes : <https://github.com/LeadOn/Wikimasters-Toolbox/issues>.
 
 ---
 
 ## Privacy policy (English summary)
 
-WikiMasters Toolbox is an **unofficial** extension for WikiMasters. It has no server and sends nothing to its author or to any third party: no account, no ads, no analytics. It only talks to WikiMasters (wiki-masters.com and its Supabase database), using your existing WikiMasters session to read your collection and market prices and, only when you click, to tag cards, list or bid on auctions, discard a card, open packs or claim achievement rewards (sorting pulled cards and claiming achievements can also run on their own if you turn on the matching option, off by default). Settings, caches and your data stay in the extension's local storage on your device until you clear them or uninstall the extension. The optional "missing images" feature (off by default) sends the title of a card without an image to Wikimedia services (Wikipedia, Wikidata), anonymously; the image found is loaded from Wikimedia Commons. Contact: <https://github.com/LeadOn/Wikimasters-card-sorter/issues>.
+WikiMasters Toolbox is an **unofficial** extension for WikiMasters. It has no server and sends nothing to its author or to any third party: no account, no ads, no analytics. It only talks to WikiMasters (wiki-masters.com and its Supabase database), using your existing WikiMasters session to read your collection and market prices and, only when you click, to tag cards, list or bid on auctions, discard a card, open packs or claim achievement rewards (sorting pulled cards and claiming achievements can also run on their own if you turn on the matching option, off by default). Settings, caches and your data stay in the extension's local storage on your device until you clear them or uninstall the extension. The optional "missing images" feature (off by default) sends the title of a card without an image to Wikimedia services (Wikipedia, Wikidata), anonymously; the image found is loaded from Wikimedia Commons. Contact: <https://github.com/LeadOn/Wikimasters-Toolbox/issues>.

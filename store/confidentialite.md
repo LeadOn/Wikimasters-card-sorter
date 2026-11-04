@@ -58,7 +58,7 @@ Cocher les trois déclarations :
 ## URL des règles de confidentialité
 
 ```
-https://github.com/LeadOn/Wikimasters-card-sorter/blob/main/PRIVACY.md
+https://github.com/LeadOn/Wikimasters-Toolbox/blob/main/PRIVACY.md
 ```
 
 (Valable une fois `PRIVACY.md` poussé sur la branche `main` du dépôt public.)

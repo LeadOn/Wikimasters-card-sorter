@@ -308,7 +308,7 @@ Hors de wiki-masters.com, elle propose d'ouvrir le site. Si elle demande de rech
 
 Le thème d'une carte se déduit de sa **description courte** (« footballeur danois », « commune française du département… », « espèce d'arachnides ») et de la première phrase de son article : le type de l'article est le signal le plus fiable. Chaque thème a ses mots-clés ; le thème qui obtient le meilleur score l'emporte, et une carte sans signal fiable va dans *Autre*. Les pages d'homonymie, noms de famille et prénoms vont dans *Divers & Homonymies*, et la politique se partage entre française et internationale selon la nationalité.
 
-Le moteur est vérifié sur plus de 300 cartes étiquetées à la main à chaque modification (avec les thèmes par défaut). Si une carte est mal classée, corrigez son étiquette à la main sur le site (le tri des nouvelles cartes ne la touchera plus) et signalez-la dans les [issues](https://github.com/LeadOn/Wikimasters-card-sorter/issues) pour que les règles soient corrigées pour tout le monde.
+Le moteur est vérifié sur plus de 300 cartes étiquetées à la main à chaque modification (avec les thèmes par défaut). Si une carte est mal classée, corrigez son étiquette à la main sur le site (le tri des nouvelles cartes ne la touchera plus) et signalez-la dans les [issues](https://github.com/LeadOn/Wikimasters-Toolbox/issues) pour que les règles soient corrigées pour tout le monde.
 
 ### Les thèmes
 
@@ -445,4 +445,4 @@ Le site affiche la moyenne des 200 dernières ventes ; la Toolbox, la médiane d
 Onglet *Réglages* → *Données*, ou désinstallez l'extension : tout ce qu'elle a enregistré est supprimé avec elle.
 
 **Un problème, une idée ?**
-Ouvrez une [issue sur GitHub](https://github.com/LeadOn/Wikimasters-card-sorter/issues).
+Ouvrez une [issue sur GitHub](https://github.com/LeadOn/Wikimasters-Toolbox/issues).

@@ -55,7 +55,7 @@ const MAX_WIKIS = 5;
 const GENERIC = /(^|[^a-z])(maps?|locator)([^a-z]|$)|missing|falta[\W_]imag|ne[\W_]havas|no[\W_]?image|sin[\W_]imagen|kein[\W_]bild|replace[\W_]this|image[\W_]manquante|placeholder|silhouette|silueta|\.(pdf|djvu|ogv|webm|ogg|oga|mp3|wav|flac|midi?|opus|stl)$/i;
 // Sujet sensible, d'après le titre et la description courte de la carte
 const SENSITIVE = /\bsex|porno|érot|nudit|\bnue?s?\b|génit|pénis|vagin|vulv|clitor|\banus\b|\banal\b|mammaire|prostitu|fétich|bdsm|masturb|orgasm|chirurg|opératoire|amputa|plastie\b|ectomie\b|maladie|syndrome|infection|tumeur|cancer|lésion|blessure|cadavre|autopsie|décapit|exécution|torture|massacre|génocide|suicide|meurtre|assassinat|tuerie|mutila|accouchement|fœtus|foetus|avortement|nécro|charnier/iu;
-const AGENT = `WikiMastersToolbox/${__VERSION__} (https://github.com/LeadOn/Wikimasters-card-sorter)`;
+const AGENT = `WikiMastersToolbox/${__VERSION__} (https://github.com/LeadOn/Wikimasters-Toolbox)`;
 const PAUSE = 60 * 1000;
 let pausedUntil = 0;
 

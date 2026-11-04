@@ -15,8 +15,8 @@ Le nom et le résumé viennent du manifeste (`extension/build.mjs`, `_locales`) 
 | Captures d'écran (1280 × 800) | `store/images/capture-1.png` à `capture-5.png` (légendes ci-dessous) |
 | Petite vignette promotionnelle (440 × 280) | `store/images/promo-440x280.png` |
 | Grande vignette (1400 × 560, facultative) | `store/images/promo-1400x560.png` |
-| Site officiel / page d'accueil | https://github.com/LeadOn/Wikimasters-card-sorter |
-| URL d'assistance | https://github.com/LeadOn/Wikimasters-card-sorter/issues |
+| Site officiel / page d'accueil | https://github.com/LeadOn/Wikimasters-Toolbox |
+| URL d'assistance | https://github.com/LeadOn/Wikimasters-Toolbox/issues |
 
 ## Captures d'écran
 
@@ -100,7 +100,7 @@ VOS DONNÉES
 • Rien n'est écrit sur votre compte sans un clic de votre part, sauf les options automatiques que vous activez vous-même (tri des cartes tirées, réclamation des succès).
 • Chaque fonction se désactive dans les réglages.
 
-Guide complet, code source et politique de confidentialité : https://github.com/LeadOn/Wikimasters-card-sorter
+Guide complet, code source et politique de confidentialité : https://github.com/LeadOn/Wikimasters-Toolbox
 ```
 
 ## Captions (English)
@@ -180,5 +180,5 @@ YOUR DATA
 • Nothing is written to your account without a click from you, except the automatic options you turn on yourself (sorting pulled cards, claiming achievements).
 • Every feature can be turned off in the settings.
 
-Full guide (in French), source code and privacy policy: https://github.com/LeadOn/Wikimasters-card-sorter
+Full guide (in French), source code and privacy policy: https://github.com/LeadOn/Wikimasters-Toolbox
 ```
