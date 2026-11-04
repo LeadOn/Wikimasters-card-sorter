@@ -7,7 +7,7 @@ import {runAll} from "../lib/http";
 import {createStore} from "../lib/store";
 import {load, save} from "../lib/storage";
 import {activeProfiles} from "../state/profiles";
-import {settings} from "../state/settings";
+import {settings, isOn} from "../state/settings";
 import {themeSet, pendingThemeTags, settleThemeTags} from "../state/themes";
 import {invalidateCollection} from "../state/collection";
 import {L} from "../../shared/i18n";
@@ -19,13 +19,13 @@ load("lastSort", null).then((lastRun) => lastRun && sortState.set({lastRun}));
 const step = (label, progress = null) => sortState.set({step: label, progress});
 const yieldToUi = () => new Promise((r) => setTimeout(r, 0));
 
-async function classify(rows, profiles, themes) {
+async function classify(rows, profiles, themes, withThemes) {
   // Par tranches, pour garder la page réactive. Les exemplaires sont comptés sur toute la
   // collection : deux exemplaires d'une carte peuvent tomber dans deux tranches différentes.
   const copies = countCopies(rows);
   const out = [];
   for (let i = 0; i < rows.length; i += 400) {
-    out.push(...computeAssignments(rows.slice(i, i + 400), {profiles, themes, copies}));
+    out.push(...computeAssignments(rows.slice(i, i + 400), {profiles, themes, copies, withThemes}));
     step(L("Classement des cartes", "Sorting cards"), {done: Math.min(i + 400, rows.length), total: rows.length});
     await yieldToUi();
   }
@@ -38,8 +38,12 @@ export async function planSort({newOnly}) {
     const session = await ensureSession();
     const profiles = activeProfiles();
     const themes = themeSet();
-    const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes});
-    const pending = pendingThemeTags();
+    // Réglages « Étiquettes de thème » et « Ne pas trier les favoris »
+    const withThemes = isOn("sortThemes");
+    const skipStarred = isOn("skipStarred");
+    const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes, withThemes});
+    // Sans thèmes, les étiquettes de thème ne sont plus gérées : aucune n'est renommée ni retirée
+    const pending = withThemes ? pendingThemeTags() : {renames: {}, removed: []};
 
     step(L("Lecture de vos étiquettes", "Reading your tags"));
     const tagRows = await rest(`tags?select=*&user_id=eq.${session.userId}`);
@@ -51,7 +55,7 @@ export async function planSort({newOnly}) {
     // dédoublonnées : une carte lue deux fois serait prise pour un doublon, une carte manquée
     // resterait non triée.
     step(L("Lecture de votre collection", "Reading your collection"), {done: 0, total: null});
-    const rows = await fetchAll(`user_cards?select=id,card_id,count,cards(id,wikipedia_title,category,summary,image_url)&order=obtained_at.desc,id.asc`, {
+    const rows = await fetchAll(`user_cards?select=id,card_id,count,starred,cards(id,wikipedia_title,category,summary,image_url)&order=obtained_at.desc,id.asc`, {
       key: "id",
       onPage: (n) => step(L("Lecture de votre collection", "Reading your collection"), {done: n, total: null}),
     });
@@ -75,12 +79,16 @@ export async function planSort({newOnly}) {
       {concurrency: 3},
     );
 
-    const assignments = await classify(rows, profiles, themes);
-    const {fresh, toInsert, toDelete, extraTagIds} = planChanges(assignments, existingTags, current, {newOnly, managed, themes, retired});
+    const assignments = await classify(rows, profiles, themes, withThemes);
+    const frozen = skipStarred ? new Set(rows.filter((r) => r.starred).map((r) => r.id)) : null;
+    const {fresh, toInsert, toDelete, extraTagIds} = planChanges(assignments, existingTags, current, {newOnly, managed, themes, retired, frozen});
     const upserts = planTagUpserts(existingTags, managed, toInsert, {newOnly});
 
     const byId = new Map(rows.map((r) => [r.id, r]));
-    const scoped = fresh ? assignments.filter((a) => fresh.has(a.userCard.id)) : assignments;
+    const inPlan = fresh ? assignments.filter((a) => fresh.has(a.userCard.id)) : assignments.filter((a) => !frozen?.has(a.userCard.id));
+    // Sans thèmes, une carte « non triée » n'a souvent aucune étiquette à recevoir : seules
+    // celles qui en reçoivent une (Doublon, « Pour : … ») sont détaillées
+    const scoped = withThemes ? inPlan : inPlan.filter((a) => a.tags.length);
     const titleOf = (id) => byId.get(id)?.cards?.wikipedia_title || "?";
     const plan = {
       newOnly,
@@ -88,6 +96,9 @@ export async function planSort({newOnly}) {
       userId: session.userId,
       total: rows.length,
       scopedCount: scoped.length,
+      // Favoris exclus du tri (réglage « Ne pas trier les favoris »)
+      frozenCount: frozen?.size || 0,
+      withThemes,
       counts: countByTag(scoped, managed),
       cards: scoped.map((a) => ({id: a.userCard.id, title: a.userCard.cards.wikipedia_title, category: a.userCard.cards.category, tags: a.tags})),
       doublonAdds: toInsert.filter((x) => x.name === DOUBLON && !fresh?.has(x.userCardId)).map((x) => titleOf(x.userCardId)),
@@ -148,7 +159,7 @@ export async function applySort(plan) {
       });
       invalidateCollection();
       settleThemeTags(plan.settled || []);
-      const result = {...r, sorted: plan.newOnly ? plan.scopedCount : plan.total, at: Date.now(), newOnly: plan.newOnly};
+      const result = {...r, sorted: plan.newOnly ? plan.scopedCount : plan.total - (plan.frozenCount || 0), at: Date.now(), newOnly: plan.newOnly};
       save("lastSort", result).catch(() => {});
       sortState.set({result, lastRun: result, plan: null, step: "", progress: null});
       return result;

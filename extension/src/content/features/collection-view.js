@@ -1,6 +1,6 @@
 // Ma collection vue par la Toolbox, lue en entier et non sur la page de 50 cartes du site, filtrée
 // par critères cumulables (doublons, sans image, GIF) et par prix de vente (jamais vendues, ou
-// vendues entre X et Y WikiBidous, d'après les prix chargés).
+// vendues entre X et Y WikiBidous, d'après les prix chargés), triée par rareté ou par valeur.
 // Liste de la barre de la page Collection (qui remplace alors la grille du site) et de l'onglet
 // « Prix ». Les cartes se mettent aux enchères ou se défaussent une à une ou par lot, toujours sur
 // clic du joueur après confirmation ; l'exemplaire traité quitte la liste sans relire la collection.
@@ -96,6 +96,22 @@ export function filterGroups(views, {kinds = [], sale = null, min = null, max = 
     const price = groupPrice(views, g);
     return price != null && (lo == null || price >= lo) && (hi == null || price <= hi);
   });
+}
+
+// Ordre de la liste : "rarity" (les plus rares d'abord, ordre de views.all), "value-desc" ou
+// "value-asc" (prix du marché de priceOf, cartes sans prix connu à la fin ; à prix égal, l'ordre
+// par rareté est gardé).
+export const ORDERS = [
+  {id: "rarity", label: L("Rareté", "Rarity")},
+  {id: "value-desc", label: L("Valeur décroissante", "Value, high to low")},
+  {id: "value-asc", label: L("Valeur croissante", "Value, low to high")},
+];
+export function sortGroups(groups, order, priceOf) {
+  if (order !== "value-desc" && order !== "value-asc") return groups;
+  const sign = order === "value-desc" ? -1 : 1;
+  const priced = groups.map((g, i) => ({g, i, p: priceOf(g)}));
+  priced.sort((a, b) => (a.p == null) - (b.p == null) || (a.p != null && sign * (a.p - b.p)) || a.i - b.i);
+  return priced.map((x) => x.g);
 }
 
 // Mots-clés : [{text, out}]. Une carte est gardée si elle contient au moins un mot inclus (tous avec

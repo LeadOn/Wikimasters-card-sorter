@@ -64,6 +64,9 @@ Priorité : **P1** indispensable · **P2** important · **P3** bonus.
 | T5 | Après l'ouverture d'un paquet, proposition de trier immédiatement les nouvelles cartes | P2 |
 | T6 | « Mauvais thème ? » : génère un rapport à copier (carte, thème obtenu, thème attendu) pour enrichir le jeu de test | P3 |
 | T7 | **Thèmes personnalisés** : chaque joueur renomme, recolore, modifie (mots-clés), ajoute ou supprime des thèmes dans les réglages ; retour aux thèmes par défaut ; import / export en JSON ; étiquettes renommées au tri suivant, celles des thèmes supprimés retirées au retri complet après confirmation | P2 |
+| T8 | **Reprendre ses étiquettes** : les étiquettes posées à la main deviennent des thèmes (nouveau thème, ou nom donné à un thème existant), pour ne pas retrier une collection déjà classée | P2 |
+| T9 | **Tri sans thèmes** (réglage) : seulement `Doublon` et « Pour : … » ; les étiquettes de thème existantes ne sont plus touchées | P2 |
+| T10 | **Favoris exclus du tri** (réglage, désactivé par défaut) : un exemplaire en favori ne reçoit ni ne perd aucune étiquette, `Doublon` compris | P2 |
 
 ### 3.3 Profils d'intérêts (« Pour : … »)
 
@@ -97,7 +100,8 @@ Remplacent les règles codées en dur pour chaque ami.
 | P3 | Valeur estimée de ma collection | P2 |
 | P4 | Classement de mes cartes les plus chères, filtrable par tag | P2 |
 | P5 | **Mes doublons** : liste des exemplaires en trop triés par valeur (un exemplaire est toujours conservé), mise en vente ou défausse (1 WikiBidou) en un clic avec confirmation | P2 |
-| P6 | **Mes enchères** : enchères en cours, temps restant, surenchère en un clic avec confirmation, alerte quand une enchère se termine bientôt | P2 |
+| P6 | **Mes enchères** : enchères en cours, temps restant, surenchère en un clic avec confirmation (à la mise minimum du site : +10 % arrondi au supérieur, au moins +1), alerte quand une enchère se termine bientôt | P2 |
+| P9 | Liste filtrée de la collection triée par rareté ou par valeur (croissante, décroissante) | P2 |
 | P7 | **Stonks** : page du menu du site, historique de mes achats et ventes aux enchères par jour, semaine ou mois ; plus-value de l'achat-revente, flux net, cartes achetées encore en stock ; vue « achat-revente » limitée aux cartes achetées puis revendues. Historique seulement, aucune action | P2 |
 | P8 | **Enchère dans le titre de l'onglet** : sur la page d'une enchère, temps restant, position (en tête, surenchéri), mise actuelle ; signal visible depuis un autre onglet à chaque nouvelle mise | P2 |
 
@@ -118,6 +122,8 @@ Remplacent les règles codées en dur pour chaque ami.
 | F3 | Cartes manquantes d'une famille actuellement en vente sur le marché | P3 |
 | F4 | Partage d'une famille par code | P2 |
 | F5 | Transformer une famille en tag Wikimasters (et l'inverse) | P3 |
+| F6 | Cartes manquantes d'une famille ajoutées à la liste de souhaits du site, en un clic après confirmation | P2 |
+| F7 | Ajout de cartes à une famille : recherche au mot exact (titre exact et homonymes en tête, puis mots entiers du titre) | P2 |
 
 ### 3.8 Cartes et confort
 

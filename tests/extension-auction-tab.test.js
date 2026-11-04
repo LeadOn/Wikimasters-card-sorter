@@ -76,3 +76,15 @@ test("fiche d'une enchère : joueurs ayant misé gardés avec l'enchère", () =>
   assert.deepEqual(market.auctionById("a1").bidder_ids, ["other", "me"]);
   assert.equal(tab.standing(market.auctionById("a1"), {me: "me", participated: market.auctionById("a1").bidder_ids.includes("me")}), "outbid");
 });
+
+test("mise minimum : celle du site, +10 % arrondi au supérieur et au moins +1", () => {
+  const next = (current_bid, base_amount = 50) => market.nextBid({current_bid, base_amount});
+  assert.equal(next(null), 50, "sans enchère : le prix de départ");
+  assert.equal(next(undefined), 50);
+  assert.equal(next(1), 2, "au moins +1");
+  assert.equal(next(5), 6);
+  assert.equal(next(19), 21);
+  assert.equal(next(1250), 1375);
+  assert.equal(next(1001), 1102);
+  assert.equal(next(100), 111, "même arrondi que le site (1.1 × 100 = 110,000…01)");
+});

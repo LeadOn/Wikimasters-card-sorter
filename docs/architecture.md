@@ -198,7 +198,7 @@ Les scripts font la même chose que l'extension en ligne de commande, avec un to
 | `trade-prices-families.test.js` | Échanges (offre équilibrée, bilan d'une offre : WikiBidous, prix fiables seulement, cartes non vues), prix (médiane, ventes minimum, premières ventes ignorées, shiny à part, résumé des ventes), cartes jamais vendues, familles, codes de partage, couleurs des raretés |
 | `extension-http.test.js` | Couche réseau : réessais, écritures jamais rejouées, session renouvelée, pagination |
 | `extension-storage.test.js` | Stockage : valeurs enregistrées jamais écrasées, plusieurs onglets |
-| `extension-locks.test.js` | Verrou entre onglets : résultat et erreur transmis, opération refusée ou mise en attente, `navigator.locks` de la page sous Firefox (promesse de la page rendue au verrou) |
+| `extension-locks.test.js` | Verrou entre onglets : résultat et erreur transmis, opération refusée ou mise en attente, sous Firefox, `navigator.locks` de la page (`wrappedJSObject`) avec un rappel exporté qui rend une promesse de la page |
 | `extension-wiki-images.test.js` | Images Wikimedia : ordre des sources, autres langues par Wikidata, homonymies, limite de requêtes, cache |
 | `extension-card-images.test.js` | Filtre par image : GIF reconnu dans le chemin de l'URL (vignettes Wikimedia), image masquée comptée sans image, exemplaires cumulés par carte et rareté |
 | `extension-pack-actions.test.js` | Défausse et mise aux enchères d'un exemplaire : bon identifiant envoyé, une seule requête, refus du site, absence de réponse |

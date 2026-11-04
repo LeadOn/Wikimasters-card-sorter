@@ -3,12 +3,14 @@
 // - thème + tags « Pour : … » sur chaque nouvel exemplaire qui n'a encore aucun thème ;
 // - Doublon sur tous les exemplaires d'une carte possédée en plusieurs exemplaires ;
 // - étiquette d'un thème renommé dans les réglages : renommée ;
-// - aucune suppression, aucune autre carte touchée, étiquettes personnelles jamais modifiées.
+// - aucune suppression, aucune autre carte touchée, étiquettes personnelles jamais modifiées ;
+// - réglages « Étiquettes de thème » (sans : pas de thème) et « Ne pas trier les favoris »
+//   (exemplaire en favori jamais touché, Doublon compris).
 import {restIn, rest, tagClient} from "../api/supabase";
 import {ensureSession} from "../lib/session";
 import {withLock} from "../lib/locks";
 import {activeProfiles} from "../state/profiles";
-import {settings} from "../state/settings";
+import {settings, isOn} from "../state/settings";
 import {themeSet, pendingThemeTags, settleThemeTags} from "../state/themes";
 import {invalidateCollection} from "../state/collection";
 import {categorize, managedTags, isThemeTag, planThemeTags, ensureTags, insertLinks, DOUBLON} from "../../../../core";
@@ -38,18 +40,21 @@ async function sortNow(cards) {
   const session = await ensureSession();
   const profiles = activeProfiles();
   const themes = themeSet();
-  const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes});
+  const withThemes = isOn("sortThemes");
+  const skipStarred = isOn("skipStarred");
+  const managed = managedTags({profiles, themeColors: settings.get().themeColors, themes, withThemes});
   const ids = cards.map((c) => c.id);
 
   const [tagRows, copies, summaries] = await Promise.all([
     rest(`tags?select=id,name,color&user_id=eq.${session.userId}`, {retries: 3}),
-    restIn("user_cards?select=id,card_id,count,obtained_at", "card_id", ids, {retries: 3}),
+    restIn("user_cards?select=id,card_id,count,obtained_at,starred", "card_id", ids, {retries: 3}),
     cards.some((c) => c.summary == null) ? restIn("cards?select=id,summary", "id", ids, {retries: 3}) : Promise.resolve([]),
   ]);
   // Thème renommé dans les réglages : l'ancienne étiquette prend le nouveau nom avant tout ajout,
   // sinon une deuxième étiquette serait créée à côté
   const client = tagClient(session.userId);
-  const pending = pendingThemeTags();
+  // Sans thèmes, les étiquettes de thème ne sont plus gérées : aucune n'est renommée
+  const pending = withThemes ? pendingThemeTags() : {renames: {}, removed: []};
   const {tags, renamed, retired} = planThemeTags(tagRows, managed, pending);
   for (const {id, to} of renamed) await client.renameTag(id, to);
   settleThemeTags(renamed.map((r) => r.from));
@@ -61,16 +66,20 @@ async function sortNow(cards) {
   // L'étiquette d'un thème supprimé dans les réglages compte encore comme thème (retirée au retri complet)
   const tagName = new Map(tags.map((t) => [t.id, t.name]));
   const retiredIds = new Set(retired.map((t) => t.id));
-  const hasTheme = new Set(links.filter((l) => retiredIds.has(l.tag_id) || isThemeTag(tagName.get(l.tag_id) || "", themes)).map((l) => l.user_card_id));
+  const hasTheme = new Set(links.filter((l) => retiredIds.has(l.tag_id) || (withThemes && isThemeTag(tagName.get(l.tag_id) || "", themes))).map((l) => l.user_card_id));
+  // Sans thèmes : une étiquette « Pour : … » déjà posée vaut tri (l'exemplaire n'est pas repris)
+  if (!withThemes) for (const l of links) if (tagName.get(l.tag_id) in managed && tagName.get(l.tag_id) !== DOUBLON) hasTheme.add(l.user_card_id);
+  const starred = new Set(skipStarred ? copies.filter((r) => r.starred).map((r) => r.id) : []);
 
   // Thème + profils pour chaque nouvel exemplaire
   const wanted = []; // {userCardId, name}
   const byIndex = cards.map((c, i) => {
     const ucId = pulledIds[i];
     if (!ucId) return {status: "unknown"};
-    if (hasTheme.has(ucId)) return {status: "already"};
+    if (hasTheme.has(ucId) || starred.has(ucId)) return {status: "already"};
     const card = {...c, summary: c.summary ?? summaryOf.get(c.id) ?? ""};
     const names = categorize(card, {profiles, themes});
+    if (!withThemes) names.shift();
     for (const name of names) wanted.push({userCardId: ucId, name});
     return {status: "sorted", tags: names};
   });
@@ -79,7 +88,7 @@ async function sortNow(cards) {
   const total = new Map();
   for (const r of copies) total.set(r.card_id, (total.get(r.card_id) || 0) + Math.max(1, Number(r.count) || 1));
   const doublons = copies.filter((r) => total.get(r.card_id) > 1);
-  for (const r of doublons) wanted.push({userCardId: r.id, name: DOUBLON});
+  for (const r of doublons) if (!starred.has(r.id)) wanted.push({userCardId: r.id, name: DOUBLON});
   cards.forEach((c, i) => {
     if (!(total.get(c.id) > 1)) return;
     if (byIndex[i].status === "sorted") byIndex[i].tags.push(DOUBLON);

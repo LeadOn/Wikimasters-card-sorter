@@ -1,20 +1,31 @@
 // Verrou entre onglets (navigator.locks) : résultat et erreur de l'opération transmis, opération
-// refusée quand le verrou est pris, et cas de Firefox, où le navigator.locks d'un script de contenu
-// est celui de la page et refuse une promesse du script (« Permission denied to access property "then" »).
+// refusée quand le verrou est pris, et cas de Firefox (comportement relevé dans Firefox 159) : le
+// navigator.locks d'un script de contenu est celui de la page, et sa promesse est rejetée
+// (« Permission denied to access property "then" ») quel que soit le retour du rappel ; seul le
+// navigator.locks de la page (wrappedJSObject) appelé avec un rappel exporté fonctionne, à
+// condition que ce rappel rende une promesse de la page.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {loadExtensionModule} = require("./helpers/extension");
 
-// Promesses « de la page » (Firefox) : seules acceptées par le faux navigator.locks en mode Firefox
+// Promesses et fonctions « de la page » (Firefox)
 class PagePromise extends Promise {}
+const exported = new WeakSet();
+const DENIED = 'Permission denied to access property "then"';
 
-function fakeLocks({firefox = false} = {}) {
+// page : navigator.locks de la page vu par wrappedJSObject (Firefox) ; content : celui que voit le
+// script de contenu sous Firefox, toujours rejeté.
+function fakeLocks({firefox = false, page = false} = {}) {
+  if (firefox && !page) {
+    return {request: (name, opts, cb) => Promise.resolve().then(() => (typeof opts === "function" ? opts : cb)({name})).then(() => Promise.reject(new Error(DENIED)))};
+  }
   const held = new Map(); // nom → file des rappels en attente
   async function run(name, cb) {
     try {
+      if (page && !exported.has(cb)) throw new Error("Permission denied to access object");
       const value = cb({name});
-      if (firefox && value && typeof value.then === "function" && !(value instanceof PagePromise)) {
-        throw new Error('Permission denied to access property "then"');
+      if (page && value && typeof value.then === "function" && !(value instanceof PagePromise)) {
+        throw new Error(DENIED);
       }
       return await value;
     } finally {
@@ -41,11 +52,13 @@ function setup({firefox = false} = {}) {
   globalThis.window = globalThis;
   Object.defineProperty(globalThis, "navigator", {value: {languages: ["fr-FR"], locks: fakeLocks({firefox})}, configurable: true, writable: true});
   if (firefox) {
-    globalThis.wrappedJSObject = {Promise: PagePromise};
-    globalThis.exportFunction = (fn) => fn;
+    globalThis.wrappedJSObject = {Promise: PagePromise, navigator: {locks: fakeLocks({firefox, page: true})}};
+    globalThis.exportFunction = (fn) => (exported.add(fn), fn);
+    globalThis.cloneInto = (value) => structuredClone(value);
   } else {
     delete globalThis.wrappedJSObject;
     delete globalThis.exportFunction;
+    delete globalThis.cloneInto;
   }
   return loadExtensionModule("extension/src/content/lib/locks.js");
 }

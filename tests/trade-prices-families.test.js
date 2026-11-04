@@ -136,6 +136,19 @@ test("familles : règle, progression, partage", async () => {
   await assert.rejects(core.decodeShareCode("WMT-P1.AAAA", "P"), /incomplet/);
 });
 
+test("familles : recherche au mot exact dans le titre", () => {
+  const t = core.titleHasWords;
+  for (const title of ["Mars", "Bruno Mars", "Mars (planète)", "10 mars 1837"]) assert.ok(t(title, "MARS"), title);
+  for (const title of ["Marseille", "Champ-de-Mars", "(6736) Lièvredemars"]) assert.ok(!t(title, "mars"), title);
+  assert.ok(t("Star Wars, épisode IV : Un nouvel espoir", "star  wars"));
+  assert.ok(!t("Star Warsaw", "star wars"));
+  assert.ok(t("L’Étranger", "l'étranger"));
+  // Caractères spéciaux pris tels quels, pas comme une expression régulière
+  assert.ok(t("C++", "c++"));
+  assert.ok(!t("Mars", "m.rs"));
+  assert.ok(!t("Mars", "  "));
+});
+
 test("codes de profil : aller-retour sans perte", async () => {
   for (const p of BUILTIN_PROFILES) {
     const {payload} = await core.decodeShareCode(await core.encodeShareCode("P", p), "P");

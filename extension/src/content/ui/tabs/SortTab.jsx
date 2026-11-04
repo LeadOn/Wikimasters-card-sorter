@@ -3,6 +3,7 @@ import {useState} from "preact/hooks";
 import {useStore} from "../../lib/store";
 import {sortState, planSort, applySort} from "../../features/sorter";
 import {activeProfiles} from "../../state/profiles";
+import {settings, isOn} from "../../state/settings";
 import {Progress, Notice, ThemeChip, fmt, plural, timeAgo} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
 import {DOUBLON} from "../../../../../core";
@@ -38,11 +39,20 @@ function PlanView({plan}) {
   return (
     <div class="stack">
       <div class="grid-stats">
-        <div class="stat"><div class="k">{plan.newOnly ? L("Cartes non triées", "Unsorted cards") : L("Cartes classées", "Cards sorted")}</div><div class="v">{fmt(plan.scopedCount)}</div></div>
+        <div class="stat"><div class="k">{plan.withThemes === false ? L("Cartes concernées", "Cards involved") : plan.newOnly ? L("Cartes non triées", "Unsorted cards") : L("Cartes classées", "Cards sorted")}</div><div class="v">{fmt(plan.scopedCount)}</div></div>
         <div class="stat"><div class="k">{L("Étiquettes à ajouter", "Tags to add")}</div><div class="v">{fmt(plan.insertCount)}</div></div>
         <div class="stat"><div class="k">{L("Étiquettes à retirer", "Tags to remove")}</div><div class="v">{fmt(plan.deleteCount)}</div></div>
         <div class="stat"><div class="k">{L("Collection", "Collection")}</div><div class="v">{fmt(plan.total)}</div></div>
       </div>
+      {plan.withThemes === false && (
+        <Notice>
+          {L(
+            "Étiquettes de thème désactivées (Réglages → Tri) : seuls Doublon et les étiquettes « Pour : … » sont posés. Les étiquettes de thème déjà présentes ne sont pas touchées.",
+            'Theme tags are off (Settings → Sorting): only Doublon and the "Pour : …" tags are set. Theme tags already present are not touched.',
+          )}
+        </Notice>
+      )}
+      {plan.frozenCount > 0 && <p class="small muted">{L(`${plural(plan.frozenCount, "exemplaire en favori exclu", "exemplaires en favori exclus")} du tri (Réglages → Tri).`, `${plural(plan.frozenCount, "favorite copy", "favorite copies")} left out of sorting (Settings → Sorting).`)}</p>}
       {nothing && <Notice type="ok">{L("Tout est déjà à jour : rien à écrire.", "Everything is up to date: nothing to write.")}</Notice>}
       {plan.upserts.create.length > 0 && (
         <Notice>{L("Étiquettes créées : ", "Tags created: ")}{plan.upserts.create.map((t) => t.name).join(", ")}.</Notice>
@@ -108,6 +118,7 @@ function PlanView({plan}) {
 
 export function SortTab() {
   const s = useStore(sortState);
+  useStore(settings);
   const profiles = activeProfiles();
 
   const preview = async (newOnly) => {
@@ -182,6 +193,8 @@ export function SortTab() {
       <p class="small muted">
         {L("Profils appliqués : ", "Profiles applied: ")}
         {profiles.length ? profiles.map((p) => p.name).join(", ") : L("aucun (ajoutez-en dans l'onglet Profils)", "none (add some in the Profiles tab)")}
+        {!isOn("sortThemes") && L(" · Étiquettes de thème désactivées", " · Theme tags off")}
+        {isOn("skipStarred") && L(" · Favoris exclus", " · Favorites left out")}
         {s.lastRun && L(` · Dernier tri ${timeAgo(s.lastRun.at)} (${plural(s.lastRun.sorted, "carte")})`, ` · Last sort ${timeAgo(s.lastRun.at)} (${plural(s.lastRun.sorted, "card")})`)}
       </p>
 

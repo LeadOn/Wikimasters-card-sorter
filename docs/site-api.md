@@ -23,7 +23,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `GET /api/my-collection?sort=rarity&page=N&stats=0[&tag=…][&q=…]` | `{collection: [{id, card_id, count, starred, is_shiny, obtained_at, tags: [...], card: {...}}], pendingTradeCardIds}` (50 / page) |
 | `GET /api/my-collection/stats?sort=rarity` | `{total, totalUnique, rarityCounts, tagOptions: [{id, name, color, cardCount}]}` |
 | Supabase `user_cards?select=*,cards(*)` | exemplaires du joueur avec la carte complète (résumé compris) |
-| Supabase `tags`, `user_card_tags`, `wishlist_items` | étiquettes, associations, liste de souhaits |
+| Supabase `tags`, `user_card_tags`, `wishlist_items` | étiquettes, associations, liste de souhaits (ajout en lot comme le site : `POST wishlist_items?on_conflict=user_id,card_id`, `Prefer: resolution=ignore-duplicates`, lignes `{user_id, card_id}` ; le site notifie `marketplace_wishlist_listed` quand une carte souhaitée est mise en vente) |
 | `POST /api/user-cards/{id}/discard` (sans corps, `id` d'un exemplaire `user_cards`) | défausse contre 1 WikiBidou ; réponse JSON, `{error}` si refusée (favori verrouillé, carte engagée dans un échange…). Utilisée par le récapitulatif de paquet et les doublons du Marché |
 | `POST /api/user-cards/bulk-discard {card_ids}` | défausse groupée : `{discarded_count, failed}` (non utilisé) |
 
@@ -32,6 +32,8 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | Route | Réponse |
 |---|---|
 | `GET /api/cards?page=N&sort=…&q=…&rarity=…[&wishlist=1]` | `{cards, total, rarityCounts, friendOwners: {card_id: [{username, rarities}]}, ownedCardIds, wishlistCardIds}` — ~2,8 millions de cartes |
+
+Recherche `q` (relevé en novembre 2026) : morceau du titre seulement (« mars » trouve « Marston »), résultats par ordre alphabétique du titre quel que soit `sort`, 50 par page, `total` vide et `searchHasMore` pour la suite. Pour un titre exact, la table `cards` de Supabase répond en ~0,2 s (`wikipedia_title=in.(…)`), et en ~1,5 s pour les homonymes (`wikipedia_title=like.Mars (*`) ; une recherche insensible à la casse (`ilike`) prend ~4 s (pas d'index).
 
 ## Amis
 
@@ -49,7 +51,7 @@ le site et peuvent changer sans préavis : l'extension les regroupe dans `extens
 | `GET /api/marketplace/mine` | `{sellingCount, maxConcurrentAuctions}` |
 | `GET /api/marketplace/{id}` | `{auction, bids}` |
 | `POST /api/marketplace {card_id, base_amount, duration_minutes}` | `{auction_id}` — **`card_id` est l'id de l'exemplaire (`user_cards.id`)**, pas celui de la carte (relevé dans le formulaire du site : `userCardId` → `card_id`) ; avec un id de carte, le site répond que la carte n'est pas possédée. Un favori ne peut pas être mis en vente. Durées : 10, 30, 60, 180, 360, 720 |
-| `POST /api/marketplace/{id}/bid {amount}` | erreurs : `bid_too_low` (+ `min`), `insufficient_balance`, `human_verification_required` |
+| `POST /api/marketplace/{id}/bid {amount}` | erreurs : `bid_too_low` (+ `min`), `insufficient_balance`, `human_verification_required`. Mise minimum (code client du site, relevé en novembre 2026) : `Math.max(Math.ceil(1.1 * current_bid), current_bid + 1)`, ou `base_amount` sans enchère |
 | `GET /api/marketplace/cards/{card_id}/sales?scope=summary` | `{summary: {RARETÉ: {average, count, latest}}, isPro}` — moyenne **hors ventes shiny** (vérifié le 14/10/2026). **~12 s par carte**, souvent en 500 : dernier recours seulement |
 | Supabase `auctions?status=eq.settled_sold&card_id=in.(…)&select=id,card_id,snapshot_rarity,final_price,settled_at,is_shiny&order=card_id,settled_at.desc,id` | ventes conclues, lisibles directement, **par lots de cartes** (pagination 1 000 lignes, `id` en dernier pour un ordre stable). Autres colonnes utiles : `seller_id`, `winner_id`, `base_amount` (mise de départ). Le résumé du site = par rareté, moyenne arrondie des 200 dernières ventes **non shiny**, nombre, dernière vente ; `core/prices.js` → `summarizeSales` le reproduit et garde en plus les 30 derniers prix (médiane, premières ventes ignorées) et un résumé à part des ventes shiny. Lots pondérés par rareté (`priceBatches`) : un lot de cartes rares trop gros dépasse le délai du serveur (`57014`). |
 | Supabase `auctions?select=id,card_id,snapshot_rarity,final_price,settled_at,is_shiny,seller_id,winner_id&status=eq.settled_sold&seller_id=eq.{moi}&order=settled_at.desc,id.asc` (puis `winner_id=eq.{moi}`) | mes ventes, puis mes achats conclus : historique de la page Stonks (pagination 1 000 lignes, dédoublonnée par `id` ; ~4 s chacune). Pas de commission sur les ventes : la notification `marketplace_auction_sold` annonce « vendue pour N wikibidous » avec N = `final_price` (vérifié le 15/10/2026). Statuts : `active`, `settled_sold`, `settled_unsold` |

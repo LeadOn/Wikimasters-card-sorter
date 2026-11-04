@@ -85,3 +85,32 @@ test("profils : les tags « Pour : … » gérés suivent les profils actifs", (
   const a = core.computeAssignments(collection, {profiles});
   assert.ok(a.find((x) => x.userCard.id === "u2").tags.includes("Pour : Ana"));
 });
+
+test("favoris exclus du tri (frozen) : aucune étiquette ajoutée ni retirée, ils comptent pour Doublon", () => {
+  const assignments = core.computeAssignments(collection);
+  // u2 (favori) et u3 : même carte. u1 (favori) triée à la main en Sports.
+  const frozen = new Set(["u1", "u2"]);
+  const current = new Map([["t-geo", new Set()], ["t-sport", new Set(["u1"])]]);
+  for (const newOnly of [true, false]) {
+    const plan = core.planChanges(assignments, tags, current, {newOnly, managed, frozen});
+    const touched = [...plan.toInsert.map((i) => i.userCardId), ...plan.toDelete.flatMap((d) => d.ids)];
+    assert.ok(!touched.includes("u1") && !touched.includes("u2"), `aucun favori touché (newOnly ${newOnly})`);
+    assert.ok(plan.toInsert.some((i) => i.name === "Doublon" && i.userCardId === "u3"), "l'autre exemplaire reste un doublon");
+    if (newOnly) assert.ok(!plan.fresh.has("u2"), "un favori n'est pas compté parmi les cartes à trier");
+  }
+});
+
+test("tri sans étiquettes de thème : seuls Doublon et « Pour : … » sont gérés", () => {
+  const profiles = [{name: "Ana", color: "#123456", rules: [{theme: "Sports"}]}];
+  const m = core.managedTags({profiles, withThemes: false});
+  assert.deepEqual(Object.keys(m).sort(), ["Doublon", "Pour : Ana"]);
+  const a = core.computeAssignments(collection, {profiles, withThemes: false});
+  const byId = Object.fromEntries(a.map((x) => [x.userCard.id, x.tags]));
+  assert.deepEqual(byId.u1, []);
+  assert.deepEqual(byId.u2.sort(), ["Doublon", "Pour : Ana"], "le profil s'évalue toujours avec le thème calculé");
+  // Les étiquettes de thème déjà posées ne sont plus gérées : jamais retirées, même en mode complet
+  const current = new Map([["t-sport", new Set(["u1", "u2", "u3"])]]);
+  const plan = core.planChanges(a, tags, current, {newOnly: false, managed: m});
+  assert.deepEqual(plan.toDelete, []);
+  assert.ok(!plan.toInsert.some((i) => i.name === "Sports"));
+});

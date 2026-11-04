@@ -49,12 +49,14 @@ TRI AUTOMATIQUE
 • Un thème par carte (Histoire, Sciences, Sports, Pop-Culture…), déduit de la description Wikipédia et posé en étiquette WikiMasters.
 • « Trier les nouvelles cartes » depuis la page Collection : aperçu, puis application en un clic. Vos corrections et vos étiquettes personnelles ne sont jamais modifiées.
 • Étiquette « Doublon » sur les cartes possédées en plusieurs exemplaires, et « Pour : pseudo » sur celles qui intéressent un ami.
-• En option : tri des cartes dès l'ouverture d'un paquet.
+• Vous aviez déjà classé vos cartes avec vos propres étiquettes ? Reprenez-les comme thèmes, sans retrier toute la collection.
+• Au choix : tri sans thèmes (seulement « Doublon » et « Pour : … »), favoris laissés hors du tri, tri des cartes dès l'ouverture d'un paquet.
 
 FILTRES DE TOUTE LA COLLECTION
 • Doublons, cartes sans image, GIF : des critères cumulables, sur toute la collection et pas seulement la page affichée.
 • Par vente : cartes jamais vendues, ou vendues entre X et Y ₩.
 • Par mots-clés à inclure ou à exclure, par rareté et par thème.
+• Classées par rareté ou par valeur, croissante ou décroissante.
 • Les cartes trouvées se mettent aux enchères ou se défaussent une à une ou en lot.
 
 PRIX ET MARCHÉ
@@ -63,7 +65,7 @@ PRIX ET MARCHÉ
 • Le titre de l'onglet d'une enchère affiche le temps restant et si vous êtes en tête (✓) ou surenchéri (✗), et clignote quand quelqu'un surenchérit : surveillez l'enchère depuis un autre onglet.
 • Pastilles « bonne affaire » et « trop cher » sur le marché.
 • Valeur de votre collection et vos cartes les plus chères.
-• Suivi de vos enchères, surenchère en un clic (avec confirmation), alerte avant la fin.
+• Suivi de vos enchères, surenchère en un clic à la mise minimum du site (avec confirmation), alerte avant la fin.
 
 STONKS : VOTRE HISTORIQUE DE TRADING
 • Une page « Stonks » dans le menu du site : vos achats et ventes aux enchères, par jour, semaine ou mois.
@@ -83,7 +85,9 @@ PAQUETS
 • « Tout ouvrir » : seulement sur votre clic, après confirmation. Aucune ouverture automatique.
 
 FAMILLES
-• Groupes de cartes à compléter, choisies une à une ou remplies par une recherche, avec les cartes manquantes en vente. Partageables par code.
+• Groupes de cartes à compléter, choisies une à une ou remplies par une recherche. Partageables par code.
+• Recherche au mot exact : la carte « Mars » et ses homonymes en tête, au lieu de 30 pages de « Marseille » et de « 10 mars ».
+• Cartes manquantes en vente, ou ajoutées en un clic à votre liste de souhaits : le site vous prévient quand l'une d'elles est mise en vente.
 
 SUCCÈS
 • Tous vos succès, leur progression (ex. 10 081 / 30 000 cartes) et leurs récompenses en WikiBidous.
@@ -125,12 +129,14 @@ AUTOMATIC SORTING
 • One theme per card (history, science, sports, pop culture…), deduced from the Wikipedia description and stored as a WikiMasters tag. Theme names can be renamed in the settings.
 • "Sort new cards" from the Collection page: preview, then apply in one click. Your fixes and your own tags are never changed.
 • A "Doublon" tag on cards you own more than once, and "Pour : name" on cards a friend would like.
-• Optional: sort cards as soon as a pack is opened.
+• Already sorted your cards with your own tags? Turn them into themes instead of re-sorting the whole collection.
+• Optional: sorting without themes (only "Doublon" and "Pour : …"), favorites left out of sorting, sorting cards as soon as a pack is opened.
 
 FILTERS ACROSS YOUR WHOLE COLLECTION
 • Duplicates, cards without an image, GIFs: combinable criteria, across the whole collection, not just the page shown.
 • By sales: cards never sold, or sold between X and Y ₩.
 • By keywords to include or exclude, by rarity and by theme.
+• Ordered by rarity or by value, high to low or low to high.
 • Matching cards can be put up for auction or discarded one by one or in bulk.
 
 PRICES AND MARKET
@@ -139,7 +145,7 @@ PRICES AND MARKET
 • An auction's tab title shows the time left and whether you lead (✓) or were outbid (✗), and flashes when someone outbids you: keep an eye on it from another tab.
 • "Good deal" and "overpriced" badges on the market.
 • Your collection's value and your most valuable cards.
-• Your auctions at a glance, one-click outbid (with confirmation), alert before the end.
+• Your auctions at a glance, one-click outbid at the site's minimum bid (with confirmation), alert before the end.
 
 STONKS: YOUR TRADING HISTORY
 • A "Stonks" page in the site menu: your auction purchases and sales, by day, week or month.
@@ -159,7 +165,9 @@ PACKS
 • "Open all": only on your click, after confirmation. Packs are never opened automatically.
 
 FAMILIES
-• Sets of cards to complete, hand-picked or filled from a search, with missing cards on sale. Shareable by code.
+• Sets of cards to complete, hand-picked or filled from a search. Shareable by code.
+• Exact word search: the "Mars" card and its namesakes first, instead of 30 pages of "Marseille" and "10 mars".
+• Missing cards on sale, or added to your wishlist in one click: the site lets you know when one of them is put up for sale.
 
 ACHIEVEMENTS
 • All your achievements, their progress (e.g. 10,081 / 30,000 cards) and their WikiBidou rewards.

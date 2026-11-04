@@ -298,3 +298,32 @@ test("extension : couleurs choisies avant l'éditeur reprises dans la liste, tri
     delete globalThis.chrome;
   }
 });
+
+test("étiquettes du joueur reprises comme thèmes : correspondance et application", () => {
+  const list = core.defaultThemeList();
+  assert.equal(core.matchTagSlot(list, "Sport"), "Sports");
+  assert.equal(core.matchTagSlot(list, "littérature"), "Arts & Littérature");
+  assert.equal(core.matchTagSlot(list, "Autres"), "#other");
+  assert.equal(core.matchTagSlot(list, "Politique"), null, "deux candidats : pas de choix automatique");
+  assert.equal(core.matchTagSlot(list, "Musique"), null);
+
+  const next = core.importTagThemes(list, [
+    {name: "Sport", color: "#ff0000", target: "Sports"},
+    {name: "Musique", color: "#00ff00", target: "new"},
+    {name: "Jeux vidéo", color: "#0000ff", target: "new"},
+    {name: "Politique monde", color: "#111111", target: "Politique#intl"},
+    {name: "Divers", color: "nimporte", target: "#other"},
+  ]);
+  assert.notEqual(next, list, "nouvelle liste, l'ancienne n'est pas modifiée");
+  assert.equal(list.themes.find((t) => t.id === "Sports").name, "Sports");
+  const sport = next.themes.find((t) => t.id === "Sports");
+  assert.deepEqual([sport.name, sport.color, sport.kw], ["Sport", "#ff0000", list.themes.find((t) => t.id === "Sports").kw], "mots-clés gardés");
+  const added = next.themes.slice(-2);
+  assert.deepEqual(added.map((t) => [t.name, t.kw]), [["Musique", "musiques?"], ["Jeux vidéo", "jeux vidéo"]]);
+  assert.deepEqual(next.themes.find((t) => t.id === "Politique").split.intl, {name: "Politique monde", color: "#111111"});
+  assert.equal(next.other.name, "Divers");
+  assert.deepEqual(core.validateThemes(next), [], "liste enregistrable telle quelle");
+  // Le moteur pose les noms du joueur
+  assert.equal(core.categorize({wikipedia_title: "Zinédine Zidane", category: "footballeur français", summary: ""}, {themes: next})[0], "Sport");
+  assert.deepEqual(core.storeThemes(next).renames, {Sports: "Sport", "Politique Internationale": "Politique monde", Autre: "Divers"});
+});

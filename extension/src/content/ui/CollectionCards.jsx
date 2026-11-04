@@ -6,7 +6,7 @@
 // d'une carte ouvre la fenêtre du site : onOpen) et onglet « Prix ».
 import {useState, useEffect, useMemo, useRef} from "preact/hooks";
 import {useStore} from "../lib/store";
-import {KINDS, cardsState, loadCards, viewGroups, filterGroups, matchKeywords, parseKeyword, normText, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED} from "../features/collection-view";
+import {KINDS, cardsState, loadCards, viewGroups, filterGroups, matchKeywords, parseKeyword, normText, copiesByCard, keepOnePerCard, discardGroups, sellGroups, copyFor, afterSell, LOCKED, ORDERS, sortGroups} from "../features/collection-view";
 import {pricing, summaryOf, priceVersion, loadPrices, hasFreshPrice} from "../state/prices";
 import {CardTile, Icon, Notice, Paged, Progress, Rarity, fmt, plural} from "./components";
 import {toast, errorMessage} from "./feedback";
@@ -161,6 +161,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
   const [picked, setPicked] = useState(() => new Set()); // clés carte|rareté cochées
   const [running, setRunning] = useState(null); // {label, done, total} : chargement des prix ou défausse
   const [opening, setOpening] = useState(null); // carte en cours d'ouverture dans la fenêtre du site
+  const [order, setOrder] = useState("rarity"); // ORDERS (features/collection-view.js)
   const abort = useRef(null);
   const {kinds, sale, min, max, anyRarity} = filter;
   const keepOne = kinds.includes("doubles");
@@ -201,6 +202,13 @@ export function CollectionCards({filter, onOpen, mini = false}) {
   // Même tableau tant que rien ne change : cocher une carte ne ramène pas la liste à sa première page
   const shown = useMemo(() => (theme && themeCounts.some(([t]) => t === theme) ? filtered.filter((g) => themeOf(g.card) === theme) : filtered), [filtered, theme, themeCounts]);
   const rarityCount = (r) => byQuery.filter((g) => g.rarity === r).length;
+  // Tri par valeur : le prix affiché sur la carte (celui de l'exemplaire qui serait vendu) ; pas de
+  // prix pour le filtre « jamais vendues »
+  const byValue = sale !== "never" && order !== "rarity";
+  const priceOf = (g) => pricing(g.card_id, g.rarity, {shiny: freeCopy(g.rows)?.is_shiny}).price;
+  const sorted = useMemo(() => (byValue ? sortGroups(shown, order, priceOf) : shown), [shown, byValue, order, v]);
+  const unpriced = useMemo(() => (byValue ? shown.filter((g) => !hasFreshPrice(g.card_id)) : []), [shown, byValue, v]);
+  const unpricedCards = new Set(unpriced.map((g) => g.card_id)).size;
 
   const choosable = shown.filter((g) => freeCopy(g.rows));
   const chosen = choosable.filter((g) => picked.has(keyOf(g)));
@@ -218,13 +226,13 @@ export function CollectionCards({filter, onOpen, mini = false}) {
       return next;
     });
 
-  const loadMissing = async () => {
+  const loadMissing = async (groups = unchecked) => {
     abort.current = new AbortController();
     const label = L("Chargement des prix", "Loading prices");
-    setRunning({label, done: 0, total: uncheckedCards});
+    setRunning({label, done: 0, total: new Set(groups.map((g) => g.card_id)).size});
     try {
       await loadPrices(
-        unchecked.map((g) => ({id: g.card_id, rarity: g.rarity})),
+        groups.map((g) => ({id: g.card_id, rarity: g.rarity})),
         {signal: abort.current.signal, onProgress: (done, total) => setRunning({label, done, total})},
       );
     } catch (e) {
@@ -389,8 +397,30 @@ export function CollectionCards({filter, onOpen, mini = false}) {
             ))}
           </select>
         )}
+        {sale !== "never" && (
+          <select class={`mini-select${order !== "rarity" ? " on" : ""}`} aria-label={L("Ordre", "Order")} value={order} onChange={(e) => setOrder(e.currentTarget.value)}>
+            {ORDERS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
         <span class="filter-aside small muted">{plural(shown.length, L("carte", "card"))}</span>
       </div>
+      {byValue && unpricedCards > 0 && !running && !sale && (
+        <div class="row">
+          <Notice>
+            {L(
+              `${plural(unpricedCards, "carte n'a", "cartes n'ont")} pas de prix récent : ${unpricedCards > 1 ? "elles sont" : "elle est"} classée${unpricedCards > 1 ? "s" : ""} d'après le dernier prix connu, ou en fin de liste.`,
+              `${plural(unpricedCards, "card has", "cards have")} no recent price: ${unpricedCards === 1 ? "it is" : "they are"} ordered by the last known price, or at the end of the list.`,
+            )}
+          </Notice>
+          <button class="btn sm" onClick={() => loadMissing(unpriced)}>
+            {L(`Charger ${plural(unpricedCards, "prix", "prix")}`, `Load ${plural(unpricedCards, "price")}`)}
+          </button>
+        </div>
+      )}
       {uncheckedCards > 0 && !running && (
         <div class="row">
           <Notice type={unknownCount ? "warn" : "info"}>
@@ -401,7 +431,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
                 )
               : L("Certains prix ne sont plus récents : une carte a pu se vendre depuis.", "Some prices are out of date: a card may have sold since.")}
           </Notice>
-          <button class="btn sm" onClick={loadMissing}>
+          <button class="btn sm" onClick={() => loadMissing()}>
             {L(`Charger ${plural(uncheckedCards, "prix", "prix")}`, `Load ${plural(uncheckedCards, "price")}`)}
           </button>
         </div>
@@ -445,7 +475,7 @@ export function CollectionCards({filter, onOpen, mini = false}) {
         </div>
       )}
       <Paged
-        items={shown}
+        items={sorted}
         pageSize={mini ? 24 : 30}
         class="tiles"
         empty={empty}

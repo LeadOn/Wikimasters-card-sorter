@@ -247,3 +247,14 @@ test("mots-clés : au moins un mot inclus (ou tous), aucun mot exclu, sans casse
   assert.equal(parseKeyword(" - "), null);
   assert.equal(parseKeyword(""), null);
 });
+
+test("collection : tri par valeur, cartes sans prix à la fin, ordre par rareté gardé à prix égal", () => {
+  const {view} = setup();
+  const groups = ["a", "b", "c", "d", "e"].map((id) => ({card_id: id}));
+  const prices = {a: 10, b: null, c: 50, d: 10, e: 3};
+  const order = (o) => view.sortGroups(groups, o, (g) => prices[g.card_id]).map((g) => g.card_id).join("");
+  assert.equal(order("value-desc"), "cadeb");
+  assert.equal(order("value-asc"), "eadcb");
+  assert.equal(order("rarity"), "abcde");
+  assert.deepEqual(view.ORDERS.map((o) => o.id), ["rarity", "value-desc", "value-asc"]);
+});

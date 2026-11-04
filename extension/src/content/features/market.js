@@ -77,8 +77,10 @@ export async function refreshBids({withBalance = true} = {}) {
   }
 }
 
-// Mise minimale proposée : un de plus que l'enchère actuelle (le site corrige si besoin avec `min`)
-export const nextBid = (a) => (a.current_bid != null ? a.current_bid + 1 : a.base_amount);
+// Mise minimale, calculée comme le site (« Mise minimum » de la page d'une enchère) : la mise
+// actuelle + 10 % arrondi au supérieur, et au moins + 1 ; le prix de départ s'il n'y a pas encore
+// d'enchère. Même expression que le site, arrondi des flottants compris (1.1 * 100 donne 111).
+export const nextBid = (a) => (a.current_bid != null ? Math.max(Math.ceil(1.1 * a.current_bid), a.current_bid + 1) : a.base_amount);
 
 // Surenchère : appelée seulement après confirmation du joueur. En cas de mise trop basse,
 // renvoie le minimum demandé par le site sans réessayer.

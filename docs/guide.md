@@ -78,7 +78,7 @@ Une barre **Toolbox** apparaît sous la recherche et les filtres :
   - **Cartes** : *Toutes*, ou un ou plusieurs critères **cumulables** : *Doublons* (cartes possédées en plusieurs exemplaires), *Sans image* (ou dont le site a masqué l'image), *GIF*. Cocher *Sans image* et *Doublons* ne garde que les doublons sans image.
   - **Ventes** : *Tous les prix*, *Jamais vendues* (dans aucune rareté, ou dans la rareté de votre exemplaire), ou *Vendues entre …* : un intervalle *de … à … ₩*, bornes incluses, à saisir ou à choisir parmi les tranches proposées (≤ 5, 6–10, 11–25, 26–50, 51–100, > 100 ₩). Laissez une borne vide pour « jusqu'à … » ou « à partir de … » ; des bornes saisies à l'envers sont remises dans l'ordre. Le prix comparé est le prix moyen de vente dans la rareté de votre exemplaire. Les nombres de cette ligne comptent les cartes choisies dans *Cartes*.
   - **Mots-clés** : tapez un mot du titre ou de la description puis *Entrée* (ou *Inclure*) ; `-mot` puis *Entrée* (ou *Exclure*) l'exclut. Le mot filtre la liste dès la saisie. Ajoutez-en autant que voulu : une carte doit contenir au moins un des mots inclus (*Tous les mots*, proposé dès deux mots inclus, les exige tous) et aucun mot exclu. Un clic sur un mot le fait passer d'inclus à exclu ; la croix (ou *Retour arrière* dans le champ vide) le retire. Majuscules et accents sont ignorés, et une partie de mot suffit (« foot » trouve « footballeur »).
-  - **Affiner** : raretés, thème.
+  - **Affiner** : raretés, thème, et l'**ordre** de la liste : par rareté (les plus rares d'abord), ou par **valeur décroissante / croissante**. La valeur est le prix affiché sur la carte (prix du marché dans la rareté de votre exemplaire, « ≈ » compris) ; les cartes sans prix connu vont en fin de liste, et un bouton charge les prix manquants. L'ordre par valeur n'est pas proposé avec *Jamais vendues*.
 
   Les filtres de vente ne comptent que les cartes dont les prix ont été chargés : si certaines n'en ont pas, un bouton charge ceux des cartes concernées.
 
@@ -181,6 +181,11 @@ Deux modes, toujours précédés d'un aperçu qui n'écrit rien :
 
 L'aperçu détaille le nombre de cartes concernées, les étiquettes ajoutées et retirées, la répartition par thème et le détail carte par carte (avec un filtre). Comptez une à deux minutes : la base de WikiMasters est lente.
 
+Deux réglages (onglet *Réglages* → **Tri**) changent ce que pose le tri, y compris le tri automatique des cartes tirées :
+
+- **Étiquettes de thème** (activé par défaut) : coupé, le tri ne pose plus que `Doublon` et les étiquettes « Pour : … ». Les étiquettes de thème déjà sur vos cartes ne sont plus gérées : elles restent en place et aucun tri ne les touche plus (supprimez-les sur le site si vous n'en voulez plus). L'aperçu ne détaille alors que les cartes qui reçoivent une étiquette.
+- **Ne pas trier les favoris** (désactivé par défaut) : un exemplaire mis en favori (étoile du site) ne reçoit ni ne perd aucune étiquette du tri, `Doublon` compris, même au retri complet. Il compte quand même pour signaler les autres exemplaires de la carte en `Doublon`. L'aperçu indique le nombre de favoris laissés de côté. Seule exception : quand le retri complet supprime l'étiquette d'un thème supprimé, elle disparaît aussi des favoris.
+
 ### Profils
 
 Un profil d'intérêts décrit ce que collectionne un joueur. Chaque profil actif ajoute l'étiquette « Pour : pseudo » aux cartes qui lui correspondent, et guide la recherche d'échanges.
@@ -254,10 +259,11 @@ Les prix sont gardés 48 heures (réglable) et réutilisés partout : pastilles,
 Une famille est un groupe de cartes à compléter : « Star Wars », « Grands peintres »…
 
 - **Manuelle** : vous choisissez les cartes une à une, depuis le catalogue ou depuis la fenêtre d'une carte.
+  La recherche du site lit des morceaux de titre et classe ses résultats par ordre alphabétique : « Mars » n'arrive qu'après des centaines de « 10 mars 1837 » ou « Marston ». Cochez **Mot exact dans le titre** : la carte au titre exact et ses homonymes (« Mars », « Mars (planète) », « Mars (Ardèche) »…) s'affichent en tête, puis les cartes dont le titre contient la recherche en mots entiers (« Bruno Mars », pas « Marseille » ni « Champ-de-Mars »). Les pages du site sont parcourues 10 par 10 : *Chercher plus loin* continue, *Arrêter* garde les cartes déjà trouvées.
 - **Intelligente** : remplie par une recherche dans le catalogue du site, affinée par des mots-clés obligatoires, des exclusions, des thèmes et des raretés. *Actualiser* relance la recherche (500 cartes lues au plus).
 - **Depuis une étiquette** : une famille créée à partir des cartes qui portent une de vos étiquettes.
 
-Pour chaque famille : progression (possédées / total), filtre *Toutes / Possédées / Manquantes*, choix de l'image de couverture (étoile), **Manquantes en vente** (les 40 premières cartes manquantes cherchées sur le marché), **En faire une étiquette** (vos exemplaires reçoivent une étiquette personnelle au nom de la famille, que le tri ne touchera jamais), partage par code `WMT-F1.…`. Le code contient la liste des cartes, pas vos possessions.
+Pour chaque famille : progression (possédées / total), filtre *Toutes / Possédées / Manquantes*, choix de l'image de couverture (étoile), **Manquantes en vente** (les 40 premières cartes manquantes cherchées sur le marché), **Manquantes en souhaits** (les cartes manquantes rejoignent votre liste de souhaits WikiMasters, après confirmation : le site vous prévient quand l'une d'elles est mise en vente, et la recherche d'échanges les place en tête ; une carte déjà souhaitée est comptée à part, une pastille « souhaitée » la signale dans la famille ; elles se retirent depuis la liste de souhaits du site), **En faire une étiquette** (vos exemplaires reçoivent une étiquette personnelle au nom de la famille, que le tri ne touchera jamais), partage par code `WMT-F1.…`. Le code contient la liste des cartes, pas vos possessions.
 
 ### Images
 
@@ -319,7 +325,15 @@ L'onglet *Réglages* → **Thèmes de tri** liste les thèmes avec leur couleur.
 - **Séparer France / international** : deux étiquettes, selon la nationalité trouvée dans la description (comme *Politique Française* et *Politique Internationale*) ;
 - **Supprimer** le thème, ou **Rétablir ce thème** s'il a été modifié.
 
-*Ajouter un thème* en crée un nouveau, *Thèmes par défaut* revient à la liste d'origine. Le champ **Essayer** montre, avant d'enregistrer, le thème qu'obtiendrait une carte à partir de sa description (« footballeur danois »). Rien ne change tant que vous ne cliquez pas sur **Enregistrer**. L'étiquette des cartes sans thème reconnu (*Autre*) et la couleur de `Doublon` se règlent au même endroit.
+*Ajouter un thème* en crée un nouveau, *Thèmes par défaut* revient à la liste d'origine.
+
+**Reprendre mes étiquettes** (*Depuis mes étiquettes*) : si vous aviez déjà classé vos cartes avec vos propres étiquettes (« Sport », « Musique »…), faites-en des thèmes plutôt que de tout retrier. La fenêtre liste vos étiquettes personnelles (ni thèmes, ni `Doublon`, ni « Pour : … ») ; pour chacune, choisissez :
+
+- **Remplace le thème …** : le thème prend le nom et la couleur de votre étiquette et garde ses mots-clés. La correspondance est proposée d'office quand elle est évidente (« Sport » → *Sports*, « Littérature » → *Arts & Littérature*) ;
+- **Nouveau thème** : un thème à votre nom, dont le seul mot-clé est ce nom (« musiques? ») ; ajoutez-en d'autres pour qu'il reconnaisse plus de cartes ;
+- **Ne pas reprendre**.
+
+Après **Enregistrer**, les cartes qui portent ces étiquettes comptent comme triées : *Trier mes nouvelles cartes* ne les reclasse pas, et les nouvelles cartes reçoivent vos étiquettes. Un **retri complet**, lui, resynchronise ces étiquettes sur les mots-clés comme pour tout thème, et écrase donc votre classement manuel. Le champ **Essayer** montre, avant d'enregistrer, le thème qu'obtiendrait une carte à partir de sa description (« footballeur danois »). Rien ne change tant que vous ne cliquez pas sur **Enregistrer**. L'étiquette des cartes sans thème reconnu (*Autre*) et la couleur de `Doublon` se règlent au même endroit.
 
 **Partager une liste** : *Exporter* donne la liste affichée en JSON, à copier ou à télécharger (`wikimasters-themes-<date>.json`). *Importer* accepte ce JSON, collé ou choisi dans un fichier : la liste importée remplace celle de l'éditeur, vérifiée comme une saisie (noms en double, expressions invalides ou trop lentes signalés), et n'est enregistrée qu'avec **Enregistrer**. Un thème par défaut renommé dans la liste importée (« Sports » devenu « Sport ») est reconnu : votre étiquette sera renommée au prochain tri, comme si vous l'aviez renommé vous-même. La couleur de `Doublon` n'est pas exportée.
 
@@ -355,6 +369,8 @@ Chaque fonction se coupe indépendamment, dans l'onglet *Réglages* de la Toolbo
 | Pages du site | Enchère dans le titre de l'onglet | activée |
 | Pages du site | Bonnes affaires du marché | activée |
 | Pages du site | Échanges sur le profil d'un ami | activée |
+| Tri | Étiquettes de thème | activée |
+| Tri | Ne pas trier les favoris | désactivée |
 | Paquets | Récapitulatif après un paquet | activée |
 | Paquets | Statistiques de tirage | activée |
 | Paquets | Bouton « Tout ouvrir » | activée |

@@ -1,13 +1,14 @@
 // Éditeur des thèmes de tri (onglet Réglages) : noms, couleurs, mots-clés, ajout, suppression,
-// retour aux thèmes par défaut, import / export en JSON. Les modifications restent un brouillon jusqu'à « Enregistrer » ;
+// retour aux thèmes par défaut, import / export en JSON, reprise des étiquettes du joueur en thèmes. Les modifications restent un brouillon jusqu'à « Enregistrer » ;
 // les étiquettes WikiMasters ne changent qu'au tri suivant (voir core/theme-set.js).
 import {useState, useEffect, useMemo} from "preact/hooks";
 import {useStore} from "../lib/store";
 import {settings} from "../state/settings";
 import {saveThemes, settleThemeTags} from "../state/themes";
-import {Notice, Toggle, Copyable, FileButton, downloadFile, datedFilename, fmt} from "./components";
+import {Notice, Toggle, Copyable, FileButton, Progress, downloadFile, datedFilename, fmt, plural} from "./components";
 import {confirmAction, toast} from "./feedback";
 import {L} from "../../shared/i18n";
+import {myTags} from "../features/families";
 import {
   defaultThemeList,
   resolveThemes,
@@ -20,6 +21,9 @@ import {
   exportThemes,
   importThemes,
   compileThemes,
+  tagSlots,
+  matchTagSlot,
+  importTagThemes,
   explain,
   DOUBLON,
   DOUBLON_COLOR,
@@ -213,6 +217,84 @@ function ImportDialog({onImport, onClose}) {
   );
 }
 
+// Étiquettes posées à la main par le joueur → thèmes (core/theme-set.js, importTagThemes) : ses
+// cartes comptent alors comme triées et les nouvelles cartes reçoivent ses étiquettes. Chaque
+// étiquette devient un nouveau thème, ou donne son nom à un thème existant (mots-clés gardés).
+// Rien n'est enregistré avant « Enregistrer ».
+function TagImportDialog({list, onImport, onClose}) {
+  const [tags, setTags] = useState(null);
+  const [error, setError] = useState(null);
+  const [choice, setChoice] = useState({});
+  useEffect(() => {
+    const taken = new Set(tagSlots(list).map((slot) => slot.name));
+    myTags()
+      .then((rows) => {
+        const mine = rows.filter((t) => t.name !== DOUBLON && !t.name.startsWith("Pour :") && !taken.has(t.name));
+        setTags(mine);
+        setChoice(Object.fromEntries(mine.map((t) => [t.id, matchTagSlot(list, t.name) || "skip"])));
+      })
+      .catch((e) => setError(e?.message || String(e)));
+  }, []);
+  const slots = tagSlots(list);
+  const used = new Set(Object.values(choice));
+  const chosen = (tags || []).filter((t) => choice[t.id] && choice[t.id] !== "skip");
+  const apply = () => {
+    onImport(importTagThemes(list, chosen.map((t) => ({name: t.name, color: t.color, target: choice[t.id]}))));
+    onClose();
+  };
+  return (
+    <div class="modal-wrap" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div class="modal wide">
+        <h3>{L("Reprendre mes étiquettes", "Use my tags")}</h3>
+        <p class="help">
+          {L(
+            "Vous avez déjà classé vos cartes avec vos propres étiquettes ? Faites-en des thèmes : les cartes qui les portent comptent comme triées, et le tri des nouvelles cartes leur pose vos étiquettes. Une étiquette peut remplacer un thème existant (il prend son nom et garde ses mots-clés) ou devenir un nouveau thème, dont le seul mot-clé est son nom : complétez-le avant d'enregistrer.",
+            "Already sorted your cards with your own tags? Turn them into themes: cards that carry them count as sorted, and sorting new cards gives them your tags. A tag can replace an existing theme (which takes its name and keeps its keywords) or become a new theme whose only keyword is its name: add more before saving.",
+          )}
+        </p>
+        <Notice>
+          {L(
+            "Un retri complet resynchronise ensuite ces étiquettes sur les mots-clés, comme tout thème : préférez « Trier mes nouvelles cartes », qui ne touche pas aux cartes déjà triées.",
+            'A full re-sort then resyncs these tags with the keywords, like any theme: prefer "Sort my new cards", which leaves sorted cards alone.',
+          )}
+        </Notice>
+        {error && <Notice type="error">{error}</Notice>}
+        {!tags && !error && <Progress label={L("Lecture de vos étiquettes", "Reading your tags")} done={0} />}
+        {tags && !tags.length && <p class="small muted">{L("Aucune étiquette personnelle à reprendre : toutes vos étiquettes sont déjà des thèmes ou des étiquettes de la Toolbox.", "No personal tag to use: all your tags are already themes or Toolbox tags.")}</p>}
+        {tags?.length > 0 && (
+          <table class="list">
+            <thead>
+              <tr><th>{L("Votre étiquette", "Your tag")}</th><th>{L("Devient", "Becomes")}</th></tr>
+            </thead>
+            <tbody>
+              {tags.map((t) => (
+                <tr key={t.id}>
+                  <td><span class="chip theme" style={{"--c": t.color}}><span class="lbl">{t.name}</span></span></td>
+                  <td>
+                    <select aria-label={L(`Thème pour « ${t.name} »`, `Theme for "${t.name}"`)} value={choice[t.id]} onChange={(e) => setChoice((c) => ({...c, [t.id]: e.currentTarget.value}))}>
+                      <option value="skip">{L("Ne pas reprendre", "Don't use")}</option>
+                      <option value="new">{L("Nouveau thème", "New theme")}</option>
+                      <optgroup label={L("Remplace le thème", "Replaces the theme")}>
+                        {slots.map((slot) => (
+                          <option key={slot.key} value={slot.key} disabled={used.has(slot.key) && choice[t.id] !== slot.key}>{slot.name}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div class="actions">
+          <button class="btn ghost" onClick={onClose}>{L("Annuler", "Cancel")}</button>
+          <button class="btn primary" disabled={!chosen.length} onClick={apply}>{L(`Reprendre ${plural(chosen.length, "étiquette")}`, `Use ${plural(chosen.length, "tag")}`)}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ThemeEditor() {
   const s = useStore(settings);
   const saved = useMemo(() => resolveThemes(s.themes), [s.themes]);
@@ -275,12 +357,14 @@ export function ThemeEditor() {
           <p class="help">{L("Chaque carte reçoit le thème dont les mots-clés correspondent le mieux à sa description. Renommez, recolorez, modifiez ou ajoutez des thèmes : les étiquettes WikiMasters suivent au prochain tri.", "Each card gets the theme whose keywords best match its description. Rename, recolor, edit or add themes: the WikiMasters tags follow at the next sort.")}</p>
         </div>
         <button class="btn sm" onClick={add}>{L("Ajouter un thème", "Add a theme")}</button>
+        <button class="btn sm ghost" onClick={() => setModal("tags")}>{L("Depuis mes étiquettes", "From my tags")}</button>
         <button class="btn sm ghost" onClick={() => setModal("import")}>{L("Importer", "Import")}</button>
         <button class="btn sm ghost" disabled={problems.length > 0} title={problems.length ? L("Corrigez d'abord les problèmes signalés", "Fix the reported problems first") : undefined} onClick={() => setModal("export")}>{L("Exporter", "Export")}</button>
         <button class="btn sm ghost" onClick={resetAll}>{L("Thèmes par défaut", "Default themes")}</button>
       </div>
       {modal === "export" && <ExportDialog list={draft} onClose={() => setModal(null)} />}
       {modal === "import" && <ImportDialog onImport={imported} onClose={() => setModal(null)} />}
+      {modal === "tags" && <TagImportDialog list={draft} onImport={(list) => imported(list, validateThemes(list).map((p) => p.message))} onClose={() => setModal(null)} />}
 
       <table class="list">
         <tbody>

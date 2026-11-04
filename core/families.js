@@ -27,6 +27,15 @@ function matchesFamilyRule(card, rule, {themes = null} = {}) {
   return true;
 }
 
+// Recherche au mot exact : le titre contient la recherche en mots entiers (« Mars » trouve « Mars »,
+// « Bruno Mars », « Mars (planète) », pas « Marseille » ni « Champ-de-Mars »), sans tenir compte des
+// majuscules.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function titleHasWords(title, query) {
+  const q = normalize(query);
+  return Boolean(q) && hasKeyword(normalize(title), escapeRegex(q));
+}
+
 // Carte réduite à ce qu'une famille conserve
 // hide_image : image masquée par le site (true), visible (false) ou inconnu (null). Une carte sans
 // image n'est complétée par une image de Wikimedia que si l'on sait qu'elle n'a pas été masquée.
@@ -94,4 +103,4 @@ function familyFromShare(payload) {
   };
 }
 
-module.exports = {matchesFamilyRule, compactCard, familyProgress, familyToShare, familyFromShare};
+module.exports = {matchesFamilyRule, titleHasWords, compactCard, familyProgress, familyToShare, familyFromShare};

@@ -11,9 +11,11 @@ const {themeSetOf} = require("./theme-set");
 
 // Tags gérés par l'outil, avec leur couleur : thèmes, puis profils actifs, puis Doublon.
 // Les autres tags (créés à la main par le joueur) ne sont jamais touchés.
-function managedTags({profiles = [], themeColors = {}, themes = null} = {}) {
+// withThemes false : tri sans étiquettes de thème (seulement « Pour : … » et Doublon) ; les
+// étiquettes de thème déjà posées ne sont alors plus gérées, donc plus jamais touchées.
+function managedTags({profiles = [], themeColors = {}, themes = null, withThemes = true} = {}) {
   const tags = {};
-  for (const [name, color] of Object.entries(themeSetOf(themes).tags)) tags[name] = themeColors[name] || color;
+  if (withThemes) for (const [name, color] of Object.entries(themeSetOf(themes).tags)) tags[name] = themeColors[name] || color;
   for (const p of profiles) tags[tagForProfile(p)] = p.color || "#64748b";
   tags[DOUBLON] = themeColors[DOUBLON] || DOUBLON_COLOR;
   return tags;
@@ -58,11 +60,13 @@ function countCopies(userCards) {
 // (plusieurs lignes, ou une ligne dont `count` dépasse 1).
 // copies : à fournir (countCopies de toute la collection) quand userCards n'en est qu'une partie,
 // sinon deux exemplaires répartis dans deux parties ne seraient pas vus comme un doublon.
-function computeAssignments(userCards, {profiles = [], manualMapping = null, themes = null, copies = countCopies(userCards)} = {}) {
+// withThemes false : pas de thème (voir managedTags), les profils restent évalués avec le thème calculé.
+function computeAssignments(userCards, {profiles = [], manualMapping = null, themes = null, copies = countCopies(userCards), withThemes = true} = {}) {
   const assignments = [];
   for (const uc of userCards) {
     if (!uc.cards) continue;
     const tags = categorize(uc.cards, {profiles, manualMapping, userCardId: uc.id, themes});
+    if (!withThemes) tags.shift();
     if (uc.cards.id && copies.get(uc.cards.id) > 1) tags.push(DOUBLON);
     assignments.push({userCard: uc, tags: [...new Set(tags)]});
   }
@@ -84,7 +88,11 @@ function managedTagIds(existingTags, managed) {
 // déjà triées gardent leurs tags (corrections manuelles comprises), sauf Doublon, recalculé partout.
 // retired : étiquettes de thèmes retirés (planThemeTags) : comptent comme thème en mode newOnly,
 // vidées puis supprimées en mode complet. existingTags : la liste renvoyée par planThemeTags.
-function planChanges(assignments, existingTags, current, {newOnly = false, managed, themes = null, retired = []}) {
+// frozen : Set(userCardId) d'exemplaires jamais modifiés (favoris exclus du tri) : aucune
+// étiquette gérée ajoutée ni retirée, Doublon compris. Ils comptent toujours dans le nombre
+// d'exemplaires (Doublon sur les autres exemplaires de la carte). Seule exception : la suppression
+// d'une étiquette retirée ou en double, en mode complet, qui retire l'étiquette entière.
+function planChanges(assignments, existingTags, current, {newOnly = false, managed, themes = null, retired = [], frozen = null}) {
   const wanted = Object.fromEntries(Object.keys(managed).map((name) => [name, new Set()]));
   for (const {userCard, tags} of assignments) for (const t of tags) wanted[t]?.add(userCard.id);
 
@@ -97,9 +105,13 @@ function planChanges(assignments, existingTags, current, {newOnly = false, manag
     const sorted = new Set();
     const themeTagIds = Object.entries(idsByName).flatMap(([name, ids]) => (isThemeTag(name, themes) ? ids : []));
     for (const id of [...themeTagIds, ...retired.map((t) => t.id)]) for (const ucId of current.get(id) || []) sorted.add(ucId);
-    fresh = new Set(assignments.map((a) => a.userCard.id).filter((id) => !sorted.has(id)));
+    fresh = new Set(assignments.map((a) => a.userCard.id).filter((id) => !sorted.has(id) && !frozen?.has(id)));
     inScope = (name, ucId) => name === DOUBLON || fresh.has(ucId);
     mayDelete = (name) => name === DOUBLON;
+  }
+  if (frozen?.size) {
+    const scope = inScope;
+    inScope = (name, ucId) => !frozen.has(ucId) && scope(name, ucId);
   }
 
   const toInsert = [];

@@ -199,6 +199,64 @@ const joinPattern = (lines) =>
 // Vérification
 // ---------------------------------------------------------------------------
 
+// Étiquettes du joueur reprises comme thèmes (il les a posées à la main avant d'utiliser le tri) :
+// chaque étiquette choisie devient un thème, ou donne son nom à un thème existant (ses mots-clés
+// sont gardés). Ses cartes comptent alors comme triées, et le tri des nouvelles cartes pose ses
+// étiquettes à lui.
+
+// Mots d'un nom, sans accents ni pluriel, pour rapprocher « Sport » de « Sports » ou
+// « Littérature » de « Arts & Littérature »
+const nameWords = (name) =>
+  String(name || "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2)
+    .map((w) => w.replace(/[sx]$/, ""));
+
+// Étiquette (clé de tagSlots) dont le nom correspond à `tagName` : tous ses mots se retrouvent dans
+// le nom de l'étiquette, sans ambiguïté (un seul candidat). null sinon.
+function matchTagSlot(list, tagName) {
+  const words = nameWords(tagName);
+  if (!words.length) return null;
+  const hits = tagSlots(list).filter((slot) => {
+    const own = new Set(nameWords(slot.name));
+    return words.every((w) => own.has(w));
+  });
+  return hits.length === 1 ? hits[0].key : null;
+}
+
+// Mot-clé de départ d'un thème créé depuis une étiquette : son nom, en mot entier (un mot seul
+// accepte son pluriel). À compléter par le joueur.
+const escapeRegex = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function keywordFromName(name) {
+  const n = name.trim().toLowerCase().replace(/\s+/g, " ");
+  return /^[a-zà-ÿœæ]+$/.test(n) && !/[sx]$/.test(n) ? `${escapeRegex(n)}s?` : escapeRegex(n);
+}
+
+// choices : [{name, color, target}] ; target : "new" (nouveau thème) ou la clé d'une étiquette de
+// la liste (tagSlots : id d'un thème, « id#intl » pour la partie internationale, « #other »), qui
+// prend le nom et la couleur de l'étiquette du joueur. Renvoie une nouvelle liste.
+function importTagThemes(list, choices) {
+  const next = clone(list);
+  for (const {name, color, target} of choices) {
+    const tag = {name, color: isColor(color) ? color : FALLBACK_COLOR};
+    if (target === "new") {
+      next.themes.push({...newTheme(name, tag.color), kw: keywordFromName(name)});
+    } else if (target === "#other") {
+      next.other = tag;
+    } else {
+      const [id, part] = target.split("#");
+      const theme = next.themes.find((t) => t.id === id);
+      if (!theme) continue;
+      if (theme.split) theme.split[part === "intl" ? "intl" : "fr"] = tag;
+      else Object.assign(theme, tag);
+    }
+  }
+  return next;
+}
+
 // Problèmes d'une liste modifiée : [{id, message}] (id null : la liste entière ou « Autre »).
 function validateThemes(list) {
   const problems = [];
@@ -359,6 +417,8 @@ const themeAliases = (set, name) => (set.origin[name] ? [name, set.origin[name]]
 
 module.exports = {
   defaultThemeList,
+  matchTagSlot,
+  importTagThemes,
   resolveThemes,
   storeThemes,
   settleThemes,

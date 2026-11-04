@@ -13,6 +13,8 @@ import {
   addCard,
   removeCard,
   searchCatalog,
+  searchCatalogExact,
+  searchExactTitle,
   refreshSmartFamily,
   missingOnMarket,
   exportFamily,
@@ -20,6 +22,10 @@ import {
   familyToTag,
   familyFromTag,
   myTags,
+  wishlist,
+  loadWishlist,
+  planWishlist,
+  addToWishlist,
 } from "../../features/families";
 import {CardRow, Icon, Paged, Progress, Notice, Copyable, fmt, plural, duration} from "../components";
 import {confirmAction, toast, errorMessage} from "../feedback";
@@ -95,32 +101,90 @@ function RuleEditor({family, onClose}) {
   );
 }
 
+// Pages lues par clic en recherche au mot exact
+const EXACT_PAGES = 10;
+
 function AddCards({family, onClose}) {
   const [q, setQ] = useState("");
+  const [exact, setExact] = useState(false);
   const [page, setPage] = useState(0);
+  // Mot exact : cartes cumulées, page où reprendre, pages lues
   const [res, setRes] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(null);
+  const abort = useRef(null);
+  useEffect(() => () => abort.current?.abort(), []);
   const fam = useStore(families).list.find((f) => f.id === family.id) || family;
   const inFamily = new Set(fam.cards.map((c) => c.id));
-  const search = async (p = 0) => {
-    if (q.trim().length < 2) return;
-    setBusy(true);
+  const run = async (task) => {
+    abort.current?.abort();
+    const ctrl = (abort.current = new AbortController());
+    setBusy({pages: 0, found: 0});
     try {
-      setRes(await searchCatalog(q.trim(), {page: p}));
-      setPage(p);
+      await task(ctrl.signal);
     } catch (e) {
-      toast(errorMessage(e), {type: "error"});
+      if (!ctrl.signal.aborted) toast(errorMessage(e), {type: "error"});
     } finally {
-      setBusy(false);
+      if (abort.current === ctrl) setBusy(null);
     }
+  };
+  const search = (p = 0) =>
+    q.trim().length >= 2 &&
+    run(async (signal) => {
+      setRes(await searchCatalog(q.trim(), {page: p, signal}));
+      setPage(p);
+    });
+  // Mot exact : titre exact et homonymes « Mars (…) » en tête, lus dans le catalogue, puis les titres
+  // qui contiennent la recherche en mots entiers, page par page. more = continuer à partir de la
+  // dernière page lue, en gardant les cartes trouvées.
+  const searchExact = (more = false) =>
+    q.trim().length >= 2 &&
+    run(async (signal) => {
+      const from = more ? res : {cards: [], nextPage: 0, scanned: 0};
+      if (!more) setRes(null);
+      // Sans la lecture du catalogue, la recherche page par page suffit
+      const titles = more ? [] : searchExactTitle(q.trim(), {signal}).catch(() => []);
+      const r = await searchCatalogExact(q.trim(), {page: from.nextPage, maxPages: EXACT_PAGES, signal, onProgress: setBusy});
+      const found = [...from.cards, ...(await titles), ...r.cards];
+      // Recherche remplacée (case décochée, nouvelle recherche) : résultat périmé
+      if (abort.current?.signal !== signal) return;
+      const seen = new Set();
+      setRes({cards: found.filter((c) => !seen.has(c.id) && seen.add(c.id)), nextPage: r.nextPage, hasMore: r.hasMore, scanned: from.scanned + (r.nextPage - from.nextPage)});
+    });
+  const submit = () => (exact ? searchExact(false) : search(0));
+  const switchExact = (on) => {
+    abort.current?.abort();
+    abort.current = null;
+    setExact(on);
+    setRes(null);
+    setPage(0);
   };
   return (
     <Modal title={L(`Ajouter des cartes à « ${fam.name} »`, `Add cards to "${fam.name}"`)} wide onClose={onClose}>
-      <form class="row" onSubmit={(e) => (e.preventDefault(), search(0))}>
+      <form class="row" onSubmit={(e) => (e.preventDefault(), submit())}>
         <input type="search" style={{flex: 1}} placeholder={L("Titre, description…", "Title, description…")} value={q} onInput={(e) => setQ(e.currentTarget.value)} />
-        <button class="btn primary" disabled={busy || q.trim().length < 2}>{L("Rechercher", "Search")}</button>
+        <button class="btn primary" disabled={Boolean(busy) || q.trim().length < 2}>{L("Rechercher", "Search")}</button>
       </form>
-      {busy && <Progress label={L("Recherche", "Searching")} done={0} />}
+      <label class="check">
+        <input type="checkbox" checked={exact} onChange={(e) => switchExact(e.currentTarget.checked)} /> {L("Mot exact dans le titre", "Exact word in the title")}
+      </label>
+      {exact && (
+        <p class="small muted">
+          {L(
+            "La carte au titre exact et ses homonymes (« Mars », « Mars (Ardèche) »…) en tête, puis les cartes dont le titre contient la recherche en mots entiers (« Bruno Mars », pas « Marseille »), en parcourant les pages du site jusqu'à 10 à la fois.",
+            "The card with the exact title and its namesakes (\"Mars\", \"Mars (Ardèche)\"…) first, then cards whose title contains the search as whole words (\"Bruno Mars\", not \"Marseille\"), going through the site's pages up to 10 at a time.",
+          )}
+        </p>
+      )}
+      {busy && (exact ? (
+        <div class="row">
+          <div style={{flex: 1}}>
+            <Progress label={L(`Recherche au mot exact · ${plural(busy.found, "carte trouvée", "cartes trouvées")}`, `Exact word search · ${plural(busy.found, "card found", "cards found")}`)} done={busy.pages} total={EXACT_PAGES} />
+          </div>
+          <button class="btn sm" onClick={() => abort.current?.abort()}>{L("Arrêter", "Stop")}</button>
+        </div>
+      ) : (
+        <Progress label={L("Recherche", "Searching")} done={0} />
+      ))}
       {res && (
         <div class="cards" style={{maxHeight: "55vh", overflow: "auto"}}>
           {res.cards.map((c) => (
@@ -130,13 +194,26 @@ function AddCards({family, onClose}) {
               action={inFamily.has(c.id) ? <button class="btn sm ghost" onClick={() => removeCard(fam.id, c.id)}>{L("Retirer", "Remove")}</button> : <button class="btn sm primary" onClick={() => addCard(fam.id, c)}>{L("Ajouter", "Add")}</button>}
             />
           ))}
+          {exact && !res.cards.length && <p class="small muted">{L("Aucune carte au mot exact dans les pages lues.", "No exact word match in the pages read.")}</p>}
         </div>
       )}
-      {res && (
+      {res && !exact && (
         <div class="row">
-          <button class="btn sm" disabled={!page || busy} onClick={() => search(page - 1)}>{L("Précédent", "Previous")}</button>
+          <button class="btn sm" disabled={!page || Boolean(busy)} onClick={() => search(page - 1)}>{L("Précédent", "Previous")}</button>
           <span class="small muted">{L("Page", "Page")} {page + 1}</span>
-          <button class="btn sm" disabled={!res.hasMore || busy} onClick={() => search(page + 1)}>{L("Suivant", "Next")}</button>
+          <button class="btn sm" disabled={!res.hasMore || Boolean(busy)} onClick={() => search(page + 1)}>{L("Suivant", "Next")}</button>
+          <span class="spacer" />
+          <span class="small muted">{L(`${plural(fam.cards.length, "carte")} dans la famille`, `${plural(fam.cards.length, "card")} in the family`)}</span>
+        </div>
+      )}
+      {res && exact && (
+        <div class="row">
+          <button class="btn sm" disabled={!res.hasMore || Boolean(busy)} onClick={() => searchExact(true)}>{L("Chercher plus loin", "Search further")}</button>
+          <span class="small muted">
+            {res.hasMore
+              ? L(`${plural(res.scanned, "page lue", "pages lues")}`, `${plural(res.scanned, "page read", "pages read")}`)
+              : L(`Toutes les pages lues (${res.scanned})`, `All pages read (${res.scanned})`)}
+          </span>
           <span class="spacer" />
           <span class="small muted">{L(`${plural(fam.cards.length, "carte")} dans la famille`, `${plural(fam.cards.length, "card")} in the family`)}</span>
         </div>
@@ -188,6 +265,12 @@ function FamilyDetail({family, onBack}) {
   const [filter, setFilter] = useState("all");
   const [modal, setModal] = useState(null);
   const [refresh, setRefresh] = useState(null);
+  const [wishing, setWishing] = useState(null); // ajout à la liste de souhaits : {done, total}
+  const wished = useStore(wishlist).ids;
+  // Liste de souhaits lue à l'ouverture, pour la pastille « souhaitée » des cartes manquantes
+  useEffect(() => {
+    loadWishlist().catch(() => {});
+  }, []);
   const p = familyProgress(family, ids);
   const cards = family.cards.filter((c) => (filter === "owned" ? ids.has(c.id) : filter === "missing" ? !ids.has(c.id) : true));
 
@@ -200,6 +283,34 @@ function FamilyDetail({family, onBack}) {
       toast(errorMessage(e), {type: "error"});
     } finally {
       setRefresh(null);
+    }
+  };
+  // Cartes manquantes → liste de souhaits du site, après confirmation (collection et liste relues)
+  const toWishlist = async () => {
+    setWishing({done: 0, total: null});
+    try {
+      const plan = await planWishlist(family);
+      setWishing(null);
+      if (!plan.toAdd.length) {
+        toast(L("Toutes les cartes manquantes de cette famille sont déjà dans votre liste de souhaits.", "All of this family's missing cards are already in your wishlist."), {type: "ok"});
+        return;
+      }
+      const ok = await confirmAction({
+        title: L(`Ajouter ${plural(plan.toAdd.length, "carte")} à votre liste de souhaits ?`, `Add ${plural(plan.toAdd.length, "card")} to your wishlist?`),
+        body: L(
+          `Les cartes manquantes de « ${family.name} »${plan.wished ? ` (${plural(plan.wished, "autre est déjà souhaitée", "autres sont déjà souhaitées")})` : ""} rejoignent votre liste de souhaits WikiMasters : le site vous préviendra quand l'une d'elles sera mise en vente, et la recherche d'échanges les placera en tête. Elles se retirent depuis la liste de souhaits du site.`,
+          `The missing cards of "${family.name}"${plan.wished ? ` (${plural(plan.wished, "other is", "others are")} already wishlisted)` : ""} join your WikiMasters wishlist: the site will notify you when one of them is put up for sale, and trade search will list them first. Remove them from the site's wishlist.`,
+        ),
+        confirm: L("Ajouter", "Add"),
+      });
+      if (!ok) return;
+      setWishing({done: 0, total: plan.toAdd.length});
+      const n = await addToWishlist(plan.toAdd.map((c) => c.id), {onProgress: (done, total) => setWishing({done, total})});
+      toast(L(`${plural(n, "carte ajoutée", "cartes ajoutées")} à votre liste de souhaits.`, `${plural(n, "card")} added to your wishlist.`), {type: "ok"});
+    } catch (e) {
+      toast(e?.added ? L(`${errorMessage(e)} (${plural(e.added, "carte ajoutée", "cartes ajoutées")} avant l'erreur : relancez pour terminer.)`, `${errorMessage(e)} (${plural(e.added, "card")} added before the error: run it again to finish.)`) : errorMessage(e), {type: "error"});
+    } finally {
+      setWishing(null);
     }
   };
   const toTag = async () => {
@@ -249,6 +360,9 @@ function FamilyDetail({family, onBack}) {
             <button class="btn sm primary" onClick={() => setModal("add")}>{L("Ajouter des cartes", "Add cards")}</button>
           )}
           <button class="btn sm" disabled={!p.missing} onClick={() => setModal("market")}>{L("Manquantes en vente", "Missing for sale")}</button>
+          <button class="btn sm" disabled={!p.missing || Boolean(wishing)} onClick={toWishlist}>
+            <Icon name="heart" size={14} /> {L("Manquantes en souhaits", "Wishlist missing")}
+          </button>
           <button class="btn sm" disabled={!p.owned} onClick={toTag}>{L("En faire une étiquette", "Turn into a tag")}</button>
           <button class="btn sm" onClick={() => setModal("export")}>{L("Partager", "Share")}</button>
           <button
@@ -278,6 +392,13 @@ function FamilyDetail({family, onBack}) {
             {family.rule.rarities?.length ? L(` · raretés : ${family.rule.rarities.join(", ")}`, ` · rarities: ${family.rule.rarities.join(", ")}`) : ""}
           </p>
         )}
+        {wishing && (
+          <Progress
+            label={wishing.total == null ? L("Lecture de votre collection et de votre liste de souhaits", "Reading your collection and wishlist") : L("Ajout à la liste de souhaits", "Adding to the wishlist")}
+            done={wishing.done}
+            total={wishing.total}
+          />
+        )}
         {refresh && <Progress label={L(`Recherche dans le catalogue · ${plural(refresh.found, "carte retenue", "cartes retenues")}`, `Searching the catalog · ${plural(refresh.found, "card kept", "cards kept")}`)} done={refresh.page} total={refresh.maxPages} />}
       </div>
       <div class="chips">
@@ -293,7 +414,11 @@ function FamilyDetail({family, onBack}) {
             key={c.id}
             card={{...c, wikipedia_title: c.title}}
             {...pricing(c.id, c.rarity)}
-            badges={[ids.has(c.id) ? {label: L("possédée", "owned"), type: "ok", icon: "check"} : {label: L("manquante", "missing"), type: "warn"}, family.cover === c.id && {label: L("couverture", "cover"), type: "accent", icon: "star"}]}
+            badges={[
+              ids.has(c.id) ? {label: L("possédée", "owned"), type: "ok", icon: "check"} : {label: L("manquante", "missing"), type: "warn"},
+              !ids.has(c.id) && wished?.has(c.id) && {label: L("souhaitée", "wishlisted"), type: "danger", icon: "heart"},
+              family.cover === c.id && {label: L("couverture", "cover"), type: "accent", icon: "star"},
+            ]}
             action={
               <span class="row" style={{gap: "2px"}}>
                 <button class="btn sm ghost" title={L("Image de la famille", "Family image")} aria-label={L("Image de la famille", "Family image")} onClick={() => setCover(family.id, c.id)}>
